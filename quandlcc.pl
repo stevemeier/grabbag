@@ -37,10 +37,6 @@ if (not(defined($ARGV[0]))) {
   $value = $ARGV[0];
 }
 
-# Variable we need later
-my $multiplier;
-my $latest;
-
 # Setup LWP objects
 my $ua = LWP::UserAgent->new(timeout => 10, agent => 'curl/7.43.0');
    $ua->default_header('Accept' => 'application/json');
@@ -150,6 +146,8 @@ exit;
 
 sub convert {
   my ($lvalue, $lin, $lout) = @_;
+  my $multiplier;
+
   if (defined($apimap{$lin}{$lout})) {
     # We can do a straight conversion
     $multiplier = &get_latest($apimap{$lin}{$lout});
@@ -175,6 +173,7 @@ sub convert {
 
 sub get_latest {
   my $endpoint = shift;
+  my $latest;
 
   if ($apikey) { 
     &debug("Using API key\n");

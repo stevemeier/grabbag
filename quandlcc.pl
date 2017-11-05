@@ -20,10 +20,12 @@ my $baseurl = "https://www.quandl.com/api/v3/datasets/";
 
 # Parse command line options
 my ($value, $in, $out, $debug, $test);
-GetOptions( "in=s"  => \$in,
-	    "out=s" => \$out,
-            "debug" => \$debug,
-            "test"  => \$test );
+my $decimal = 2;
+GetOptions( "in=s"      => \$in,
+	    "out=s"     => \$out,
+	    "decimal=s" => \$decimal,
+            "debug"     => \$debug,
+            "test"      => \$test );
 
 # Ensure that currency codes are lower-case
 $in  = lc($in);
@@ -133,7 +135,7 @@ if ($test) {
   foreach my $l1 (sort(keys(%apimap))) {
     foreach my $l2 (sort(keys(%{$apimap{$l1}}))) {
       print "$l1 -> $l2\t";
-      print &convert($value, $l1, $l2);
+      printf('%.'.$decimal."f\n", &convert($value, $l1, $l2));
       sleep 1;
     }
   }
@@ -141,7 +143,7 @@ if ($test) {
 }
 
 # Do the single conversion
-print &convert($value, $in, $out);
+printf('%.'.$decimal."f\n", &convert($value, $in, $out));
 exit;
 
 sub convert {
@@ -152,7 +154,7 @@ sub convert {
     # We can do a straight conversion
     $multiplier = &get_latest($apimap{$lin}{$lout});
     $lvalue = $lvalue * $multiplier;
-    return sprintf("%.2f\n", $lvalue);
+    return $lvalue;
 
   } else {
     # Check if we can do an inverted conversion
@@ -163,7 +165,7 @@ sub convert {
         &debug("Doing inverted conversion\n");
         $multiplier = &get_latest($apimap{$base}{$lin});
         $lvalue = $lvalue / $multiplier;
-        return sprintf("%.2f\n", $lvalue);
+        return $lvalue;
       }
     }
   }
@@ -177,7 +179,8 @@ sub get_latest {
 
   if ($apikey) { 
     &debug("Using API key\n");
-    $endpoint .= '?api_key='.$apikey }
+    $endpoint .= '?api_key='.$apikey
+  }
 
   &debug("Calling $baseurl$endpoint\n");
   $uadata = $ua->get($baseurl.$endpoint);

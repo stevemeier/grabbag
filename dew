@@ -1,0 +1,19 @@
+#!/bin/bash
+# Quick and dirty Docker Exec Wrapper
+# Just throw it into /usr/local/bin
+
+RESULTS=$(docker ps | grep -i $1 | wc -l)
+if [ ${RESULTS} -gt 1 ]; then
+  echo Ambiguous ${1}:
+  docker ps | grep -i $1 | awk '{print $2}'
+  exit 1
+fi
+
+DOCKER=$(docker ps | grep -i $1 | awk '{print $1}')
+
+if [ ! -z "${DOCKER}" ]; then
+  docker exec -ti ${DOCKER} /bin/bash
+else
+  echo No match found for $1
+  exit 1
+fi

@@ -14,11 +14,12 @@ use Getopt::Long;
 use MIME::Base64 qw(decode_base64 encode_base64);
 use Net::DNS;
 
-my ($encode, $download, $dnsname, $output);
+my ($encode, $download, $dnsname, $output, $ttl);
 GetOptions("encode=s"   => \$encode,
 	   "download"   => \$download,
            "dnsname=s"  => \$dnsname,
-           "output=s"   => \$output);
+           "output=s"   => \$output,
+           "ttl=s"      => \$ttl);
 	 
 # Encode a file into Base64 and DNS TXT records   
 if ($encode) {
@@ -28,6 +29,8 @@ if ($encode) {
   my $hash;
   my $size;
   my $name;
+
+  if (not(defined($ttl))) { $ttl = 86400 };
 
   if (not(-f $encode)) {
     print STDERR "ERROR: Please specify a file to encode!\n";
@@ -54,12 +57,12 @@ if ($encode) {
   close($FILE) || croak "ERROR: Could not close file!\n";
 
   # Print the base record with meta information
-  print "$dnsname 86400 IN TXT \"$name\" \"$size\" \"sha256\" \"$hash\"\n";
+  print "$dnsname $ttl IN TXT \"$name\" \"$size\" \"sha256\" \"$hash\"\n";
 
   # Print the data records
   while (length($base64data) > 0) {
     $txtdata = substr $base64data, 0, 255, '';
-    print i_to_label($i).".$dnsname 86400 IN TXT \"$txtdata\"\n";
+    print i_to_label($i).".$dnsname $ttl IN TXT \"$txtdata\"\n";
     $i++;
   }
 
@@ -123,6 +126,11 @@ if ($download) {
   exit 0;
 }
 
+print "---\n";
+print "Encode a file to zone file format:\n";
+print "$0 --encode <FILE> --dnsname <somename.foobar.com>\n\n";
+print "Download a file from DNS:\n";
+print "$0 --download --dnsname <somename.foobar.com> [ --output <FILE> ]\n";
 exit;
 
 sub i_to_label {

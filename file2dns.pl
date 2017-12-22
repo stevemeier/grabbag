@@ -14,12 +14,13 @@ use Getopt::Long;
 use MIME::Base64 qw(decode_base64 encode_base64);
 use Net::DNS;
 
-my ($encode, $download, $dnsname, $output, $ttl);
+my ($encode, $download, $dnsname, $output, $ttl, $hashalg);
 GetOptions("encode=s"   => \$encode,
 	   "download"   => \$download,
            "dnsname=s"  => \$dnsname,
            "output=s"   => \$output,
-           "ttl=s"      => \$ttl);
+           "ttl=s"      => \$ttl,
+           "hashalg=s"  => \$hashalg);
 	 
 # Encode a file into Base64 and DNS TXT records   
 if ($encode) {
@@ -49,7 +50,7 @@ if ($encode) {
   # We store meta information such as original file name, size and checksum
   $name = basename($encode);
   $size = filesize($encode);
-  $hash = filehash($encode);
+  $hash = filehash($encode, $hashalg);
 
   # Read the file in one go
   open(my $FILE, "<", $encode) || croak "ERROR: Could not read file!\n";
@@ -58,7 +59,7 @@ if ($encode) {
   close($FILE) || croak "ERROR: Could not close file!\n";
 
   # Print the base record with meta information
-  print "$dnsname $ttl IN TXT \"$name\" \"$size\" \"sha256\" \"$hash\"\n";
+  print "$dnsname $ttl IN TXT \"$name\" \"$size\" \"$hashalg\" \"$hash\"\n";
 
   # Print the data records
   while (length($base64data) > 0) {
@@ -118,7 +119,7 @@ if ($download) {
   } 
 
   # Check file hash is correct
-  if (filehash($filename) ne $filemeta[3]) {
+  if (filehash($filename, $filemeta[2]) ne $filemeta[3]) {
     print STDERR "ERROR: File hash does not match!\n";
     exit 2;
   }

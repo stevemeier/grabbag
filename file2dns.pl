@@ -30,6 +30,7 @@ if ($encode) {
   my $size;
   my $name;
 
+  # Default TTL. Can be overridden with --ttl
   if (not(defined($ttl))) { $ttl = 86400 };
 
   if (not(-f $encode)) {
@@ -79,7 +80,7 @@ if ($download) {
   # Create a resolver object
   my $res = Net::DNS::Resolver->new;
 
-  # Look up the files meta information (name, size, checksum)
+  # Look up the files meta information (name, size, hashalg, hash)
   $reply = $res->query($dnsname, 'TXT');
   if ($reply) {
     foreach my $rr (grep { $_->type eq 'TXT' } $reply->answer) {
@@ -148,9 +149,10 @@ sub i_to_label {
 }
 
 sub filehash {
-  my ($filename) = @_;
+  my ($filename, $hashalg) = @_;
+  if (not(defined($hashalg))) { $hashalg = "sha256" };
 
-  my $sha = Digest::SHA->new('sha256');
+  my $sha = Digest::SHA->new($hashalg);
   $sha->addfile($filename);
 
   return $sha->hexdigest;

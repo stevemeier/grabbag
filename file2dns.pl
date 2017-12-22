@@ -89,6 +89,19 @@ if ($download) {
     }
   }
 
+  # Save to original or provided filename
+  if ($output) {
+    $filename = $output;
+  } else {
+    $filename = $filemeta[0];
+  }
+
+  # Check if file is already up-to-date
+  if (filehash($filename, $filemeta[2]) eq $filemeta[3]) {
+    print STDERR "INFO: File is already up-to-date\n";
+    exit 0;
+  }
+
   # Do lookups until we encounter "nxdomain" which indrectly marks end of file
   until ($res->errorstring =~ /nxdomain/i) {
     $reply = $res->query(i_to_label($i).".$dnsname", 'TXT');
@@ -98,13 +111,6 @@ if ($download) {
       }
     }
     $i++;
-  }
-
-  # Save to original or provided filename
-  if ($output) {
-    $filename = $output;
-  } else {
-    $filename = $filemeta[0];
   }
 
   # Write base64 decoded file to disk
@@ -130,7 +136,7 @@ if ($download) {
 
 print "---\n";
 print "Encode a file to zone file format:\n";
-print "$0 --encode <FILE> --dnsname <somename.foobar.com>\n\n";
+print "$0 --encode <FILE> --dnsname <somename.foobar.com> [ --hashalg <sha...> ]\n\n";
 print "Download a file from DNS:\n";
 print "$0 --download --dnsname <somename.foobar.com> [ --output <FILE> ]\n";
 exit;

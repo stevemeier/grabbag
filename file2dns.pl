@@ -97,9 +97,11 @@ if ($download) {
   }
 
   # Check if file is already up-to-date
-  if (filehash($filename, $filemeta[2]) eq $filemeta[3]) {
-    print STDERR "INFO: File is already up-to-date\n";
-    exit 0;
+  if (-f $filename) {
+    if (filehash($filename, $filemeta[2]) eq $filemeta[3]) {
+      print STDERR "INFO: File is already up-to-date\n";
+      exit 0;
+    }
   }
 
   # Do lookups until we encounter "nxdomain" which indrectly marks end of file

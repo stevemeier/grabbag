@@ -21,6 +21,8 @@ GetOptions("encode=s"   => \$encode,
            "output=s"   => \$output,
            "ttl=s"      => \$ttl,
            "hashalg=s"  => \$hashalg);
+
+if (not(defined($hashalg))) { $hashalg = "sha256" };
 	 
 # Encode a file into Base64 and DNS TXT records   
 if ($encode) {
@@ -143,23 +145,20 @@ print "Download a file from DNS:\n";
 print "$0 --download --dnsname <somename.foobar.com> [ --output <FILE> ]\n";
 exit;
 
+# based on https://stackoverflow.com/a/12823896/1592267
 sub i_to_label {
-  my ($i) = @_;
-  my $result = '';
-
-  while ($i >= 26) {
-    $result .= 'z';
-    $i -= 26;
+  my ($val) = @_;
+  my $symbols = join('', 'a'..'z');
+  my $b26 = '';
+  while ($val) {
+    $b26 = substr($symbols, $val % 26, 1) . $b26;
+    $val = int $val / 26;
   }
-
-  $result .= chr(97 + $i);
-
-  return $result;
+  return $b26 || 'a';
 }
 
 sub filehash {
   my ($filename, $hashalg) = @_;
-  if (not(defined($hashalg))) { $hashalg = "sha256" };
 
   my $sha = Digest::SHA->new($hashalg);
   $sha->addfile($filename);

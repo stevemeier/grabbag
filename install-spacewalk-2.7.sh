@@ -165,13 +165,26 @@ mkdir -p /var/iso-images/
 mkdir -p /var/distro-trees/CentOS-6-x86_64
 mkdir -p /var/distro-trees/CentOS-7-x86_64
 cd /var/iso-images
-curl ${CURLOPTS} -O http://mirror.rackspace.com/CentOS/6/isos/x86_64/CentOS-6.9-x86_64-netinstall.iso
-curl ${CURLOPTS} -O http://mirror.rackspace.com/CentOS/7/isos/x86_64/CentOS-7-x86_64-NetInstall-1708.iso
+if [ ! -f CentOS-6.9-x86_64-netinstall.iso ]; then
+  curl ${CURLOPTS} -O http://mirror.rackspace.com/CentOS/6/isos/x86_64/CentOS-6.9-x86_64-netinstall.iso
+fi
+if [ ! -f CentOS-7-x86_64-NetInstall-1708.iso ]; then
+  curl ${CURLOPTS} -O http://mirror.rackspace.com/CentOS/7/isos/x86_64/CentOS-7-x86_64-NetInstall-1708.iso
+fi
 
+grep CentOS-6.9-x86_64-netinstall.iso /etc/fstab > /dev/null
+if [ $? -ne 0 ]; then
 cat >> /etc/fstab <<EOF
 /var/iso-images/CentOS-6.9-x86_64-netinstall.iso           /var/distro-trees/CentOS-6-x86_64       iso9660 loop,ro 0 0
+EOF
+fi
+
+grep CentOS-7-x86_64-NetInstall-1708.iso /etc/fstab > /dev/null
+if [ $? -ne 0 ]; then
+cat >> /etc/fstab <<EOF
 /var/iso-images/CentOS-7-x86_64-NetInstall-1708.iso        /var/distro-trees/CentOS-7-x86_64       iso9660 loop,ro 0 0
 EOF
+fi
 
 echo
 echo "##########################"

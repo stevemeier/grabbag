@@ -222,3 +222,11 @@ echo
 # /usr/bin/spacewalk-common-channels -u admin -p admin1 -a x86_64 'centos7'
 # /usr/bin/spacewalk-common-channels -u admin -p admin1 -a i386,x86_64 'centos6-updates'
 # /usr/bin/spacewalk-common-channels -u admin -p admin1 -a x86_64 'centos7-updates'
+
+# Sync channels
+# spacewalk-repo-sync --channel centos6-i386-updates
+# spacewalk-repo-sync --channel centos6-x86_64-updates
+# spacewalk-repo-sync --channel centos7-x86_64-updates
+# spacewalk-repo-sync --channel centos6-i386
+# spacewalk-repo-sync --channel centos6-x86_64
+# spacewalk-repo-sync --channel centos7-x86_64

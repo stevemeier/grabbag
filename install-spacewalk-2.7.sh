@@ -95,7 +95,7 @@ if [ $? -eq 1 ]; then
   echo "##########################"
   echo "## Installing Spacewalk ##"
   echo "##########################"
-  yum --nogpgcheck -y install spacewalk-postgresql spacewalk-setup-postgresql spacecmd
+  yum --nogpgcheck -y install spacewalk-postgresql spacewalk-setup-postgresql spacewalk-utils spacecmd
 fi
 
 # Create answer file

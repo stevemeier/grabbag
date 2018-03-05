@@ -7,7 +7,7 @@ TEMPDIR="/tmp"
 CURLOPTS="-s -m 5"
 
 # Identify CentOS Version
-CENTOSVERSION=`rpm -q centos-release --qf '%{VERSION}' 2>/dev/null`
+CENTOSVERSION=$(rpm -q centos-release --qf '%{VERSION}' 2>/dev/null)
 
 # Repository URL
 REPOURL="http://yum.spacewalkproject.org"
@@ -126,9 +126,20 @@ if [ ${CENTOSVERSION} -eq 7 ]; then
     echo "#################################"
     echo "## Opening firewall for HTTP/S ##"
     echo "#################################"
-    firewall-cmd -q --add-service=http
-    firewall-cmd -q --add-service=https
+    firewall-cmd -q --permanent --add-service=http
+    firewall-cmd -q --permanent --add-service=https
+    firewall-cmd -q --reload
   fi
+fi
+
+# Setup database first to work around this bug:
+# https://bugzilla.redhat.com/show_bug.cgi?id=1524221
+if [ ! -d /var/lib/pgsql ]; then
+  echo
+  echo "###########################"
+  echo "## Initializing database ##"
+  echo "###########################"
+  /usr/bin/postgresql-setup
 fi
 
 # Run setup
@@ -138,7 +149,7 @@ if [ $? -eq 1 ]; then
   echo "##########################"
   echo "## Setting up Spacewalk ##"
   echo "##########################"
-  spacewalk-setup --answer-file=${ANSWERFILE}
+  /usr/bin/spacewalk-setup --answer-file=${ANSWERFILE}
 fi
 rm -f ${ANSWERFILE}
 
@@ -190,8 +201,15 @@ echo
 echo "##########################"
 echo "## Mounting CentOS ISOs ##"
 echo "##########################"
-mount /var/distro-trees/CentOS-6-x86_64
-mount /var/distro-trees/CentOS-7-x86_64
+grep /var/distro-trees/CentOS-6-x86_64 /etc/mtab > /dev/null
+if [ $? -ne 0 ]; then
+  mount /var/distro-trees/CentOS-6-x86_64
+fi
+
+grep /var/distro-trees/CentOS-7-x86_64 /etc/mtab > /dev/null
+if [ $? -ne 0 ]; then
+  mount /var/distro-trees/CentOS-7-x86_64
+fi
 
 echo
 echo "============================="

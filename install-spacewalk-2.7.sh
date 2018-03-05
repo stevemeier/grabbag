@@ -9,6 +9,9 @@ CURLOPTS="-s -m 5"
 # Identify CentOS Version
 CENTOSVERSION=`rpm -q centos-release --qf '%{VERSION}' 2>/dev/null`
 
+# Repository URL
+REPOURL="http://yum.spacewalkproject.org"
+
 # Check minimum CentOS Version
 if [ ${CENTOSVERSION} -lt 6 ]; then
   echo "ERROR: Sorry, this CentOS Version is not supported"
@@ -22,7 +25,7 @@ if [ ! -f /etc/pki/rpm-gpg/RPM-GPG-KEY-spacewalk-${KEYYEAR} ]; then
   echo "##################################"
   echo "## Installing Spacewalk GPG Key ##"
   echo "##################################"
-  (cd /etc/pki/rpm-gpg && curl ${CURLOPTS} -O http://yum.spacewalkproject.org/RPM-GPG-KEY-spacewalk-${KEYYEAR})
+  (cd /etc/pki/rpm-gpg && curl ${CURLOPTS} -O ${REPOURL}/RPM-GPG-KEY-spacewalk-${KEYYEAR})
   rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-spacewalk-${KEYYEAR}
 fi
 
@@ -33,7 +36,7 @@ if [ ! -f /etc/yum.repos.d/spacewalk.repo ]; then
   echo "#####################################"
   echo "## Installing Spacewalk Repository ##"
   echo "#####################################"
-  (cd ${TEMPDIR} && curl ${CURLOPTS} -O http://yum.spacewalkproject.org/2.7/RHEL/${CENTOSVERSION}/x86_64/spacewalk-repo-2.7-2.el${CENTOSVERSION}.noarch.rpm)
+  (cd ${TEMPDIR} && curl ${CURLOPTS} -O ${REPOURL}/2.7/RHEL/${CENTOSVERSION}/x86_64/spacewalk-repo-2.7-2.el${CENTOSVERSION}.noarch.rpm)
   rpm -Uvh ${TEMPDIR}/spacewalk-repo-*.noarch.rpm || exit 1
   rm -f ${TEMPDIR}/spacewalk-repo-*.noarch.rpm
 fi
@@ -60,7 +63,7 @@ if [ ! -f /etc/yum.repos.d/spacewalk-client.repo ]; then
   echo "############################################"
   echo "## Installing Spacewalk-Client Repository ##"
   echo "############################################"
-  (cd ${TEMPDIR} && curl ${CURLOPTS} -O http://yum.spacewalkproject.org/2.7/RHEL/${CENTOSVERSION}/x86_64/spacewalk-client-repo-2.7-2.el${CENTOSVERSION}.noarch.rpm)
+  (cd ${TEMPDIR} && curl ${CURLOPTS} -O ${REPOURL}/2.7/RHEL/${CENTOSVERSION}/x86_64/spacewalk-client-repo-2.7-2.el${CENTOSVERSION}.noarch.rpm)
   rpm -ihv ${TEMPDIR}/spacewalk-client-repo-*.noarch.rpm || exit 1
   rm -f ${TEMPDIR}/spacewalk-client-repo-*.noarch.rpm
 fi
@@ -68,11 +71,11 @@ fi
 # Add Java repository
 cd /etc/yum.repos.d
 if [ "${CENTOSVERSION}" -eq 6 ]; then
-  curl -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
-  curl -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/epel6-addons/repo/epel-6/group_spacewalkproject-epel6-addons-epel-6.repo
+  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
+  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/epel6-addons/repo/epel-6/group_spacewalkproject-epel6-addons-epel-6.repo
 fi
 if [ "${CENTOSVERSION}" -eq 7 ]; then
-  curl -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
+  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
 fi
 
 # Import RED HAT GPG Key

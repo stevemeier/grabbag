@@ -22,7 +22,7 @@ if [ ! -f /etc/pki/rpm-gpg/RPM-GPG-KEY-spacewalk-${KEYYEAR} ]; then
   echo "##################################"
   echo "## Installing Spacewalk GPG Key ##"
   echo "##################################"
-  (cd /etc/pki/rpm-gpg && curl ${CURLOPTS} -O http://spacewalk.redhat.com/yum/RPM-GPG-KEY-spacewalk-${KEYYEAR})
+  (cd /etc/pki/rpm-gpg && curl ${CURLOPTS} -O http://yum.spacewalkproject.org/RPM-GPG-KEY-spacewalk-${KEYYEAR})
   rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-spacewalk-${KEYYEAR}
 fi
 
@@ -33,7 +33,7 @@ if [ ! -f /etc/yum.repos.d/spacewalk.repo ]; then
   echo "#####################################"
   echo "## Installing Spacewalk Repository ##"
   echo "#####################################"
-  (cd ${TEMPDIR} && curl ${CURLOPTS} -O http://spacewalk.redhat.com/yum/2.7/RHEL/${CENTOSVERSION}/x86_64/spacewalk-repo-2.7-2.el${CENTOSVERSION}.noarch.rpm)
+  (cd ${TEMPDIR} && curl ${CURLOPTS} -O http://yum.spacewalkproject.org/2.7/RHEL/${CENTOSVERSION}/x86_64/spacewalk-repo-2.7-2.el${CENTOSVERSION}.noarch.rpm)
   rpm -Uvh ${TEMPDIR}/spacewalk-repo-*.noarch.rpm || exit 1
   rm -f ${TEMPDIR}/spacewalk-repo-*.noarch.rpm
 fi
@@ -60,7 +60,7 @@ if [ ! -f /etc/yum.repos.d/spacewalk-client.repo ]; then
   echo "############################################"
   echo "## Installing Spacewalk-Client Repository ##"
   echo "############################################"
-  (cd ${TEMPDIR} && curl ${CURLOPTS} -O http://spacewalk.redhat.com/yum/2.7/RHEL/${CENTOSVERSION}/x86_64/spacewalk-client-repo-2.7-2.el${CENTOSVERSION}.noarch.rpm)
+  (cd ${TEMPDIR} && curl ${CURLOPTS} -O http://yum.spacewalkproject.org/2.7/RHEL/${CENTOSVERSION}/x86_64/spacewalk-client-repo-2.7-2.el${CENTOSVERSION}.noarch.rpm)
   rpm -ihv ${TEMPDIR}/spacewalk-client-repo-*.noarch.rpm || exit 1
   rm -f ${TEMPDIR}/spacewalk-client-repo-*.noarch.rpm
 fi

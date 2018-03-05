@@ -216,3 +216,9 @@ echo "============================="
 echo "=== INSTALLATION COMPLETE ==="
 echo "============================="
 echo
+
+# Set up channels
+# /usr/bin/spacewalk-common-channels -u admin -p admin1 -a i386,x86_64 'centos6'
+# /usr/bin/spacewalk-common-channels -u admin -p admin1 -a x86_64 'centos7'
+# /usr/bin/spacewalk-common-channels -u admin -p admin1 -a i386,x86_64 'centos6-updates'
+# /usr/bin/spacewalk-common-channels -u admin -p admin1 -a x86_64 'centos7-updates'

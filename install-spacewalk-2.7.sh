@@ -225,13 +225,14 @@ echo "###########################"
 echo
 SWUSER=admin
 SWPASS=admin1
+TEMPFILE=$(mktemp)
 
 # from https://gist.github.com/vinzent/4bba600573bc9eeb33c4#gistcomment-1810454
 if [ "$(satwho | wc -l)" = "0" ]; then
-  curl --silent https://localhost/rhn/newlogin/CreateFirstUser.do --insecure -D - >$tempfile
+  curl --silent https://localhost/rhn/newlogin/CreateFirstUser.do --insecure -D - >${TEMPFILE}
 
-  cookie=$(egrep -o 'JSESSIONID=[^ ]+' $tempfile)
-  csrf=$(egrep csrf_token $tempfile | egrep -o 'value=[^ ]+' | egrep -o '[0-9]+')
+  cookie=$(egrep -o 'JSESSIONID=[^ ]+' ${TEMPFILE})
+  csrf=$(egrep csrf_token ${TEMPFILE} | egrep -o 'value=[^ ]+' | egrep -o '[0-9]+')
 
     curl --noproxy '*' \
       --cookie "$cookie" \
@@ -243,6 +244,7 @@ if [ "$(satwho | wc -l)" = "0" ]; then
     echo "Error: user creation failed" >&2
   fi
 fi
+rm -f ${TEMPFILE}
 
 echo
 echo "#########################"

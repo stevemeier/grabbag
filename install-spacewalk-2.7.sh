@@ -218,13 +218,40 @@ echo "=== INSTALLATION COMPLETE ==="
 echo "============================="
 echo
 
-# Set up channels
-# /usr/bin/spacewalk-common-channels -u admin -p admin1 -a i386,x86_64 'centos6'
-# /usr/bin/spacewalk-common-channels -u admin -p admin1 -a x86_64 'centos7'
-# /usr/bin/spacewalk-common-channels -u admin -p admin1 -a i386,x86_64 'centos6-updates'
-# /usr/bin/spacewalk-common-channels -u admin -p admin1 -a x86_64 'centos7-updates'
+echo
+echo "###########################"
+echo "## Setting up admin user ##"
+echo "###########################"
+echo
+SWUSER=admin
+SWPASS=admin1
 
-# Sync channels
+# from https://gist.github.com/vinzent/4bba600573bc9eeb33c4#gistcomment-1810454
+if [ "$(satwho | wc -l)" = "0" ]; then
+  curl --silent https://localhost/rhn/newlogin/CreateFirstUser.do --insecure -D - >$tempfile
+
+  cookie=$(egrep -o 'JSESSIONID=[^ ]+' $tempfile)
+  csrf=$(egrep csrf_token $tempfile | egrep -o 'value=[^ ]+' | egrep -o '[0-9]+')
+
+    curl --noproxy '*' \
+      --cookie "$cookie" \
+      --insecure \
+      --data "csrf_token=-${csrf}&submitted=true&orgName=DefaultOrganization&login=${SWUSER}&desiredpassword=${SWPASS}&desiredpasswordConfirm=${SWPASS}&email=root%40localhost&prefix=Mr.&firstNames=Administrator&lastName=Spacewalk&" \
+      https://localhost/rhn/newlogin/CreateFirstUser.do
+
+  if [ "$(satwho | wc -l)" = "0" ]; then
+    echo "Error: user creation failed" >&2
+  fi
+fi
+
+echo
+echo "#########################"
+echo "## Setting up channels ##"
+echo "#########################"
+echo
+/usr/bin/spacewalk-common-channels -v -u ${SWUSER} -p ${SWPASS} -a i386,x86_64 'centos6*'
+/usr/bin/spacewalk-common-channels -v -u ${SWUSER} -p ${SWPASS} -a x86_64 'centos7*'
+
 # spacewalk-repo-sync --channel centos6-i386-updates
 # spacewalk-repo-sync --channel centos6-x86_64-updates
 # spacewalk-repo-sync --channel centos7-x86_64-updates

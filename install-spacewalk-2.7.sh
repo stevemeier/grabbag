@@ -134,12 +134,13 @@ fi
 
 # Setup database first to work around this bug:
 # https://bugzilla.redhat.com/show_bug.cgi?id=1524221
-if [ ! -d /var/lib/pgsql ]; then
+if [ -d /var/lib/pgsql ]; then
   echo
   echo "###########################"
   echo "## Initializing database ##"
   echo "###########################"
-  /usr/bin/postgresql-setup
+  rm -rf /var/lib/pgsql/data
+  /usr/bin/postgresql-setup initdb
 fi
 
 # Run setup

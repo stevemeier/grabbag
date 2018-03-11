@@ -84,7 +84,7 @@ if [ ! -f /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release ]; then
   echo "################################"
   echo "## Installing Red Hat GPG Key ##"
   echo "################################"
-  (cd /etc/pki/rpm-gpg && curl ${CURLOPTS} http://www.redhat.com/security/37017186.txt > /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release)
+  (cd /etc/pki/rpm-gpg && curl ${CURLOPTS} https://www.redhat.com/security/data/37017186.txt > /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release)
   rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 fi
 

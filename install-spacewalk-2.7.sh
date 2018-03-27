@@ -161,7 +161,7 @@ echo "## Running pgtune ##"
 echo "####################"
 yum -y install pgtune
 
-pgtune --type=web -c 600 -i /var/lib/pgsql/data/postgresql.conf > /var/lib/pgsql/data/postgresql.conf.pgtune
+pgtune --type=web -c 20 -i /var/lib/pgsql/data/postgresql.conf > /var/lib/pgsql/data/postgresql.conf.pgtune
 mv /var/lib/pgsql/data/postgresql.conf /var/lib/pgsql/data/postgresql.conf.orig
 cd /var/lib/pgsql/data/
 ln -s postgresql.conf.pgtune postgresql.conf
@@ -254,6 +254,14 @@ echo
 /usr/bin/spacewalk-common-channels -v -u ${SWUSER} -p ${SWPASS} -a i386,x86_64 'centos6*'
 /usr/bin/spacewalk-common-channels -v -u ${SWUSER} -p ${SWPASS} -a x86_64 'centos7*'
 
+echo
+echo "#######################################"
+echo "## Starting Sync for Update channels ##"
+echo "#######################################"
+echo
+/usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-i386-updates
+/usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-x86_64-updates
+/usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos7-x86_64-updates
 # spacewalk-repo-sync --channel centos6-i386-updates
 # spacewalk-repo-sync --channel centos6-x86_64-updates
 # spacewalk-repo-sync --channel centos7-x86_64-updates

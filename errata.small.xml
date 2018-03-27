@@ -1,0 +1,20 @@
+<?xml version='1.0' standalone='yes'?>
+<opt>
+  <CESA-2018--0093 description="Not available" from="centos-announce@centos.org" issue_date="2018-01-17 14:59:21" multirelease="1" notes="Not available" product="CentOS Linux" references="https://access.redhat.com/errata/RHSA-2018:0093 https://lists.centos.org/pipermail/centos-announce/2018-January/022709.html https://lists.centos.org/pipermail/centos-announce/2018-January/022710.html" release="2" severity="Important" solution="Not available" synopsis="Important CentOS microcode_ctl Security Update" topic="Not available" type="Security Advisory">
+    <os_arch>i686</os_arch>
+    <os_arch>x86_64</os_arch>
+    <os_release>6</os_release>
+    <os_release>7</os_release>
+    <packages>microcode_ctl-1.17-25.4.el6_9.i686.rpm</packages>
+    <packages>microcode_ctl-1.17-25.4.el6_9.src.rpm</packages>
+    <packages>microcode_ctl-1.17-25.4.el6_9.x86_64.rpm</packages>
+    <packages>microcode_ctl-2.1-22.5.el7_4.src.rpm</packages>
+    <packages>microcode_ctl-2.1-22.5.el7_4.x86_64.rpm</packages>
+  </CESA-2018--0093>
+  <meta>
+    <author>Steve Meier</author>
+    <license>Free for non-commercial use</license>
+    <disclaimer>This software is provided AS IS. There are no guarantees. It might kill your cat.</disclaimer>
+    <timestamp>Wed Mar 21 09:08:29 UTC 2018</timestamp>
+  </meta>
+</opt>

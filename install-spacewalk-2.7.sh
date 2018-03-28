@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Sync channels?
+SYNC=0
+
 # Temporary directory for downloads
 TEMPDIR="/tmp"
 
@@ -259,9 +262,11 @@ echo "#######################################"
 echo "## Starting Sync for Update channels ##"
 echo "#######################################"
 echo
-/usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-i386-updates
-/usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-x86_64-updates
-/usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos7-x86_64-updates
+if [ ${SYNC} -gt 0 ]; then
+  /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-i386-updates
+  /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-x86_64-updates
+  /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos7-x86_64-updates
+fi
 # spacewalk-repo-sync --channel centos6-i386-updates
 # spacewalk-repo-sync --channel centos6-x86_64-updates
 # spacewalk-repo-sync --channel centos7-x86_64-updates

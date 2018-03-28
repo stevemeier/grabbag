@@ -268,3 +268,15 @@ echo
 # spacewalk-repo-sync --channel centos6-i386
 # spacewalk-repo-sync --channel centos6-x86_64
 # spacewalk-repo-sync --channel centos7-x86_64
+
+echo 
+echo "################################"
+echo "## Installing useful packages ##"
+echo "################################"
+echo
+yum -y install wget perl-Frontier-RPC perl-Text-Unidecode 
+wget http://cefs.steve-meier.de/errata.latest.xml
+wget http://cefs.steve-meier.de/errata-import.tar
+tar xf errata-import.tar
+
+exit

@@ -257,22 +257,22 @@ echo
 /usr/bin/spacewalk-common-channels -v -u ${SWUSER} -p ${SWPASS} -a i386,x86_64 'centos6*'
 /usr/bin/spacewalk-common-channels -v -u ${SWUSER} -p ${SWPASS} -a x86_64 'centos7*'
 
-echo
-echo "#######################################"
-echo "## Starting Sync for Update channels ##"
-echo "#######################################"
-echo
 if [ ${SYNC} -gt 0 ]; then
+  echo
+  echo "#######################################"
+  echo "## Starting Sync for Update channels ##"
+  echo "#######################################"
+  echo
   /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-i386-updates
   /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-x86_64-updates
   /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos7-x86_64-updates
+  # spacewalk-repo-sync --channel centos6-i386-updates
+  # spacewalk-repo-sync --channel centos6-x86_64-updates
+  # spacewalk-repo-sync --channel centos7-x86_64-updates
+  # spacewalk-repo-sync --channel centos6-i386
+  # spacewalk-repo-sync --channel centos6-x86_64
+  # spacewalk-repo-sync --channel centos7-x86_64
 fi
-# spacewalk-repo-sync --channel centos6-i386-updates
-# spacewalk-repo-sync --channel centos6-x86_64-updates
-# spacewalk-repo-sync --channel centos7-x86_64-updates
-# spacewalk-repo-sync --channel centos6-i386
-# spacewalk-repo-sync --channel centos6-x86_64
-# spacewalk-repo-sync --channel centos7-x86_64
 
 echo 
 echo "################################"

@@ -280,6 +280,7 @@ echo "## Installing useful packages ##"
 echo "################################"
 echo
 yum -y install wget perl-Frontier-RPC perl-Text-Unidecode 
+cd
 wget http://cefs.steve-meier.de/errata.latest.xml
 wget http://cefs.steve-meier.de/errata-import.tar
 tar xf errata-import.tar

@@ -161,7 +161,7 @@ echo "## Running pgtune ##"
 echo "####################"
 yum -y install pgtune
 
-pgtune --type=web -c 20 -i /var/lib/pgsql/data/postgresql.conf > /var/lib/pgsql/data/postgresql.conf.pgtune
+pgtune --type=web -c 600 -i /var/lib/pgsql/data/postgresql.conf > /var/lib/pgsql/data/postgresql.conf.pgtune
 mv /var/lib/pgsql/data/postgresql.conf /var/lib/pgsql/data/postgresql.conf.orig
 cd /var/lib/pgsql/data/
 ln -s postgresql.conf.pgtune postgresql.conf

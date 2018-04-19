@@ -66,15 +66,15 @@ if [ ! -f /etc/yum.repos.d/spacewalk-client.repo ]; then
   rm -f ${TEMPDIR}/spacewalk-client-repo-*.noarch.rpm
 fi
 
-# Add Java repository
-cd /etc/yum.repos.d
-if [ "${CENTOSVERSION}" -eq 6 ]; then
-  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
-  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/epel6-addons/repo/epel-6/group_spacewalkproject-epel6-addons-epel-6.repo
-fi
-if [ "${CENTOSVERSION}" -eq 7 ]; then
-  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
-fi
+## Add Java repository
+#cd /etc/yum.repos.d
+#if [ "${CENTOSVERSION}" -eq 6 ]; then
+#  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
+#  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/epel6-addons/repo/epel-6/group_spacewalkproject-epel6-addons-epel-6.repo
+#fi
+#if [ "${CENTOSVERSION}" -eq 7 ]; then
+#  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
+#fi
 
 ## Import RED HAT GPG Key
 #if [ ! -f /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release ]; then 

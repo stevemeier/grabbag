@@ -261,7 +261,7 @@ if [ ${SYNC} -gt 0 ]; then
   /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-i386-updates
   /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-x86_64-updates
   /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos7-x86_64-updates
-  # spacewalk-repo-sync --channel centos6-i386-updates
+  # spacewalk-repo-sync -e 'xorg*,libreoffice*,thunderbird*,firefox*,autocorr*,java*,kernel-debug*' --channel centos6-i386-updates
   # spacewalk-repo-sync --channel centos6-x86_64-updates
   # spacewalk-repo-sync --channel centos7-x86_64-updates
   # spacewalk-repo-sync --channel centos6-i386

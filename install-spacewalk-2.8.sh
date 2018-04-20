@@ -12,26 +12,11 @@ CURLOPTS="-s -m 5"
 # Identify CentOS Version
 CENTOSVERSION=$(rpm -q centos-release --qf '%{VERSION}' 2>/dev/null)
 
-# Repository URL
-REPOURL="http://yum.spacewalkproject.org"
-
 # Check minimum CentOS Version
 if [ ${CENTOSVERSION} -lt 6 ]; then
   echo "ERROR: Sorry, CentOS Version ${CENTOSVERSION} is not supported"
   exit 1
 fi
-
-## Import Spacewalk GPG KEY
-#export KEYYEAR=2015
-#if [ ! -f /etc/pki/rpm-gpg/RPM-GPG-KEY-spacewalk-${KEYYEAR} ]; then 
-#  echo
-#  echo "##################################"
-#  echo "## Installing Spacewalk GPG Key ##"
-#  echo "##################################"
-#  (cd /etc/pki/rpm-gpg && curl ${CURLOPTS} -O ${REPOURL}/RPM-GPG-KEY-spacewalk-${KEYYEAR})
-#  rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-spacewalk-${KEYYEAR}
-#fi
-
 
 # Install Spacewalk repo
 if [ ! -f /etc/yum.repos.d/spacewalk.repo ]; then
@@ -65,26 +50,6 @@ if [ ! -f /etc/yum.repos.d/spacewalk-client.repo ]; then
   rpm -ihv ${TEMPDIR}/spacewalk-client-repo-*.noarch.rpm || exit 1
   rm -f ${TEMPDIR}/spacewalk-client-repo-*.noarch.rpm
 fi
-
-## Add Java repository
-#cd /etc/yum.repos.d
-#if [ "${CENTOSVERSION}" -eq 6 ]; then
-#  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
-#  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/epel6-addons/repo/epel-6/group_spacewalkproject-epel6-addons-epel-6.repo
-#fi
-#if [ "${CENTOSVERSION}" -eq 7 ]; then
-#  curl ${CURLOPTS} -O https://copr.fedorainfracloud.org/coprs/g/spacewalkproject/java-packages/repo/epel-7/group_spacewalkproject-java-packages-epel-7.repo
-#fi
-
-## Import RED HAT GPG Key
-#if [ ! -f /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release ]; then 
-#  echo
-#  echo "################################"
-#  echo "## Installing Red Hat GPG Key ##"
-#  echo "################################"
-#  (cd /etc/pki/rpm-gpg && curl ${CURLOPTS} https://www.redhat.com/security/data/37017186.txt > /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release)
-#  rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-#fi
 
 # Install Spacewalk
 rpm -qi spacewalk-common 2>&1 >/dev/null

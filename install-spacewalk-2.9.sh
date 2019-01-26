@@ -194,12 +194,6 @@ if [ ${SYNC} -gt 0 ]; then
   /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-i386-updates
   /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos6-x86_64-updates
   /usr/bin/spacecmd -u ${SWUSER} -p ${SWPASS} softwarechannel_syncrepos centos7-x86_64-updates
-  # spacewalk-repo-sync -e 'xorg*,libreoffice*,thunderbird*,firefox*,autocorr*,java*,kernel-debug*' --channel centos6-i386-updates
-  # spacewalk-repo-sync --channel centos6-x86_64-updates
-  # spacewalk-repo-sync --channel centos7-x86_64-updates
-  # spacewalk-repo-sync --channel centos6-i386
-  # spacewalk-repo-sync --channel centos6-x86_64
-  # spacewalk-repo-sync --channel centos7-x86_64
 fi
 
 echo 
@@ -213,5 +207,9 @@ wget https://cefs.steve-meier.de/errata.latest.xml
 wget https://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml
 wget https://cefs.steve-meier.de/errata-import.tar
 tar xf errata-import.tar
+
+echo To test CEFS run:
+echo export SPACEWALK_USER=${SWUSER} SPACEWALK_PASS=${SWPASS}
+echo ./errata-import.pl --server localhost --errata errata.latest.xml --rhsa-oval com.redhat.rhsa-all.xml --publish
 
 exit

@@ -159,7 +159,9 @@ SWPASS=admin1
 TEMPFILE=$(mktemp)
 
 # from https://gist.github.com/vinzent/4bba600573bc9eeb33c4#gistcomment-1810454
-if [ "$(satwho | wc -l)" = "0" ]; then
+# Since Spacewalk 2.9 (or 2.8?) satwho now produces one line if there are no users
+if [ "$(satwho | wc -l)" = "1" ]; then
+  echo "INFO: Creating user admin"
   curl --silent https://localhost/rhn/newlogin/CreateFirstUser.do --insecure -D - >${TEMPFILE}
 
   cookie=$(egrep -o 'JSESSIONID=[^ ]+' ${TEMPFILE})
@@ -171,8 +173,8 @@ if [ "$(satwho | wc -l)" = "0" ]; then
       --data "csrf_token=-${csrf}&submitted=true&orgName=DefaultOrganization&login=${SWUSER}&desiredpassword=${SWPASS}&desiredpasswordConfirm=${SWPASS}&email=root%40localhost&prefix=Mr.&firstNames=Administrator&lastName=Spacewalk&" \
       https://localhost/rhn/newlogin/CreateFirstUser.do
 
-  if [ "$(satwho | wc -l)" = "0" ]; then
-    echo "Error: user creation failed" >&2
+  if [ "$(satwho | wc -l)" = "1" ]; then
+    echo "ERROR: User creation failed" >&2
   fi
 fi
 rm -f ${TEMPFILE}

@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Sync Channels?
-SYNC=0
+if [ -z "${SYNC}" ]; then
+  SYNC=0
+fi
 
 # Temporary directory for downloads
 TEMPDIR="/tmp"

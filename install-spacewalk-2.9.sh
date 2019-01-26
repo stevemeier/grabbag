@@ -208,6 +208,7 @@ echo
 yum -y install wget perl-Frontier-RPC perl-Text-Unidecode 
 cd
 wget https://cefs.steve-meier.de/errata.latest.xml
+wget https://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml
 wget https://cefs.steve-meier.de/errata-import.tar
 tar xf errata-import.tar
 

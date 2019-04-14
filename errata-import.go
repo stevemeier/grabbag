@@ -71,8 +71,11 @@ func main () {
 		spew.Dump(result)
 	}
 
-	// Initialize XML-RPC Client
+	// Disable TLS certificate checks (insecure!)
+	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+	// Initialize XML-RPC Client
 	client, err := xmlrpc.NewClient("https://165.227.141.163/rpc/api", nil)
 	if err != nil {
 //		fmt.Println("Could not read XML")

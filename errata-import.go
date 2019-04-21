@@ -33,6 +33,7 @@ type Erratum struct {
 	Type        string   `json:"type"`
 }
 
+
 // for "map"
 //type Errata struct {
 //	Id	string
@@ -59,13 +60,30 @@ func main () {
 //	x := 1
 //	spew.Dump(x)
 
-	// Load Red Hat OVAL data
-	if _, err := os.Stat("com.redhat.rhsa-all.xml"); err == nil {
-	        data, err := ioutil.ReadFile("com.redhat.rhsa-all.xml")
+	var home string = os.Getenv("HOME")
+
+	// Test current XML format
+	if _, err := os.Stat(home + "/tmp/errata.latest.xml"); err == nil {
+		data, err := ioutil.ReadFile(home +"/tmp/errata.latest.xml")
 		if err != nil {
-			fmt.Println("Could not read XML")
+			fmt.Println("Could not read " + home + "/tmp/errata.latest.xml")
 			os.Exit(1)
 		}
+		fmt.Println("Loading " + home + "/tmp/errata.latest.xml")
+		decoder := xml2map.NewDecoder(strings.NewReader(string(data[:])))
+		latest, err := decoder.Decode()
+		spew.Dump(latest)
+	}
+
+
+	// Load Red Hat OVAL data
+	if _, err := os.Stat("~/tmp/com.redhat.rhsa-all.xml"); err == nil {
+	        data, err := ioutil.ReadFile("~/tmp/com.redhat.rhsa-all.xml")
+		if err != nil {
+			fmt.Println("Could not read ~/tmp/com.redhat.rhsa-all.xml")
+			os.Exit(1)
+		}
+		fmt.Println("Loading ~/tmp/com.redhat.rhsa-all.xml")
 		decoder := xml2map.NewDecoder(strings.NewReader(string(data[:])))
 		result, err := decoder.Decode()
 		spew.Dump(result)
@@ -76,7 +94,8 @@ func main () {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	// Initialize XML-RPC Client
-	client, err := xmlrpc.NewClient("https://165.227.141.163/rpc/api", nil)
+	client, err := xmlrpc.NewClient("https://192.168.227.131/rpc/api", nil)
+	fmt.Fprintf(os.Stdout, "NewClient is type %T\n", client)
 	if err != nil {
 //		fmt.Println("Could not read XML")
 		log.Fatal(err)
@@ -94,16 +113,23 @@ func main () {
 	params[0] = "admin"
 	params[1] = "admin1"
 
-	client.Call("auth.login", params, &sessionkey)
+//	client.Call("auth.login", params, &sessionkey)
+	sessionkey = init_session(client, "admin", "admin1")
 	spew.Dump(sessionkey)
 
 	// Get user roles
-	var roles []string
-	params = make([]interface{}, 2)
-	params[0] = sessionkey
-	params[1] = "admin"
-	client.Call("user.list_roles", params, &roles)
-	spew.Dump(roles)
+//	var roles []string
+//	params = make([]interface{}, 2)
+//	params[0] = sessionkey
+//	params[1] = "admin"
+//	client.Call("user.list_roles", params, &roles)
+//	spew.Dump(roles)
+
+	// Check admin status
+	username := "admin"
+	if (user_is_admin(client, sessionkey, username)) {
+		fmt.Printf("User %s has administrator access to this server\n", username)
+	}
 
 	// List all channels
 	var channels []interface{}
@@ -119,4 +145,66 @@ func main () {
 	params[1] = "centos7-x86_64-centosplus"
 	client.Call("channel.software.list_all_packages", params, &packages)
 	spew.Dump(packages)
+
+	fmt.Println("---")
+
+	// Source: https://stackoverflow.com/a/31816267/1592267
+	for _, record := range packages {
+//		log.Printf(" [===>] Record: %s", record)
+
+		if rec, ok := record.(map[string]interface{}); ok {
+			for key, val := range rec {
+//				log.Printf(" [========>] %s = %s", key, val)
+//				if (key == "name") {
+//					fmt.Printf("%s -> %s", key, val)
+//				}
+				if (key == "id") {
+					var packagedetails interface{}
+					params = make([]interface{}, 2)
+					params[0] = sessionkey
+					params[1] = val
+					fmt.Printf("\nGetting details for package %d\n", val)
+					client.Call("packages.get_details", params, &packagedetails)
+//					spew.Dump(packagedetails)
+
+					if detail, ok := packagedetails.(map[string]interface{}); ok {
+						for dkey, dval := range detail {
+							fmt.Printf("%s -> %s\n", dkey, dval)
+						}
+					}
+				}
+			}
+		} else {
+			fmt.Printf("record not a map[string]interface{}: %v\n", record)
+		}
+	}
+}
+
+func init_session (client *xmlrpc.Client, username string, password string) string {
+	sessionkey := ""
+
+	params := make([]interface{}, 2)
+	params[0] = "admin"
+	params[1] = "admin1"
+
+	client.Call("auth.login", params, &sessionkey)
+
+	return sessionkey
+}
+
+func user_is_admin (client *xmlrpc.Client, sessionkey string, username string) bool {
+	var roles []string
+	params := make([]interface{}, 2)
+	params[0] = sessionkey
+	params[1] = username
+
+	client.Call("user.list_roles", params, &roles)
+
+	for _, role := range roles {
+		if (role == "satellite_admin" || role == "org_admin" || role == "channel_admin") {
+			return true
+		}
+	}
+
+	return false
 }

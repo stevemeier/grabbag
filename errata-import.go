@@ -184,8 +184,8 @@ func init_session (client *xmlrpc.Client, username string, password string) stri
 	sessionkey := ""
 
 	params := make([]interface{}, 2)
-	params[0] = "admin"
-	params[1] = "admin1"
+	params[0] = username
+	params[1] = password
 
 	client.Call("auth.login", params, &sessionkey)
 

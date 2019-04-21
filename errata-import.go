@@ -33,6 +33,11 @@ type Erratum struct {
 	Type        string   `json:"type"`
 }
 
+type Inventory struct {
+	filename2id		map[string]int
+	filename2channel	map[string]string
+	id2channel		map[string]string
+}
 
 // for "map"
 //type Errata struct {
@@ -107,14 +112,17 @@ func main () {
 	client.Call("api.getVersion", nil, &version)
 	spew.Dump(version)
 
+	username := "admin"
+	password := "admin1"
+
 	// Authenticate and get sessionKey
 	var sessionkey string
-	params := make([]interface{}, 2)
-	params[0] = "admin"
-	params[1] = "admin1"
+//	params := make([]interface{}, 2)
+//	params[0] = "admin"
+//	params[1] = "admin1"
 
 //	client.Call("auth.login", params, &sessionkey)
-	sessionkey = init_session(client, "admin", "admin1")
+	sessionkey = init_session(client, username, password)
 	spew.Dump(sessionkey)
 
 	// Get user roles
@@ -126,78 +134,83 @@ func main () {
 //	spew.Dump(roles)
 
 	// Check admin status
-	username := "admin"
 	if (user_is_admin(client, sessionkey, username)) {
 		fmt.Printf("User %s has administrator access to this server\n", username)
 	}
 
 	// List all channels
-	var channels []interface{}
-	params = make([]interface{}, 1)
-	params[0] = sessionkey
-	client.Call("channel.list_all_channels", params, &channels)
+//	var channels []interface{}
+//	params = make([]interface{}, 1)
+//	params[0] = sessionkey
+//	client.Call("channel.list_all_channels", params, &channels)
+	var channels []string
+	channels = get_channel_list(client, sessionkey)
+	fmt.Println("Channel list:\n")
 	spew.Dump(channels)
 
 	// Get packages of channel
-	var packages []interface{}
-	params = make([]interface{}, 2)
-	params[0] = sessionkey
-	params[1] = "centos7-x86_64-centosplus"
-	client.Call("channel.software.list_all_packages", params, &packages)
-	spew.Dump(packages)
+//	var packages []interface{}
+//	params = make([]interface{}, 2)
+//	params[0] = sessionkey
+//	params[1] = "centos7-x86_64-centosplus"
+//	client.Call("channel.software.list_all_packages", params, &packages)
+//	spew.Dump(packages)
+	var inv Inventory
+	inv = get_inventory(client, sessionkey, channels)
 
 	fmt.Println("---")
+	spew.Dump(inv)
+	os.Exit(0)
 
 	// Source: https://stackoverflow.com/a/31816267/1592267
-	for _, record := range packages {
+//	for _, record := range packages {
 //		log.Printf(" [===>] Record: %s", record)
 
-		if rec, ok := record.(map[string]interface{}); ok {
-			for key, val := range rec {
+//		if rec, ok := record.(map[string]interface{}); ok {
+//			for key, val := range rec {
 //				log.Printf(" [========>] %s = %s", key, val)
 //				if (key == "name") {
 //					fmt.Printf("%s -> %s", key, val)
 //				}
-				if (key == "id") {
-					var packagedetails interface{}
-					params = make([]interface{}, 2)
-					params[0] = sessionkey
-					params[1] = val
-					fmt.Printf("\nGetting details for package %d\n", val)
-					client.Call("packages.get_details", params, &packagedetails)
+//				if (key == "id") {
+//					var packagedetails interface{}
+//					params = make([]interface{}, 2)
+//					params[0] = sessionkey
+//					params[1] = val
+//					fmt.Printf("\nGetting details for package %d\n", val)
+//					client.Call("packages.get_details", params, &packagedetails)
 //					spew.Dump(packagedetails)
 
-					if detail, ok := packagedetails.(map[string]interface{}); ok {
-						for dkey, dval := range detail {
-							fmt.Printf("%s -> %s\n", dkey, dval)
-						}
-					}
-				}
-			}
-		} else {
-			fmt.Printf("record not a map[string]interface{}: %v\n", record)
-		}
-	}
+//					if detail, ok := packagedetails.(map[string]interface{}); ok {
+//						for dkey, dval := range detail {
+//							fmt.Printf("%s -> %s\n", dkey, dval)
+//						}
+//					}
+//				}
+//			}
+//		} else {
+//			fmt.Printf("record not a map[string]interface{}: %v\n", record)
+//		}
+//	}
 }
 
 func init_session (client *xmlrpc.Client, username string, password string) string {
-	sessionkey := ""
-
 	params := make([]interface{}, 2)
 	params[0] = username
 	params[1] = password
 
+	var sessionkey string
 	client.Call("auth.login", params, &sessionkey)
 
 	return sessionkey
 }
 
 func user_is_admin (client *xmlrpc.Client, sessionkey string, username string) bool {
-	var roles []string
 	params := make([]interface{}, 2)
 	params[0] = sessionkey
 	params[1] = username
 
+	var roles []string
 	client.Call("user.list_roles", params, &roles)
 
 	for _, role := range roles {
@@ -207,4 +220,59 @@ func user_is_admin (client *xmlrpc.Client, sessionkey string, username string) b
 	}
 
 	return false
+}
+
+func get_channel_list (client *xmlrpc.Client, sessionkey string) []string {
+	params := make([]interface{}, 1)
+	params[0] = sessionkey
+
+	var channels []interface{}
+	client.Call("channel.list_all_channels", params, &channels)
+
+	var channelnames []string
+	for _, channel := range channels {
+		if details, ok := channel.(map[string]interface{}); ok {
+			channelnames = append(channelnames, details["label"].(string))
+		}
+	}
+
+	return channelnames
+}
+
+func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string) Inventory {
+	params := make([]interface{}, 2)
+
+	var inv Inventory
+	for _, channel := range channels {
+		params[0] = sessionkey
+		params[1] = channel
+
+		var packages []interface{}
+		client.Call("channel.software.list_all_packages", params, &packages)
+
+		for _, pkg := range packages {
+			if details, ok := pkg.(map[string]interface{}); ok {
+				fmt.Println(details["id"].(int64))
+				fmt.Println(get_package_filename(client, sessionkey, details["id"].(int64)))
+			}
+		}
+
+	}
+
+	return inv
+}
+
+func get_package_filename (client *xmlrpc.Client, sessionkey string, id int64) string {
+	params := make([]interface{}, 2)
+	params[0] = sessionkey
+	params[1] = id
+
+	var details interface{}
+	client.Call("packages.get_details", params, &details)
+
+	if detail, ok := details.(map[string]interface{}); ok {
+		return detail["file"].(string)
+	}
+
+	return ""
 }

@@ -17,6 +17,13 @@ import "strings"
 import "net/http"
 import "crypto/tls"
 
+type Meta struct {
+	Author		string
+	Disclaimer	string
+	License		string
+	Timestamp	string
+}
+
 type Erratum struct {
 	Id          string   `json:"id"`		// Only needed in array approach
 	Description string   `json:"description"`
@@ -36,9 +43,30 @@ type Erratum struct {
 	Type        string   `json:"type"`
 }
 
+type Raw struct {
+	Advisories	[]Erratum
+	Meta		Meta
+}
+
+type SWerrata struct {
+	Synopsis	string
+	AdvisoryName	string
+	AdvisoryRelease	int
+	AdvisoryType	string
+	Product		string
+	Topic		string
+	Description	string
+	References	string
+	Notes		string
+	Solution	string
+	Keyword		[]string
+	Publish		bool
+	ChannelLabel	[]string
+}
+
 type Inventory struct {
-	filename2id		map[string]int64
-	id2channels		map[int64][]string
+	filename2id	map[string]int64
+	id2channels	map[int64][]string
 }
 
 // for "map"
@@ -74,13 +102,20 @@ func main () {
 	fmt.Printf("Server is %s\n", server)
 
 	// Test on a full dataset
-	file, _ := ioutil.ReadFile("/Users/smeier/tmp/errata.latest.json")
-	var errata = map[string]Erratum{}
-	_ = json.Unmarshal([]byte(file), &errata)
+//	file, _ := ioutil.ReadFile("/Users/smeier/tmp/errata.latest.json")
+//	var allerrata = map[string]Erratum{}
+//	_ = json.Unmarshal([]byte(file), &allerrata)
+//	^^ works, but not with `meta` section
 //	x := 1
 //	spew.Dump(x)
 
+	file, _ := ioutil.ReadFile("/Users/smeier/tmp/errata.newform.json")
+	var allerrata Raw
+	_ = json.Unmarshal([]byte(file), &allerrata)
+//	spew.Dump(allerrata.Meta)
+
 	var home string = os.Getenv("HOME")
+	var latest map[string]interface{}
 
 	// Test current XML format
 	if _, err := os.Stat(home + "/tmp/errata.latest.xml"); err == nil {
@@ -91,7 +126,7 @@ func main () {
 		}
 		fmt.Println("Loading " + home + "/tmp/errata.latest.xml")
 		decoder := xml2map.NewDecoder(strings.NewReader(string(data[:])))
-//		latest, err := decoder.Decode()
+		latest, err = decoder.Decode()
 //		spew.Dump(latest)
 		_, err = decoder.Decode()
 	}
@@ -198,6 +233,26 @@ func main () {
 
 	fmt.Println("---")
 	spew.Dump(inv)
+
+//	fmt.Println("DATA from JSON:")
+//	for _, errata := range allerrata {
+//		for _, rpm := range errata.Packages {
+//			fmt.Printf("%s includes package %s\n", errata.Id, rpm);
+//		}
+//	}
+	// ^^ works
+	fmt.Println("DATA from JSON:")
+	for _, errata := range allerrata.Advisories {
+		for _, rpm := range errata.Packages {
+			fmt.Printf("%s includes package %s\n", errata.Id, rpm);
+		}
+	}
+
+	fmt.Println("DATA from XML:")
+	for _, errata := range latest {
+		spew.Dump(errata)
+	}
+
 	os.Exit(0)
 
 	// Source: https://stackoverflow.com/a/31816267/1592267

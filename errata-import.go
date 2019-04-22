@@ -34,9 +34,8 @@ type Erratum struct {
 }
 
 type Inventory struct {
-	filename2id		map[string]int
-	filename2channel	map[string]string
-	id2channel		map[string]string
+	filename2id		map[string]int64
+	id2channels		map[int64][]string
 }
 
 // for "map"
@@ -76,8 +75,9 @@ func main () {
 		}
 		fmt.Println("Loading " + home + "/tmp/errata.latest.xml")
 		decoder := xml2map.NewDecoder(strings.NewReader(string(data[:])))
-		latest, err := decoder.Decode()
-		spew.Dump(latest)
+//		latest, err := decoder.Decode()
+//		spew.Dump(latest)
+		_, err = decoder.Decode()
 	}
 
 
@@ -99,8 +99,8 @@ func main () {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	// Initialize XML-RPC Client
-	client, err := xmlrpc.NewClient("https://192.168.227.131/rpc/api", nil)
-	fmt.Fprintf(os.Stdout, "NewClient is type %T\n", client)
+	client, err := xmlrpc.NewClient("https://192.168.227.132/rpc/api", nil)
+//	fmt.Fprintf(os.Stdout, "NewClient is type %T\n", client)
 	if err != nil {
 //		fmt.Println("Could not read XML")
 		log.Fatal(err)
@@ -110,7 +110,7 @@ func main () {
 	// Get server version
 	var version string
 	client.Call("api.getVersion", nil, &version)
-	spew.Dump(version)
+//	spew.Dump(version)
 
 	username := "admin"
 	password := "admin1"
@@ -123,7 +123,7 @@ func main () {
 
 //	client.Call("auth.login", params, &sessionkey)
 	sessionkey = init_session(client, username, password)
-	spew.Dump(sessionkey)
+//	spew.Dump(sessionkey)
 
 	// Get user roles
 //	var roles []string
@@ -243,6 +243,8 @@ func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string)
 	params := make([]interface{}, 2)
 
 	var inv Inventory
+	inv.filename2id = make(map[string]int64)
+	inv.id2channels = make(map[int64][]string)
 	for _, channel := range channels {
 		params[0] = sessionkey
 		params[1] = channel
@@ -252,8 +254,11 @@ func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string)
 
 		for _, pkg := range packages {
 			if details, ok := pkg.(map[string]interface{}); ok {
-				fmt.Println(details["id"].(int64))
-				fmt.Println(get_package_filename(client, sessionkey, details["id"].(int64)))
+				id := details["id"].(int64)
+				filename, inchannels := get_package_details(client, sessionkey, id)
+				fmt.Printf("Adding %s (%d) to inventory\n", filename, id)
+				inv.filename2id[filename] = id
+				inv.id2channels[id] = inchannels
 			}
 		}
 
@@ -262,17 +267,21 @@ func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string)
 	return inv
 }
 
-func get_package_filename (client *xmlrpc.Client, sessionkey string, id int64) string {
+func get_package_details (client *xmlrpc.Client, sessionkey string, id int64) (string, []string) {
 	params := make([]interface{}, 2)
 	params[0] = sessionkey
 	params[1] = id
 
 	var details interface{}
+	var inchannels []string
 	client.Call("packages.get_details", params, &details)
 
 	if detail, ok := details.(map[string]interface{}); ok {
-		return detail["file"].(string)
+		for _, provchan := range detail["providing_channels"].([]interface{}) {
+			inchannels = append(inchannels, provchan.(string))
+		}
+		return detail["file"].(string), inchannels
 	}
 
-	return ""
+	return "", []string{}
 }

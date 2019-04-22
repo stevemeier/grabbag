@@ -3,12 +3,15 @@ package main
 import "encoding/json"
 import "fmt"
 import "io/ioutil"
+import "github.com/DavidGamba/go-getoptions"
 import "github.com/davecgh/go-spew/spew"
 import "github.com/kolo/xmlrpc"
 import "github.com/sbabiv/xml2map"
 import "log"
 import "os"
 import "strings"
+//import "time"
+//import "net"
 
 // These two need to be loaded if cert-check is to be disabled
 import "net/http"
@@ -57,6 +60,19 @@ func main () {
 //	_ = json.Unmarshal([]byte(file), &errata)
 //	spew.Dump(errata)
 
+	var debug bool
+	var server string
+
+	opt := getoptions.New()
+	opt.BoolVar(&debug, "debug", false)
+	opt.StringVar(&server, "server", "localhost")
+
+	remaining, err := opt.Parse(os.Args[1:])
+
+	fmt.Printf("Remaining is %d\n", remaining)
+	fmt.Printf("Debug is %t\n", debug)
+	fmt.Printf("Server is %s\n", server)
+
 	// Test on a full dataset
 	file, _ := ioutil.ReadFile("/Users/smeier/tmp/errata.latest.json")
 	var errata = map[string]Erratum{}
@@ -98,8 +114,25 @@ func main () {
 	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
+	// Configure timeout
+//	http.DefaultTransport.(*http.Transport).ResponseHeaderTimeout = time.Second * 5
+//	^^ doesn't work
+
+//	var myTransport http.RoundTripper = &http.Transport{
+ //       Proxy:                 http.ProxyFromEnvironment,
+  //      ResponseHeaderTimeout: time.Second * 5,
+//	DialContext: (&net.Dialer{Timeout: time.Second * 5}).DialContext,
+//	}
+	// DialContext actually does it for unreachable server
+
 	// Initialize XML-RPC Client
-	client, err := xmlrpc.NewClient("https://192.168.227.132/rpc/api", nil)
+//	client, err := xmlrpc.NewClient("https://192.168.227.132/rpc/api", nil)
+	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", nil)
+//	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", myTransport)
+//	^^ timeout is 5 minutes(!)
+//	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", myTransport)
+//	^^ should work
+//	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", {Timeout: &timeout})
 //	fmt.Fprintf(os.Stdout, "NewClient is type %T\n", client)
 	if err != nil {
 //		fmt.Println("Could not read XML")
@@ -110,7 +143,12 @@ func main () {
 	// Get server version
 	var version string
 	client.Call("api.getVersion", nil, &version)
-//	spew.Dump(version)
+	spew.Dump(version)
+
+	if version == "" {
+		fmt.Println("Could not connect to server!");
+		os.Exit(2)
+	}
 
 	username := "admin"
 	password := "admin1"

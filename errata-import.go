@@ -1,6 +1,7 @@
 package main
 
 import "encoding/json"
+import "encoding/xml"
 import "fmt"
 import "io/ioutil"
 import "github.com/DavidGamba/go-getoptions"
@@ -9,6 +10,7 @@ import "github.com/kolo/xmlrpc"
 import "github.com/sbabiv/xml2map"
 import "log"
 import "os"
+import "regexp"
 import "strings"
 //import "time"
 //import "net"
@@ -67,6 +69,12 @@ type SWerrata struct {
 type Inventory struct {
 	filename2id	map[string]int64
 	id2channels	map[int64][]string
+}
+
+type OvalData struct {
+	Description	string
+	References	[]string
+	Rights		string
 }
 
 // for "map"
@@ -130,20 +138,13 @@ func main () {
 //		spew.Dump(latest)
 		_, err = decoder.Decode()
 	}
+	_ = latest
 
 
 	// Load Red Hat OVAL data
-	if _, err := os.Stat("~/tmp/com.redhat.rhsa-all.xml"); err == nil {
-	        data, err := ioutil.ReadFile("~/tmp/com.redhat.rhsa-all.xml")
-		if err != nil {
-			fmt.Println("Could not read ~/tmp/com.redhat.rhsa-all.xml")
-			os.Exit(1)
-		}
-		fmt.Println("Loading ~/tmp/com.redhat.rhsa-all.xml")
-		decoder := xml2map.NewDecoder(strings.NewReader(string(data[:])))
-		result, err := decoder.Decode()
-		spew.Dump(result)
-	}
+	var oval map[string]OvalData
+	oval = ParseOval("/Users/smeier/tmp/com.redhat.rhsa-all.xml")
+	_ = oval
 
 	// Disable TLS certificate checks (insecure!)
 	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
@@ -190,21 +191,7 @@ func main () {
 
 	// Authenticate and get sessionKey
 	var sessionkey string
-//	params := make([]interface{}, 2)
-//	params[0] = "admin"
-//	params[1] = "admin1"
-
-//	client.Call("auth.login", params, &sessionkey)
 	sessionkey = init_session(client, username, password)
-//	spew.Dump(sessionkey)
-
-	// Get user roles
-//	var roles []string
-//	params = make([]interface{}, 2)
-//	params[0] = sessionkey
-//	params[1] = "admin"
-//	client.Call("user.list_roles", params, &roles)
-//	spew.Dump(roles)
 
 	// Check admin status
 	if (user_is_admin(client, sessionkey, username)) {
@@ -212,27 +199,18 @@ func main () {
 	}
 
 	// List all channels
-//	var channels []interface{}
-//	params = make([]interface{}, 1)
-//	params[0] = sessionkey
-//	client.Call("channel.list_all_channels", params, &channels)
 	var channels []string
 	channels = get_channel_list(client, sessionkey)
 	fmt.Println("Channel list:\n")
 	spew.Dump(channels)
 
 	// Get packages of channel
-//	var packages []interface{}
-//	params = make([]interface{}, 2)
-//	params[0] = sessionkey
-//	params[1] = "centos7-x86_64-centosplus"
-//	client.Call("channel.software.list_all_packages", params, &packages)
-//	spew.Dump(packages)
 	var inv Inventory
 	inv = get_inventory(client, sessionkey, channels)
+	_ = inv
 
 	fmt.Println("---")
-	spew.Dump(inv)
+//	spew.Dump(inv)
 
 //	fmt.Println("DATA from JSON:")
 //	for _, errata := range allerrata {
@@ -248,43 +226,12 @@ func main () {
 		}
 	}
 
-	fmt.Println("DATA from XML:")
-	for _, errata := range latest {
-		spew.Dump(errata)
-	}
+//	fmt.Println("DATA from XML:")
+//	for _, errata := range latest {
+//		spew.Dump(errata)
+//	}
 
 	os.Exit(0)
-
-	// Source: https://stackoverflow.com/a/31816267/1592267
-//	for _, record := range packages {
-//		log.Printf(" [===>] Record: %s", record)
-
-//		if rec, ok := record.(map[string]interface{}); ok {
-//			for key, val := range rec {
-//				log.Printf(" [========>] %s = %s", key, val)
-//				if (key == "name") {
-//					fmt.Printf("%s -> %s", key, val)
-//				}
-//				if (key == "id") {
-//					var packagedetails interface{}
-//					params = make([]interface{}, 2)
-//					params[0] = sessionkey
-//					params[1] = val
-//					fmt.Printf("\nGetting details for package %d\n", val)
-//					client.Call("packages.get_details", params, &packagedetails)
-//					spew.Dump(packagedetails)
-
-//					if detail, ok := packagedetails.(map[string]interface{}); ok {
-//						for dkey, dval := range detail {
-//							fmt.Printf("%s -> %s\n", dkey, dval)
-//						}
-//					}
-//				}
-//			}
-//		} else {
-//			fmt.Printf("record not a map[string]interface{}: %v\n", record)
-//		}
-//	}
 }
 
 func init_session (client *xmlrpc.Client, username string, password string) string {
@@ -377,4 +324,206 @@ func get_package_details (client *xmlrpc.Client, sessionkey string, id int64) (s
 	}
 
 	return "", []string{}
+}
+
+func ParseOval(file string) map[string]OvalData {
+	if file == "" {
+		return nil
+	}
+
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return nil
+	}
+
+	// OvalDefinitions was generated 2019-04-24 22:06:30 by root on localhost.localdomain.
+	type OvalDefinitions struct {
+		XMLName        xml.Name `xml:"oval_definitions"`
+		Text           string   `xml:",chardata"`
+		Xmlns          string   `xml:"xmlns,attr"`
+		Oval           string   `xml:"oval,attr"`
+		RedDef         string   `xml:"red-def,attr"`
+		UnixDef        string   `xml:"unix-def,attr"`
+		Xsi            string   `xml:"xsi,attr"`
+		SchemaLocation string   `xml:"schemaLocation,attr"`
+		Generator      struct {
+			Text           string `xml:",chardata"`
+			ProductName    string `xml:"product_name"`
+			ProductVersion string `xml:"product_version"`
+			SchemaVersion  string `xml:"schema_version"`
+			Timestamp      string `xml:"timestamp"`
+			ContentVersion string `xml:"content_version"`
+		} `xml:"generator"`
+		Definitions struct {
+			Text       string `xml:",chardata"`
+			Definition []struct {
+				Text     string `xml:",chardata"`
+				Class    string `xml:"class,attr"`
+				ID       string `xml:"id,attr"`
+				Version  string `xml:"version,attr"`
+				Metadata struct {
+					Text     string `xml:",chardata"`
+					Title    string `xml:"title"`
+					Affected struct {
+						Text     string   `xml:",chardata"`
+						Family   string   `xml:"family,attr"`
+						Platform []string `xml:"platform"`
+					} `xml:"affected"`
+					Reference []struct {
+						Text   string `xml:",chardata"`
+						RefID  string `xml:"ref_id,attr"`
+						RefURL string `xml:"ref_url,attr"`
+						Source string `xml:"source,attr"`
+					} `xml:"reference"`
+					Description string `xml:"description"`
+					Advisory    struct {
+						Text     string `xml:",chardata"`
+						From     string `xml:"from,attr"`
+						Severity string `xml:"severity"`
+						Rights   string `xml:"rights"`
+						Issued   struct {
+							Text string `xml:",chardata"`
+							Date string `xml:"date,attr"`
+						} `xml:"issued"`
+						Updated struct {
+							Text string `xml:",chardata"`
+							Date string `xml:"date,attr"`
+						} `xml:"updated"`
+						Cve []struct {
+							Text   string `xml:",chardata"`
+							Href   string `xml:"href,attr"`
+							Public string `xml:"public,attr"`
+							Impact string `xml:"impact,attr"`
+							Cwe    string `xml:"cwe,attr"`
+							Cvss2  string `xml:"cvss2,attr"`
+							Cvss3  string `xml:"cvss3,attr"`
+						} `xml:"cve"`
+						Bugzilla []struct {
+							Text string `xml:",chardata"`
+							Href string `xml:"href,attr"`
+							ID   string `xml:"id,attr"`
+						} `xml:"bugzilla"`
+						AffectedCpeList struct {
+							Text string   `xml:",chardata"`
+							Cpe  []string `xml:"cpe"`
+						} `xml:"affected_cpe_list"`
+					} `xml:"advisory"`
+				} `xml:"metadata"`
+				Criteria struct {
+					Text      string `xml:",chardata"`
+					Operator  string `xml:"operator,attr"`
+					Criterion []struct {
+						Text    string `xml:",chardata"`
+						Comment string `xml:"comment,attr"`
+						TestRef string `xml:"test_ref,attr"`
+					} `xml:"criterion"`
+					Criteria []struct {
+						Text      string `xml:",chardata"`
+						Operator  string `xml:"operator,attr"`
+						Criterion []struct {
+							Text    string `xml:",chardata"`
+							Comment string `xml:"comment,attr"`
+							TestRef string `xml:"test_ref,attr"`
+						} `xml:"criterion"`
+						Criteria []struct {
+							Text     string `xml:",chardata"`
+							Operator string `xml:"operator,attr"`
+							Criteria []struct {
+								Text      string `xml:",chardata"`
+								Operator  string `xml:"operator,attr"`
+								Criterion []struct {
+									Text    string `xml:",chardata"`
+									Comment string `xml:"comment,attr"`
+									TestRef string `xml:"test_ref,attr"`
+								} `xml:"criterion"`
+							} `xml:"criteria"`
+							Criterion []struct {
+								Text    string `xml:",chardata"`
+								Comment string `xml:"comment,attr"`
+								TestRef string `xml:"test_ref,attr"`
+							} `xml:"criterion"`
+						} `xml:"criteria"`
+					} `xml:"criteria"`
+				} `xml:"criteria"`
+			} `xml:"definition"`
+		} `xml:"definitions"`
+		Tests struct {
+			Text        string `xml:",chardata"`
+			RpminfoTest []struct {
+				Text    string `xml:",chardata"`
+				Check   string `xml:"check,attr"`
+				Comment string `xml:"comment,attr"`
+				ID      string `xml:"id,attr"`
+				Version string `xml:"version,attr"`
+				Object  struct {
+					Text      string `xml:",chardata"`
+					ObjectRef string `xml:"object_ref,attr"`
+				} `xml:"object"`
+				State struct {
+					Text     string `xml:",chardata"`
+					StateRef string `xml:"state_ref,attr"`
+				} `xml:"state"`
+			} `xml:"rpminfo_test"`
+		} `xml:"tests"`
+		Objects struct {
+			Text          string `xml:",chardata"`
+			RpminfoObject []struct {
+				Text    string `xml:",chardata"`
+				ID      string `xml:"id,attr"`
+				Version string `xml:"version,attr"`
+				Name    string `xml:"name"`
+			} `xml:"rpminfo_object"`
+		} `xml:"objects"`
+		States struct {
+			Text         string `xml:",chardata"`
+			RpminfoState []struct {
+				Text           string `xml:",chardata"`
+				ID             string `xml:"id,attr"`
+				AttrVersion    string `xml:"version,attr"`
+				SignatureKeyid struct {
+					Text      string `xml:",chardata"`
+					Operation string `xml:"operation,attr"`
+				} `xml:"signature_keyid"`
+				Version struct {
+					Text      string `xml:",chardata"`
+					Operation string `xml:"operation,attr"`
+				} `xml:"version"`
+				Arch struct {
+					Text      string `xml:",chardata"`
+					Datatype  string `xml:"datatype,attr"`
+					Operation string `xml:"operation,attr"`
+				} `xml:"arch"`
+				Evr struct {
+					Text      string `xml:",chardata"`
+					Datatype  string `xml:"datatype,attr"`
+					Operation string `xml:"operation,attr"`
+				} `xml:"evr"`
+			} `xml:"rpminfo_state"`
+		} `xml:"states"`
+	}
+
+	var ovaldata OvalDefinitions
+	data, _ := ioutil.ReadFile(file)
+        _ = xml.Unmarshal([]byte(data), &ovaldata)
+	oval := make(map[string]OvalData)
+
+	for _, def := range ovaldata.Definitions.Definition {
+		id := def.ID
+		id = "CESA-" + id[len(id)-8:len(id)-4] + ":" + id[len(id)-4:]
+
+		var cves []string
+		for _, ref := range def.Metadata.Reference {
+			matched, _ := regexp.MatchString(`^CVE`, ref.RefID)
+			if matched {
+				cves = append(cves, ref.RefID)
+			}
+		}
+
+		var current = oval[id]
+		current.Description = def.Metadata.Description
+		current.Rights = def.Metadata.Advisory.Rights
+		current.References = cves
+		oval[id] = current
+	}
+
+	return oval
 }

@@ -221,9 +221,14 @@ func main () {
 	// ^^ works
 	fmt.Println("DATA from JSON:")
 	for _, errata := range allerrata.Advisories {
-		for _, rpm := range errata.Packages {
-			fmt.Printf("%s includes package %s\n", errata.Id, rpm);
-		}
+		fmt.Printf("Processing %s\n", errata.Id)
+
+		var pkglist []int64
+		pkglist = get_packages_for_errata(errata, inv)
+		spew.Dump(pkglist)
+//		for _, rpm := range errata.Packages {
+//			fmt.Printf("%s includes package %s\n", errata.Id, rpm);
+//		}
 	}
 
 //	fmt.Println("DATA from XML:")
@@ -526,4 +531,17 @@ func ParseOval(file string) map[string]OvalData {
 	}
 
 	return oval
+}
+
+func get_packages_for_errata (errata Erratum, inv Inventory) []int64 {
+	var pkglist []int64
+//	var pkgid int64
+
+	for _, rpm := range errata.Packages {
+		if pkgid, ok := inv.filename2id[rpm]; ok {
+			pkglist = append(pkglist, pkgid)
+		}
+	}
+
+	return pkglist
 }

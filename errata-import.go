@@ -7,11 +7,11 @@ import "io/ioutil"
 import "github.com/DavidGamba/go-getoptions"
 import "github.com/davecgh/go-spew/spew"
 import "github.com/kolo/xmlrpc"
-import "github.com/sbabiv/xml2map"
+//import "github.com/sbabiv/xml2map"
 import "log"
 import "os"
 import "regexp"
-import "strings"
+//import "strings"
 //import "time"
 //import "net"
 
@@ -122,23 +122,23 @@ func main () {
 	_ = json.Unmarshal([]byte(file), &allerrata)
 //	spew.Dump(allerrata.Meta)
 
-	var home string = os.Getenv("HOME")
-	var latest map[string]interface{}
+//	var home string = os.Getenv("HOME")
+//	var latest map[string]interface{}
 
 	// Test current XML format
-	if _, err := os.Stat(home + "/tmp/errata.latest.xml"); err == nil {
-		data, err := ioutil.ReadFile(home +"/tmp/errata.latest.xml")
-		if err != nil {
-			fmt.Println("Could not read " + home + "/tmp/errata.latest.xml")
-			os.Exit(1)
-		}
-		fmt.Println("Loading " + home + "/tmp/errata.latest.xml")
-		decoder := xml2map.NewDecoder(strings.NewReader(string(data[:])))
-		latest, err = decoder.Decode()
+//	if _, err := os.Stat(home + "/tmp/errata.latest.xml"); err == nil {
+//		data, err := ioutil.ReadFile(home +"/tmp/errata.latest.xml")
+//		if err != nil {
+//			fmt.Println("Could not read " + home + "/tmp/errata.latest.xml")
+//			os.Exit(1)
+//		}
+//		fmt.Println("Loading " + home + "/tmp/errata.latest.xml")
+//		decoder := xml2map.NewDecoder(strings.NewReader(string(data[:])))
+//		latest, err = decoder.Decode()
 //		spew.Dump(latest)
-		_, err = decoder.Decode()
-	}
-	_ = latest
+//		_, err = decoder.Decode()
+//	}
+//	_ = latest
 
 
 	// Load Red Hat OVAL data

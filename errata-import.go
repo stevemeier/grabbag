@@ -19,6 +19,8 @@ import "time"
 import "net/http"
 import "crypto/tls"
 
+const version int = 20190426
+
 type Meta struct {
 	Author		string
 	Disclaimer	string
@@ -103,17 +105,35 @@ func main () {
 //	spew.Dump(errata)
 
 	var debug bool
+	var publish bool
 	var server string
+
+	var security bool
+	var bugfix bool
+	var enhancement bool
 
 	opt := getoptions.New()
 	opt.BoolVar(&debug, "debug", false)
 	opt.StringVar(&server, "server", "localhost")
+	opt.BoolVar(&publish, "publish", false)
+
+	opt.BoolVar(&security, "security", false)
+	opt.BoolVar(&bugfix, "bugfix", false)
+	opt.BoolVar(&enhancement, "enhancement", false)
 
 	remaining, err := opt.Parse(os.Args[1:])
 
 	fmt.Printf("Remaining is %d\n", remaining)
 	fmt.Printf("Debug is %t\n", debug)
+	fmt.Printf("Publish is %t\n", publish)
 	fmt.Printf("Server is %s\n", server)
+
+	// If no errata type is selected, enable all
+	if (!(security || bugfix || enhancement)) {
+		security = true
+		bugfix = true
+		enhancement = true
+	}
 
 	// Test on a full dataset
 //	file, _ := ioutil.ReadFile("/Users/smeier/tmp/errata.latest.json")
@@ -231,6 +251,20 @@ func main () {
 	// ^^ works
 	fmt.Println("DATA from JSON:")
 	for _, errata := range allerrata.Advisories {
+
+		if (errata.Type == "Security Advisory" && !security) {
+			fmt.Printf("Skipping %s\n", errata.Id)
+			continue
+		}
+		if (errata.Type == "Bug Fix Advisory" && !bugfix) {
+			fmt.Printf("Skipping %s\n", errata.Id)
+			continue
+		}
+		if (errata.Type == "Product Enhancement Advisory" && !enhancement) {
+			fmt.Printf("Skipping %s\n", errata.Id)
+			continue
+		}
+
 		fmt.Printf("Processing %s\n", errata.Id)
 
 		var pkglist []int64
@@ -254,7 +288,7 @@ func main () {
 		info.Notes = errata.Notes
 
 		if exists, _ := existing[(errata.Id)]; !exists {
-			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
+			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, publish, []string{})
 			spew.Dump(success)
 		}
 

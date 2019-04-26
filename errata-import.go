@@ -12,6 +12,7 @@ import "log"
 import "os"
 import "regexp"
 //import "strings"
+import "strconv"
 import "time"
 //import "net"
 
@@ -20,6 +21,7 @@ import "net/http"
 import "crypto/tls"
 
 const Version int = 20190426
+const timelayout = "2006-01-02 15:04:05"
 var SupportedAPI = []float64{10.9,  // Spacewalk 0.6
                              10.11, // Spacewalk 1.0 and 1.1
 			     11.00, // Spacewalk 1.5
@@ -58,6 +60,7 @@ type Erratum struct {
 	Id          string   `json:"id"`		// Only needed in array approach
 	Description string   `json:"description"`
 	From        string   `json:"from"`
+//	IssueDate   time.Time   `json:"issue_date"`
 	IssueDate   string   `json:"issue_date"`
 	Manual      string   `json:"manual"`
 	Notes       string   `json:"notes"`
@@ -67,6 +70,7 @@ type Erratum struct {
 	Product     string   `json:"product"`
 	References  string   `json:"references"`
 	Release     string   `json:"release"`
+	Severity    string   `json:"severity"`
 	Solution    string   `json:"solution"`
 	Synopsis    string   `json:"synopsis"`
 	Topic       string   `json:"topic"`
@@ -239,17 +243,17 @@ func main () {
 	}
 
 	// Get server version
-	var version string
-	client.Call("api.get_version", nil, &version)
-	spew.Dump(version)
+	var apiversion string
+	client.Call("api.get_version", nil, &apiversion)
+	spew.Dump(apiversion)
 
-	if version == "" {
+	if apiversion == "" {
 		fmt.Println("Could not connect to server!");
 		os.Exit(2)
 	}
 
-	if (!check_api_support(version, SupportedAPI) && !ignoreapiversion) {
-		fmt.Printf("API version %s is not supported!\n", version)
+	if (!check_api_support(apiversion, SupportedAPI) && !ignoreapiversion) {
+		fmt.Printf("API version %s is not supported!\n", apiversion)
 		os.Exit(3)
 	}
 
@@ -347,6 +351,14 @@ func main () {
 		if exists, _ := existing[(errata.Id)]; !exists {
 			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, publish, []string{})
 			spew.Dump(success)
+			if string_to_float(apiversion) >= 12 {
+				fmt.Printf("Adding issue date to %s\n", errata.Id)
+				issuedate, _ := time.Parse(timelayout, errata.IssueDate)
+				success = add_issue_date(client, sessionkey, errata.Id, issuedate)
+			}
+//			if apiversion >= 21 {
+//				success = add_severity(client, sessionkey, errata.Id, errata.Severity)
+//			}
 		}
 
 	}
@@ -770,6 +782,10 @@ func check_api_support (version string, supported []float64) bool {
 func include_channels (channels []string, include *[]string) []string {
 	var result []string
 
+	if len(*include) == 0 {
+		return channels
+	}
+
 	for _, channel := range channels {
 		var included bool = false
 		for _, inc := range *include {
@@ -809,4 +825,38 @@ func float_to_string (input float64) string {
 	}
 
 	return fmt.Sprintf("%.2f", input)
+}
+
+func string_to_float (input string) float64 {
+	result, err := strconv.ParseFloat(input, 64)
+	if err == nil {
+		return result
+	} else {
+		return 0
+	}
+}
+
+func add_issue_date (client *xmlrpc.Client, sessionkey string, errata string, issuedate time.Time) bool {
+	type Details struct {
+		IssueDate	time.Time	`xmlrpc:"issue_date"`
+		UpdateDate	time.Time	`xmlrpc:"update_date"`
+	}
+
+	var details Details
+	details.IssueDate = issuedate
+	details.UpdateDate = issuedate
+
+	params := make([]interface{}, 3)
+	params[0] = sessionkey
+	params[1] = errata
+	params[2] = details
+
+	var response int
+	client.Call("errata.set_details", params, &response)
+
+	if response > 0 {
+		return true
+	}
+
+	return false
 }

@@ -51,19 +51,25 @@ type Raw struct {
 }
 
 type SWerrata struct {
-	Synopsis	string
-	AdvisoryName	string
-	AdvisoryRelease	int
-	AdvisoryType	string
-	Product		string
-	Topic		string
-	Description	string
-	References	string
-	Notes		string
-	Solution	string
-	Keyword		[]string
-	Publish		bool
-	ChannelLabel	[]string
+	Synopsis	string	`xmlrpc:"synopsis"`
+	AdvisoryName	string	`xmlrpc:"advisory_name"`
+	AdvisoryRelease	int	`xmlrpc:"advisory_release"`
+	AdvisoryType	string	`xmlrpc:"advisory_type"`
+	Product		string	`xmlrpc:"product"`
+	Topic		string	`xmlrpc:"topic"`
+	Description	string	`xmlrpc:"description"`
+	References	string	`xmlrpc:"references"`
+	Notes		string	`xmlrpc:"notes"`
+	Solution	string	`xmlrpc:"solution"`
+//	Keyword		[]string
+//	Publish		bool
+//	ChannelLabel	[]string
+}
+
+type Bug struct {
+	Id		int
+	Summary		string
+	Url		string
 }
 
 type Inventory struct {
@@ -226,6 +232,26 @@ func main () {
 		var pkglist []int64
 		pkglist = get_packages_for_errata(errata, inv)
 		spew.Dump(pkglist)
+
+		if len(pkglist) == 0 {
+			continue
+		}
+
+		var response int64
+
+		var info SWerrata
+		info.AdvisoryName = errata.Id
+		info.AdvisoryType = errata.Type
+		info.Synopsis = errata.Synopsis
+		info.Description = errata.Description
+		info.Product = errata.Product
+		info.Solution = errata.Solution
+		info.Topic = errata.Topic
+		info.Notes = errata.Notes
+
+		response = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
+		//response = create_errata(client, sessionkey, errata, []Bug{}, []string{}, pkglist, false, []string{})
+		_ = response
 //		for _, rpm := range errata.Packages {
 //			fmt.Printf("%s includes package %s\n", errata.Id, rpm);
 //		}
@@ -535,7 +561,6 @@ func ParseOval(file string) map[string]OvalData {
 
 func get_packages_for_errata (errata Erratum, inv Inventory) []int64 {
 	var pkglist []int64
-//	var pkgid int64
 
 	for _, rpm := range errata.Packages {
 		if pkgid, ok := inv.filename2id[rpm]; ok {
@@ -544,4 +569,30 @@ func get_packages_for_errata (errata Erratum, inv Inventory) []int64 {
 	}
 
 	return pkglist
+}
+
+func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bugs []Bug, keywords []string, pkglist []int64, publish bool, channels []string) int64 {
+	params := make([]interface{}, 7)
+	params[0] = sessionkey
+	params[1] = info
+	params[2] = bugs
+	params[3] = keywords
+	params[4] = pkglist
+	params[5] = publish
+	params[6] = channels
+
+	type Response struct {
+		Id			int64
+		Date			string
+		Advisory_Type		string
+		Advisory_Synopsis	string
+	}
+
+	//var response interface{}
+	var response Response
+	client.Call("errata.create", params, &response)
+
+	spew.Dump(response)
+
+	return 1
 }

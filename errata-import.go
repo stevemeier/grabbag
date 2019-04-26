@@ -20,7 +20,32 @@ import "net/http"
 import "crypto/tls"
 
 const Version int = 20190426
-var SupportedAPI = []string{"10.9","10.11","11.00","11.1","12","13","13.0","14","14.0","15","15.0","16","16.0","17","17.0","18","18.0","19","19.0","20","20.0","21","21.0","22a","22.0"}
+var SupportedAPI = []string{"10.9",  // Spacewalk 0.6
+                            "10.11", // Spacewalk 1.0 and 1.1
+			    "11.00", // Spacewalk 1.5
+			    "11.1",  // Spacewalk 1.6 through 1.8
+			    "12",    // Spacewalk 1.9
+			    "13",    // Spacewalk 2.0
+			    "13.0",
+			    "14",    // Spacewalk 2.1
+			    "14.0",
+			    "15",    // Spacewalk 2.2
+			    "15.0",
+			    "16",    // Spacewalk 2.3
+			    "16.0",
+			    "17",    // Spacewalk 2.4
+			    "17.0",
+			    "18",    // Spacewalk 2.5
+			    "18.0",
+			    "19",    // Spacewalk 2.6
+			    "19.0",
+			    "20",    // Spacewalk 2.7
+			    "20.0",
+			    "21",    // Spacewalk 2.8
+			    "21.0",
+			    "22",    // Spacewalk 2.9
+			    "22.0",
+		    }
 
 type Meta struct {
 	Author		string
@@ -215,7 +240,7 @@ func main () {
 
 	// Get server version
 	var version string
-	client.Call("api.getVersion", nil, &version)
+	client.Call("api.get_version", nil, &version)
 	spew.Dump(version)
 
 	if version == "" {
@@ -331,6 +356,7 @@ func main () {
 //		spew.Dump(errata)
 //	}
 
+	_ = close_session(client, sessionkey)
 	os.Exit(0)
 }
 
@@ -343,6 +369,15 @@ func init_session (client *xmlrpc.Client, username string, password string) stri
 	client.Call("auth.login", params, &sessionkey)
 
 	return sessionkey
+}
+
+func close_session (client *xmlrpc.Client, sessionkey string) bool {
+	params := make([]interface{}, 1)
+	params[0] = sessionkey
+
+	client.Call("auth.logout", params, nil)
+
+	return true
 }
 
 func user_is_admin (client *xmlrpc.Client, sessionkey string, username string) bool {

@@ -12,7 +12,7 @@ import "log"
 import "os"
 import "regexp"
 //import "strings"
-//import "time"
+import "time"
 //import "net"
 
 // These two need to be loaded if cert-check is to be disabled
@@ -216,7 +216,11 @@ func main () {
 	_ = inv
 
 	fmt.Println("---")
-//	spew.Dump(inv)
+
+	// Get existing errata
+	var existing = make(map[string]bool)
+	existing = get_existing_errata(client, sessionkey, channels)
+	spew.Dump(existing)
 
 //	fmt.Println("DATA from JSON:")
 //	for _, errata := range allerrata {
@@ -237,7 +241,7 @@ func main () {
 			continue
 		}
 
-		var response int64
+		var success bool
 
 		var info SWerrata
 		info.AdvisoryName = errata.Id
@@ -249,12 +253,11 @@ func main () {
 		info.Topic = errata.Topic
 		info.Notes = errata.Notes
 
-		response = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
-		//response = create_errata(client, sessionkey, errata, []Bug{}, []string{}, pkglist, false, []string{})
-		_ = response
-//		for _, rpm := range errata.Packages {
-//			fmt.Printf("%s includes package %s\n", errata.Id, rpm);
-//		}
+		if exists, _ := existing[(errata.Id)]; !exists {
+			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
+			spew.Dump(success)
+		}
+
 	}
 
 //	fmt.Println("DATA from XML:")
@@ -336,6 +339,60 @@ func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string)
 	}
 
 	return inv
+}
+
+func get_existing_errata (client *xmlrpc.Client, sessionkey string, channels []string) map[string]bool {
+	params := make([]interface{}, 2)
+	params[0] = sessionkey
+
+	var existing = make(map[string]bool)
+
+	type Response struct {
+		Id			int64	`xmlrpc:"id"`
+		Date			string	`xmlrpc:"date"`
+		Advisory_Type		string	`xmlrpc:"advisory_type"`
+		Advisory_Name		string	`xmlrpc:"advisory_name"`
+		Advisory_Synopsis	string	`xmlrpc:"advisory_synopsis"`
+		Advisory		string	`xmlrpc:"advisory"`
+		IssueDate		string	`xmlrpc:"issue_date"`
+		UpdateDate		string	`xmlrpc:"update_date"`
+		Synopsis		string	`xmlrpc:"synopsis"`
+		LastModified		string	`xmlrpc:"last_modified_date"`
+	}
+	var response []Response
+
+	type Unpub struct {
+		Id			int64	`xmlrpc:"id"`
+		Published		int64	`xmlrpc:"published"`
+		Advisory		string	`xmlrpc:"advisory"`
+		AdvisoryName		string	`xmlrpc:"advisory_name"`
+		AdvisoryType		string	`xmlrpc:"advisory_type"`
+		Synopsis		string	`xmlrpc:"synopsis"`
+		Created			time.Time	`xmlrpc:"created"`
+		UpdateDate		time.Time	`xmlrpc:"update_date"`
+	}
+
+	var unpub []Unpub
+	fmt.Println("Fetching unpublished errata")
+	client.Call("errata.list_unpublished_errata", params, &unpub)
+	spew.Dump(unpub)
+	for _, errata := range unpub {
+		existing[(errata.AdvisoryName)] = true
+	}
+
+	for _, channel := range channels {
+		params[1] = channel
+		fmt.Printf("Fetching existing errata for channel %s\n", channel)
+//		var response []Response
+		client.Call("channel.software.list_errata", params, &response)
+		spew.Dump(response)
+
+		for _, errata := range response {
+			existing[(errata.Advisory_Name)] = true
+		}
+	}
+
+	return existing
 }
 
 func get_package_details (client *xmlrpc.Client, sessionkey string, id int64) (string, []string) {
@@ -571,7 +628,7 @@ func get_packages_for_errata (errata Erratum, inv Inventory) []int64 {
 	return pkglist
 }
 
-func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bugs []Bug, keywords []string, pkglist []int64, publish bool, channels []string) int64 {
+func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bugs []Bug, keywords []string, pkglist []int64, publish bool, channels []string) bool {
 	params := make([]interface{}, 7)
 	params[0] = sessionkey
 	params[1] = info
@@ -582,17 +639,19 @@ func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bug
 	params[6] = channels
 
 	type Response struct {
-		Id			int64
-		Date			string
-		Advisory_Type		string
-		Advisory_Synopsis	string
+		Id			int64	`xmlrpc:"id"`
+		Date			string	`xmlrpc:"date"`
+		Advisory_Type		string	`xmlrpc:"advisory_type"`
+		Advisory_Name		string	`xmlrpc:"advisory_name"`
+		Advisory_Synopsis	string	`xmlrpc:"advisory_synopsis"`
 	}
 
-	//var response interface{}
 	var response Response
 	client.Call("errata.create", params, &response)
 
-	spew.Dump(response)
+	if response.Id > 0 {
+		return true
+	}
 
-	return 1
+	return false
 }

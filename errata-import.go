@@ -19,7 +19,8 @@ import "time"
 import "net/http"
 import "crypto/tls"
 
-const version int = 20190426
+const Version int = 20190426
+var SupportedAPI = []string{"10.9","10.11","11.00","11.1","12","13","13.0","14","14.0","15","15.0","16","16.0","17","17.0","18","18.0","19","19.0","20","20.0","21","21.0","22a","22.0"}
 
 type Meta struct {
 	Author		string
@@ -112,6 +113,11 @@ func main () {
 	var bugfix bool
 	var enhancement bool
 
+	var ignoreapiversion bool
+
+	var inchannels *[]string
+	var exchannels *[]string
+
 	opt := getoptions.New()
 	opt.BoolVar(&debug, "debug", false)
 	opt.StringVar(&server, "server", "localhost")
@@ -120,6 +126,11 @@ func main () {
 	opt.BoolVar(&security, "security", false)
 	opt.BoolVar(&bugfix, "bugfix", false)
 	opt.BoolVar(&enhancement, "enhancement", false)
+
+	opt.BoolVar(&ignoreapiversion, "ignore-api-version", false)
+
+	inchannels = opt.StringSlice("include-channels", 1, 255)
+	exchannels = opt.StringSlice("exclude-channels", 1, 255)
 
 	remaining, err := opt.Parse(os.Args[1:])
 
@@ -212,12 +223,21 @@ func main () {
 		os.Exit(2)
 	}
 
+	if (!check_api_support(version, SupportedAPI) && !ignoreapiversion) {
+		fmt.Printf("API version %s is not supported!\n", version)
+		os.Exit(3)
+	}
+
 	username := "admin"
 	password := "admin1"
 
 	// Authenticate and get sessionKey
 	var sessionkey string
 	sessionkey = init_session(client, username, password)
+	if sessionkey == "" {
+		fmt.Println("Authentication failed!")
+		os.Exit(1)
+	}
 
 	// Check admin status
 	if (user_is_admin(client, sessionkey, username)) {
@@ -227,7 +247,19 @@ func main () {
 	// List all channels
 	var channels []string
 	channels = get_channel_list(client, sessionkey)
-	fmt.Println("Channel list:\n")
+	fmt.Println("Full channel list:")
+	spew.Dump(channels)
+
+	fmt.Println("Include settings")
+	spew.Dump(*inchannels)
+
+	fmt.Println("Exclude settings")
+	spew.Dump(*exchannels)
+
+	channels = include_channels(channels, inchannels)
+	channels = exclude_channels(channels, exchannels)
+
+	fmt.Println("Filtered channel list:")
 	spew.Dump(channels)
 
 	// Get packages of channel
@@ -409,7 +441,7 @@ func get_existing_errata (client *xmlrpc.Client, sessionkey string, channels []s
 	var unpub []Unpub
 	fmt.Println("Fetching unpublished errata")
 	client.Call("errata.list_unpublished_errata", params, &unpub)
-	spew.Dump(unpub)
+//	spew.Dump(unpub)
 	for _, errata := range unpub {
 		existing[(errata.AdvisoryName)] = true
 	}
@@ -419,7 +451,7 @@ func get_existing_errata (client *xmlrpc.Client, sessionkey string, channels []s
 		fmt.Printf("Fetching existing errata for channel %s\n", channel)
 //		var response []Response
 		client.Call("channel.software.list_errata", params, &response)
-		spew.Dump(response)
+//		spew.Dump(response)
 
 		for _, errata := range response {
 			existing[(errata.Advisory_Name)] = true
@@ -688,4 +720,50 @@ func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bug
 	}
 
 	return false
+}
+
+func check_api_support (version string, supported []string) bool {
+	for _, i := range supported {
+		if version == i {
+			return true
+		}
+	}
+
+	return false
+}
+
+func include_channels (channels []string, include *[]string) []string {
+	var result []string
+
+	for _, channel := range channels {
+		var included bool = false
+		for _, inc := range *include {
+			if channel == inc {
+				included = true
+			}
+		}
+		if included {
+			result = append(result, channel)
+		}
+	}
+
+	return result
+}
+
+func exclude_channels (channels []string, exclude *[]string) []string {
+	var result []string
+
+	for _, channel := range channels {
+		var excluded bool = false
+		for _, exc := range *exclude {
+			if channel == exc {
+				excluded = true
+			}
+		}
+		if !excluded {
+			result = append(result, channel)
+		}
+	}
+
+	return result
 }

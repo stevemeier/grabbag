@@ -20,31 +20,31 @@ import "net/http"
 import "crypto/tls"
 
 const Version int = 20190426
-var SupportedAPI = []string{"10.9",  // Spacewalk 0.6
-                            "10.11", // Spacewalk 1.0 and 1.1
-			    "11.00", // Spacewalk 1.5
-			    "11.1",  // Spacewalk 1.6 through 1.8
-			    "12",    // Spacewalk 1.9
-			    "13",    // Spacewalk 2.0
-			    "13.0",
-			    "14",    // Spacewalk 2.1
-			    "14.0",
-			    "15",    // Spacewalk 2.2
-			    "15.0",
-			    "16",    // Spacewalk 2.3
-			    "16.0",
-			    "17",    // Spacewalk 2.4
-			    "17.0",
-			    "18",    // Spacewalk 2.5
-			    "18.0",
-			    "19",    // Spacewalk 2.6
-			    "19.0",
-			    "20",    // Spacewalk 2.7
-			    "20.0",
-			    "21",    // Spacewalk 2.8
-			    "21.0",
-			    "22",    // Spacewalk 2.9
-			    "22.0",
+var SupportedAPI = []float64{10.9,  // Spacewalk 0.6
+                             10.11, // Spacewalk 1.0 and 1.1
+			     11.00, // Spacewalk 1.5
+			     11.1,  // Spacewalk 1.6 through 1.8
+			     12,    // Spacewalk 1.9
+			     13,    // Spacewalk 2.0
+			     13.0,
+			     14,    // Spacewalk 2.1
+			     14.0,
+			     15,    // Spacewalk 2.2
+			     15.0,
+			     16,    // Spacewalk 2.3
+			     16.0,
+			     17,    // Spacewalk 2.4
+			     17.0,
+			     18,    // Spacewalk 2.5
+			     18.0,
+			     19,    // Spacewalk 2.6
+			     19.0,
+			     20,    // Spacewalk 2.7
+			     20.0,
+			     21,    // Spacewalk 2.8
+			     21.0,
+			     22,    // Spacewalk 2.9
+			     22.0,
 		    }
 
 type Meta struct {
@@ -757,9 +757,9 @@ func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bug
 	return false
 }
 
-func check_api_support (version string, supported []string) bool {
+func check_api_support (version string, supported []float64) bool {
 	for _, i := range supported {
-		if version == i {
+		if version == float_to_string(i) {
 			return true
 		}
 	}
@@ -801,4 +801,12 @@ func exclude_channels (channels []string, exclude *[]string) []string {
 	}
 
 	return result
+}
+
+func float_to_string (input float64) string {
+	if input == float64(int64(input)) {
+		return fmt.Sprintf("%.0f", input)
+	}
+
+	return fmt.Sprintf("%.2f", input)
 }

@@ -356,9 +356,9 @@ func main () {
 				issuedate, _ := time.Parse(timelayout, errata.IssueDate)
 				success = add_issue_date(client, sessionkey, errata.Id, issuedate)
 			}
-//			if apiversion >= 21 {
-//				success = add_severity(client, sessionkey, errata.Id, errata.Severity)
-//			}
+			if string_to_float(apiversion) >= 21 && errata.Severity != "" {
+				success = add_severity(client, sessionkey, errata.Id, errata.Severity)
+			}
 		}
 
 	}
@@ -860,3 +860,27 @@ func add_issue_date (client *xmlrpc.Client, sessionkey string, errata string, is
 
 	return false
 }
+
+func add_severity (client *xmlrpc.Client, sessionkey string, errata string, severity string) bool {
+	type Details struct {
+		Severity	string	`xmlrpc:"severity"`
+	}
+
+	var details Details
+	details.Severity = severity
+
+	params := make([]interface{}, 3)
+	params[0] = sessionkey
+	params[1] = errata
+        params[2] = details
+
+	var response int
+        client.Call("errata.set_details", params, &response)
+
+	        if response > 0 {
+                return true
+        }
+
+        return false
+}
+

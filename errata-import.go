@@ -60,7 +60,6 @@ type Erratum struct {
 	Id          string   `json:"id"`		// Only needed in array approach
 	Description string   `json:"description"`
 	From        string   `json:"from"`
-//	IssueDate   time.Time   `json:"issue_date"`
 	IssueDate   string   `json:"issue_date"`
 	Manual      string   `json:"manual"`
 	Notes       string   `json:"notes"`
@@ -87,15 +86,13 @@ type SWerrata struct {
 	AdvisoryName	string	`xmlrpc:"advisory_name"`
 	AdvisoryRelease	int	`xmlrpc:"advisory_release"`
 	AdvisoryType	string	`xmlrpc:"advisory_type"`
+	From		string	`xmlrpc:"errataFrom"`
 	Product		string	`xmlrpc:"product"`
 	Topic		string	`xmlrpc:"topic"`
 	Description	string	`xmlrpc:"description"`
 	References	string	`xmlrpc:"references"`
 	Notes		string	`xmlrpc:"notes"`
 	Solution	string	`xmlrpc:"solution"`
-//	Keyword		[]string
-//	Publish		bool
-//	ChannelLabel	[]string
 }
 
 type Bug struct {
@@ -114,12 +111,6 @@ type OvalData struct {
 	References	[]string
 	Rights		string
 }
-
-// for "map"
-//type Errata struct {
-//	Id	string
-//	Data	Erratum
-//}
 
 func main () {
 	// This works if JSON data is an array
@@ -162,17 +153,19 @@ func main () {
 	exchannels = opt.StringSlice("exclude-channels", 1, 255)
 
 	remaining, err := opt.Parse(os.Args[1:])
+	if err != nil {
+		fmt.Println("Failed to parse options")
+		os.Exit(4)
+	}
 
-	fmt.Printf("Remaining is %d\n", remaining)
+	fmt.Printf("Remaining is %v\n", remaining)
 	fmt.Printf("Debug is %t\n", debug)
 	fmt.Printf("Publish is %t\n", publish)
 	fmt.Printf("Server is %s\n", server)
 
 	// If no errata type is selected, enable all
 	if (!(security || bugfix || enhancement)) {
-		security = true
-		bugfix = true
-		enhancement = true
+		security, bugfix, enhancement = true, true, true
 	}
 
 	// Test on a full dataset
@@ -208,8 +201,7 @@ func main () {
 
 
 	// Load Red Hat OVAL data
-	var oval map[string]OvalData
-	oval = ParseOval("/Users/smeier/tmp/com.redhat.rhsa-all.xml")
+	var oval map[string]OvalData = ParseOval("/Users/smeier/tmp/com.redhat.rhsa-all.xml")
 	_ = oval
 
 	// Disable TLS certificate checks (insecure!)
@@ -261,8 +253,7 @@ func main () {
 	password := "admin1"
 
 	// Authenticate and get sessionKey
-	var sessionkey string
-	sessionkey = init_session(client, username, password)
+	var sessionkey string = init_session(client, username, password)
 	if sessionkey == "" {
 		fmt.Println("Authentication failed!")
 		os.Exit(1)
@@ -274,8 +265,7 @@ func main () {
 	}
 
 	// List all channels
-	var channels []string
-	channels = get_channel_list(client, sessionkey)
+	var channels []string = get_channel_list(client, sessionkey)
 	fmt.Println("Full channel list:")
 	spew.Dump(channels)
 
@@ -292,15 +282,16 @@ func main () {
 	spew.Dump(channels)
 
 	// Get packages of channel
-	var inv Inventory
-	inv = get_inventory(client, sessionkey, channels)
+	var inv Inventory = get_inventory(client, sessionkey, channels)
 	_ = inv
+	fmt.Println("Server inventory:")
+	spew.Dump(inv)
 
 	fmt.Println("---")
 
 	// Get existing errata
-	var existing = make(map[string]bool)
-	existing = get_existing_errata(client, sessionkey, channels)
+//	var existing = make(map[string]bool)
+	var existing = get_existing_errata(client, sessionkey, channels)
 	spew.Dump(existing)
 
 //	fmt.Println("DATA from JSON:")
@@ -328,13 +319,17 @@ func main () {
 
 		fmt.Printf("Processing %s\n", errata.Id)
 
-		var pkglist []int64
-		pkglist = get_packages_for_errata(errata, inv)
+		var pkglist []int64 = get_packages_for_errata(errata, inv)
+		fmt.Println("Package ID list")
 		spew.Dump(pkglist)
 
 		if len(pkglist) == 0 {
 			continue
 		}
+
+		var chanlist []string = get_channels_of_packages(pkglist, inv)
+		fmt.Println("Channel label list")
+		spew.Dump(chanlist)
 
 		var success bool
 
@@ -342,14 +337,19 @@ func main () {
 		info.AdvisoryName = errata.Id
 		info.AdvisoryType = errata.Type
 		info.Synopsis = errata.Synopsis
-		info.Description = errata.Description
+//		info.Description = errata.Description
+		info.Description = get_oval_data(errata.Id, "Description", oval, errata.Description)
 		info.Product = errata.Product
+		info.References = errata.References
 		info.Solution = errata.Solution
 		info.Topic = errata.Topic
-		info.Notes = errata.Notes
+//		info.Notes = errata.Notes
+		info.Notes = get_oval_data(errata.Id, "Rights", oval, errata.Notes)
+		info.From = errata.From
 
-		if exists, _ := existing[(errata.Id)]; !exists {
-			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, publish, []string{})
+		if exists := existing[(errata.Id)]; !exists {
+			// Create Errata
+			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
 			spew.Dump(success)
 			if string_to_float(apiversion) >= 12 {
 				fmt.Printf("Adding issue date to %s\n", errata.Id)
@@ -357,16 +357,28 @@ func main () {
 				success = add_issue_date(client, sessionkey, errata.Id, issuedate)
 			}
 			if string_to_float(apiversion) >= 21 && errata.Severity != "" {
+				fmt.Printf("Adding severity %s to %s\n", errata.Severity, errata.Id)
 				success = add_severity(client, sessionkey, errata.Id, errata.Severity)
+			}
+			if publish {
+				fmt.Printf("Publishing %s\n", errata.Id)
+				success = publish_errata(client, sessionkey, errata.Id, chanlist)
+				if errata.Type == "Security Advisory" {
+					fmt.Printf("Adding CVE information to %s\n", errata.Id)
+					success = add_cve_to_errata(client, sessionkey, errata.Id, oval[(errata.Id)].References)
+				}
+			}
+		} else {
+			// Update Errata
+			var curlist []int64 = list_packages(client, sessionkey, errata.Id)
+			if len(pkglist) > len(curlist) {
+				var pkgsadded int64 = add_packages(client, sessionkey, errata.Id, curlist)
+				_ = pkgsadded
 			}
 		}
 
-	}
 
-//	fmt.Println("DATA from XML:")
-//	for _, errata := range latest {
-//		spew.Dump(errata)
-//	}
+	}
 
 	_ = close_session(client, sessionkey)
 	os.Exit(0)
@@ -458,14 +470,14 @@ func get_existing_errata (client *xmlrpc.Client, sessionkey string, channels []s
 	params := make([]interface{}, 2)
 	params[0] = sessionkey
 
-	var existing = make(map[string]bool)
+	existing := make(map[string]bool)
 
 	type Response struct {
 		Id			int64	`xmlrpc:"id"`
 		Date			string	`xmlrpc:"date"`
-		Advisory_Type		string	`xmlrpc:"advisory_type"`
-		Advisory_Name		string	`xmlrpc:"advisory_name"`
-		Advisory_Synopsis	string	`xmlrpc:"advisory_synopsis"`
+		AdvisoryType		string	`xmlrpc:"advisory_type"`
+		AdvisoryName		string	`xmlrpc:"advisory_name"`
+		AdvisorySynopsis	string	`xmlrpc:"advisory_synopsis"`
 		Advisory		string	`xmlrpc:"advisory"`
 		IssueDate		string	`xmlrpc:"issue_date"`
 		UpdateDate		string	`xmlrpc:"update_date"`
@@ -501,7 +513,7 @@ func get_existing_errata (client *xmlrpc.Client, sessionkey string, channels []s
 //		spew.Dump(response)
 
 		for _, errata := range response {
-			existing[(errata.Advisory_Name)] = true
+			existing[(errata.AdvisoryName)] = true
 		}
 	}
 
@@ -712,9 +724,13 @@ func ParseOval(file string) map[string]OvalData {
 		id = "CESA-" + id[len(id)-8:len(id)-4] + ":" + id[len(id)-4:]
 
 		var cves []string
+		cvere, _ := regexp.Compile(`^CVE`)
 		for _, ref := range def.Metadata.Reference {
-			matched, _ := regexp.MatchString(`^CVE`, ref.RefID)
-			if matched {
+//			matched, _ := regexp.MatchString(`^CVE`, ref.RefID)
+//			matched, _ := regexp.MatchString(cvere, ref.RefID)
+//			matched, _ := cvere.MatchString(ref.RefID)
+//			if matched {
+			if cvere.MatchString(ref.RefID) {
 				cves = append(cves, ref.RefID)
 			}
 		}
@@ -877,10 +893,135 @@ func add_severity (client *xmlrpc.Client, sessionkey string, errata string, seve
 	var response int
         client.Call("errata.set_details", params, &response)
 
-	        if response > 0 {
+        if response > 0 {
                 return true
         }
 
         return false
 }
 
+func get_oval_data (errata string, field string, oval map[string]OvalData, unchanged string) string {
+	if _, exists := oval[errata]; exists {
+		if field == "Description" {
+			if len(oval[errata].Description) > 4000 {
+				return oval[errata].Description[:3999]
+			} else {
+				return oval[errata].Description
+			}
+		}
+		if field == "Rights" {
+			return "The description and CVE numbers have been taken from Red Hat OVAL definitions.\n\n" + oval[errata].Rights
+		}
+	}
+
+	return unchanged
+}
+
+func get_channels_of_packages (pkglist []int64, inv Inventory) []string {
+	labels := make(map[string]bool)
+	var result []string
+
+	for _, pkg := range pkglist {
+		for _, channel := range inv.id2channels[pkg] {
+			labels[channel] = true
+		}
+	}
+
+	for key := range labels {
+		result = append(result, key)
+	}
+
+	return result
+}
+
+func publish_errata (client *xmlrpc.Client, sessionkey string, errata string, channels []string) bool {
+        params := make([]interface{}, 3)
+        params[0] = sessionkey
+        params[1] = errata
+        params[2] = channels
+
+	var response int
+        client.Call("errata.publish", params, &response)
+
+	return true
+}
+
+func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata string, cves []string) bool {
+	type Details struct {
+		cves	[]string	`xmlrpc:"cves"`
+	}
+
+	var details Details
+	details.cves = cves
+
+	params := make([]interface{}, 3)
+	params[0] = sessionkey
+	params[1] = errata
+        params[2] = details
+
+	var response int
+        client.Call("errata.set_details", params, &response)
+
+        if response > 0 {
+                return true
+        }
+
+        return false
+}
+
+func set_compare (a []string, b []string, mode bool) bool {
+	// if mode is false, check for subset
+	// if mode is true, check for superset
+	bmap := make(map[string]bool)
+
+	for _, key := range b {
+		bmap[key] = true
+	}
+
+	for _, key := range a {
+		if exists := bmap[key]; exists {
+			delete(bmap, key)
+		}
+	}
+
+	if len(bmap) > 0 {
+		// b has more elements than a
+		return false || !mode
+	}
+
+	// a has more elements than b (or is identical)
+	return true && mode
+}
+
+func list_packages (client *xmlrpc.Client, sessionkey string, errata string) []int64 {
+        params := make([]interface{}, 2)
+        params[0] = sessionkey
+        params[1] = errata
+
+	type Response struct {
+		Id	int64
+	}
+
+	var response []Response
+
+        client.Call("errata.list_packages", params, &response)
+
+	var result []int64
+	for _, pkg := range response {
+		result = append(result, pkg.Id)
+	}
+
+	return result
+}
+
+func add_packages (client *xmlrpc.Client, sessionkey string, errata string, pkgs []int64) int64 {
+        params := make([]interface{}, 3)
+        params[0] = sessionkey
+        params[1] = errata
+        params[2] = pkgs
+
+	var response int64
+	client.Call("errata.add_packages", params, &response)
+
+	return response
+}

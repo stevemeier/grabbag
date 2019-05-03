@@ -10,6 +10,7 @@ import "github.com/kolo/xmlrpc"
 import "log"
 import "os"
 import "regexp"
+import "strings"
 import "strconv"
 import "time"
 //import "net"
@@ -91,6 +92,8 @@ type SWerrata struct {
 	References	string	`xmlrpc:"references"`
 	Notes		string	`xmlrpc:"notes"`
 	Solution	string	`xmlrpc:"solution"`
+//	CVEs		[]string	`xmlrpc:"-"`
+//	cves		[]string
 }
 
 type Bug struct {
@@ -141,6 +144,8 @@ func main () {
 
 	var exerrata *[]string
 
+	var rhsaovalfile string
+
 	opt := getoptions.New()
 	opt.BoolVar(&debug, "debug", false)
 	opt.StringVar(&server, "server", "localhost")
@@ -156,6 +161,8 @@ func main () {
 	exchannels = opt.StringSlice("exclude-channels", 1, 255)
 
 	exerrata = opt.StringSlice("exclude-errata", 1, 255)
+
+	opt.StringVar(&rhsaovalfile, "rhsa-oval", "")
 
 	remaining, err := opt.Parse(os.Args[1:])
 	if err != nil {
@@ -206,8 +213,12 @@ func main () {
 
 
 	// Load Red Hat OVAL data
-	var oval map[string]OvalData = ParseOval("/Users/smeier/tmp/com.redhat.rhsa-all.xml")
-	_ = oval
+//	var oval map[string]OvalData = ParseOval("/Users/smeier/tmp/com.redhat.rhsa-all.xml")
+	var oval map[string]OvalData = ParseOval(rhsaovalfile)
+	if len(oval) > 0 {
+		fmt.Printf("Loaded %d datasets from Red Hat OVAL file\n", len(oval))
+	}
+//	_ = oval
 
 	// Disable TLS certificate checks (insecure!)
 	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
@@ -246,7 +257,7 @@ func main () {
 		fmt.Println("Could not determine server version!")
 		os.Exit(2)
 	}
-	spew.Dump(apiversion)
+//	spew.Dump(apiversion)
 
 	if apiversion == "" {
 		fmt.Println("Could not connect to server!");
@@ -282,25 +293,26 @@ func main () {
 	// List all channels
 	var channels []string = get_channel_list(client, sessionkey)
 	fmt.Println("Full channel list:")
-	spew.Dump(channels)
+//	spew.Dump(channels)
 
 	fmt.Println("Include settings")
-	spew.Dump(*inchannels)
+//	spew.Dump(*inchannels)
 
 	fmt.Println("Exclude settings")
-	spew.Dump(*exchannels)
+//	spew.Dump(*exchannels)
 
 	channels = include_channels(channels, inchannels)
 	channels = exclude_channels(channels, exchannels)
 
 	fmt.Println("Filtered channel list:")
-	spew.Dump(channels)
+//	spew.Dump(channels)
 
 	// Get packages of channel
+	fmt.Println("Getting server inventory")
 	var inv Inventory = get_inventory(client, sessionkey, channels)
 	_ = inv
-	fmt.Println("Server inventory:")
-	spew.Dump(inv)
+//	fmt.Println("Server inventory:")
+//	spew.Dump(inv)
 
 	fmt.Println("---")
 
@@ -340,18 +352,20 @@ func main () {
 		fmt.Printf("Processing %s\n", errata.Id)
 
 		var pkglist []int64 = get_packages_for_errata(errata, inv)
-		fmt.Println("Package ID list")
-		spew.Dump(pkglist)
+//		fmt.Println("Package ID list")
+//		spew.Dump(pkglist)
 
 		if len(pkglist) == 0 {
+			fmt.Printf("Skipping errata %s (%s) -- No packages found\n", errata.Id, errata.Synopsis);
 			continue
 		}
 
 		var chanlist []string = get_channels_of_packages(pkglist, inv)
-		fmt.Println("Channel label list")
-		spew.Dump(chanlist)
+//		fmt.Println("Channel label list")
+//		spew.Dump(chanlist)
 
 		var success bool
+		_ = success
 
 		var info SWerrata
 		info.AdvisoryName = errata.Id
@@ -361,17 +375,20 @@ func main () {
 		info.Description = get_oval_data(errata.Id, "Description", oval, errata.Description)
 		info.Product = errata.Product
 		info.References = errata.References
+//		info.References = get_oval_data(errata.Id, "CVEs", oval, errata.Description)
 		info.Solution = errata.Solution
 		info.Topic = errata.Topic
 //		info.Notes = errata.Notes
 		info.Notes = get_oval_data(errata.Id, "Rights", oval, errata.Notes)
 		info.From = errata.From
+//		info.CVEs = strings.Split(get_oval_data(errata.Id, "CVEs", oval, errata.Notes), " ")
+//		info.cves = strings.Split(get_oval_data(errata.Id, "CVEs", oval, errata.Notes), " ")
 
 		if exists := existing[(errata.Id)]; !exists {
 			// Create Errata
 			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
 			created++
-			spew.Dump(success)
+//			spew.Dump(success)
 			if string_to_float(apiversion) >= 12 {
 				fmt.Printf("Adding issue date to %s\n", errata.Id)
 				issuedate, _ := time.Parse(timelayout, errata.IssueDate)
@@ -388,21 +405,37 @@ func main () {
 				}
 				if errata.Type == "Security Advisory" {
 					fmt.Printf("Adding CVE information to %s\n", errata.Id)
-					success = add_cve_to_errata(client, sessionkey, errata.Id, oval[(errata.Id)].References)
+//					success = add_cve_to_errata(client, sessionkey, errata.Id, oval[(errata.Id)].References)
+//					success = add_cve_to_errata(client, sessionkey, info, oval[(errata.Id)].References)
+//					success = add_cve_to_errata(client, sessionkey, info, strings.Split(oval[(errata.Id)].References, " "))
+					success = add_cve_to_errata(client, sessionkey, info, strings.Split(get_oval_data(errata.Id, "CVEs", oval, ""), " ") )
 				}
 			}
 		} else {
 			// Update Errata
 			var curlist []int64 = list_packages(client, sessionkey, errata.Id)
+			var newlist []int64 = only_in_first(pkglist, curlist)
+
 			if len(pkglist) > len(curlist) {
+				fmt.Printf("Adding packages to %s\n", errata.Id)
 				updated++
-				var pkgsadded int64 = add_packages(client, sessionkey, errata.Id, curlist)
+				var pkgsadded int64 = add_packages(client, sessionkey, errata.Id, newlist)
 				_ = pkgsadded
+
+				if publish {
+					for _, channel := range get_channels_of_packages(newlist, inv) {
+						fmt.Printf("Republishing %s to channel %s\n", errata.Id, channel)
+						success = publish_errata(client, sessionkey, errata.Id, []string{channel})
+					}
+				}
 			}
 		}
 
 
 	}
+
+	fmt.Printf("Errata created: %d\n", created);
+	fmt.Printf("Errata updated: %d\n", updated);
 
 	if !publish && created > 0 {
 		fmt.Println("Errata have been created but NOT published!");
@@ -615,14 +648,14 @@ func ParseOval(file string) map[string]OvalData {
 		UnixDef        string   `xml:"unix-def,attr"`
 		Xsi            string   `xml:"xsi,attr"`
 		SchemaLocation string   `xml:"schemaLocation,attr"`
-		Generator      struct {
-			Text           string `xml:",chardata"`
-			ProductName    string `xml:"product_name"`
-			ProductVersion string `xml:"product_version"`
-			SchemaVersion  string `xml:"schema_version"`
-			Timestamp      string `xml:"timestamp"`
-			ContentVersion string `xml:"content_version"`
-		} `xml:"generator"`
+//		Generator      struct {
+//			Text           string `xml:",chardata"`
+//			ProductName    string `xml:"product_name"`
+//			ProductVersion string `xml:"product_version"`
+//			SchemaVersion  string `xml:"schema_version"`
+//			Timestamp      string `xml:"timestamp"`
+//			ContentVersion string `xml:"content_version"`
+//		} `xml:"generator"`
 		Definitions struct {
 			Text       string `xml:",chardata"`
 			Definition []struct {
@@ -678,97 +711,97 @@ func ParseOval(file string) map[string]OvalData {
 						} `xml:"affected_cpe_list"`
 					} `xml:"advisory"`
 				} `xml:"metadata"`
-				Criteria struct {
-					Text      string `xml:",chardata"`
-					Operator  string `xml:"operator,attr"`
-					Criterion []struct {
-						Text    string `xml:",chardata"`
-						Comment string `xml:"comment,attr"`
-						TestRef string `xml:"test_ref,attr"`
-					} `xml:"criterion"`
-					Criteria []struct {
-						Text      string `xml:",chardata"`
-						Operator  string `xml:"operator,attr"`
-						Criterion []struct {
-							Text    string `xml:",chardata"`
-							Comment string `xml:"comment,attr"`
-							TestRef string `xml:"test_ref,attr"`
-						} `xml:"criterion"`
-						Criteria []struct {
-							Text     string `xml:",chardata"`
-							Operator string `xml:"operator,attr"`
-							Criteria []struct {
-								Text      string `xml:",chardata"`
-								Operator  string `xml:"operator,attr"`
-								Criterion []struct {
-									Text    string `xml:",chardata"`
-									Comment string `xml:"comment,attr"`
-									TestRef string `xml:"test_ref,attr"`
-								} `xml:"criterion"`
-							} `xml:"criteria"`
-							Criterion []struct {
-								Text    string `xml:",chardata"`
-								Comment string `xml:"comment,attr"`
-								TestRef string `xml:"test_ref,attr"`
-							} `xml:"criterion"`
-						} `xml:"criteria"`
-					} `xml:"criteria"`
-				} `xml:"criteria"`
+//				Criteria struct {
+//					Text      string `xml:",chardata"`
+//					Operator  string `xml:"operator,attr"`
+//					Criterion []struct {
+//						Text    string `xml:",chardata"`
+//						Comment string `xml:"comment,attr"`
+//						TestRef string `xml:"test_ref,attr"`
+//					} `xml:"criterion"`
+//					Criteria []struct {
+//						Text      string `xml:",chardata"`
+//						Operator  string `xml:"operator,attr"`
+//						Criterion []struct {
+//							Text    string `xml:",chardata"`
+//							Comment string `xml:"comment,attr"`
+//							TestRef string `xml:"test_ref,attr"`
+//						} `xml:"criterion"`
+//						Criteria []struct {
+//							Text     string `xml:",chardata"`
+//							Operator string `xml:"operator,attr"`
+//							Criteria []struct {
+//								Text      string `xml:",chardata"`
+//								Operator  string `xml:"operator,attr"`
+//								Criterion []struct {
+//									Text    string `xml:",chardata"`
+//									Comment string `xml:"comment,attr"`
+//									TestRef string `xml:"test_ref,attr"`
+//								} `xml:"criterion"`
+//							} `xml:"criteria"`
+//							Criterion []struct {
+//								Text    string `xml:",chardata"`
+//								Comment string `xml:"comment,attr"`
+//								TestRef string `xml:"test_ref,attr"`
+//							} `xml:"criterion"`
+//						} `xml:"criteria"`
+//					} `xml:"criteria"`
+//				} `xml:"criteria"`
 			} `xml:"definition"`
 		} `xml:"definitions"`
-		Tests struct {
-			Text        string `xml:",chardata"`
-			RpminfoTest []struct {
-				Text    string `xml:",chardata"`
-				Check   string `xml:"check,attr"`
-				Comment string `xml:"comment,attr"`
-				ID      string `xml:"id,attr"`
-				Version string `xml:"version,attr"`
-				Object  struct {
-					Text      string `xml:",chardata"`
-					ObjectRef string `xml:"object_ref,attr"`
-				} `xml:"object"`
-				State struct {
-					Text     string `xml:",chardata"`
-					StateRef string `xml:"state_ref,attr"`
-				} `xml:"state"`
-			} `xml:"rpminfo_test"`
-		} `xml:"tests"`
-		Objects struct {
-			Text          string `xml:",chardata"`
-			RpminfoObject []struct {
-				Text    string `xml:",chardata"`
-				ID      string `xml:"id,attr"`
-				Version string `xml:"version,attr"`
-				Name    string `xml:"name"`
-			} `xml:"rpminfo_object"`
-		} `xml:"objects"`
-		States struct {
-			Text         string `xml:",chardata"`
-			RpminfoState []struct {
-				Text           string `xml:",chardata"`
-				ID             string `xml:"id,attr"`
-				AttrVersion    string `xml:"version,attr"`
-				SignatureKeyid struct {
-					Text      string `xml:",chardata"`
-					Operation string `xml:"operation,attr"`
-				} `xml:"signature_keyid"`
-				Version struct {
-					Text      string `xml:",chardata"`
-					Operation string `xml:"operation,attr"`
-				} `xml:"version"`
-				Arch struct {
-					Text      string `xml:",chardata"`
-					Datatype  string `xml:"datatype,attr"`
-					Operation string `xml:"operation,attr"`
-				} `xml:"arch"`
-				Evr struct {
-					Text      string `xml:",chardata"`
-					Datatype  string `xml:"datatype,attr"`
-					Operation string `xml:"operation,attr"`
-				} `xml:"evr"`
-			} `xml:"rpminfo_state"`
-		} `xml:"states"`
+//		Tests struct {
+//			Text        string `xml:",chardata"`
+//			RpminfoTest []struct {
+//				Text    string `xml:",chardata"`
+//				Check   string `xml:"check,attr"`
+//				Comment string `xml:"comment,attr"`
+//				ID      string `xml:"id,attr"`
+//				Version string `xml:"version,attr"`
+//				Object  struct {
+//					Text      string `xml:",chardata"`
+//					ObjectRef string `xml:"object_ref,attr"`
+//				} `xml:"object"`
+//				State struct {
+//					Text     string `xml:",chardata"`
+//					StateRef string `xml:"state_ref,attr"`
+//				} `xml:"state"`
+//			} `xml:"rpminfo_test"`
+//		} `xml:"tests"`
+//		Objects struct {
+//			Text          string `xml:",chardata"`
+//			RpminfoObject []struct {
+//				Text    string `xml:",chardata"`
+//				ID      string `xml:"id,attr"`
+//				Version string `xml:"version,attr"`
+//				Name    string `xml:"name"`
+//			} `xml:"rpminfo_object"`
+//		} `xml:"objects"`
+//		States struct {
+//			Text         string `xml:",chardata"`
+//			RpminfoState []struct {
+//				Text           string `xml:",chardata"`
+//				ID             string `xml:"id,attr"`
+//				AttrVersion    string `xml:"version,attr"`
+//				SignatureKeyid struct {
+//					Text      string `xml:",chardata"`
+//					Operation string `xml:"operation,attr"`
+//				} `xml:"signature_keyid"`
+//				Version struct {
+//					Text      string `xml:",chardata"`
+//					Operation string `xml:"operation,attr"`
+//				} `xml:"version"`
+//				Arch struct {
+//					Text      string `xml:",chardata"`
+//					Datatype  string `xml:"datatype,attr"`
+//					Operation string `xml:"operation,attr"`
+//				} `xml:"arch"`
+//				Evr struct {
+//					Text      string `xml:",chardata"`
+//					Datatype  string `xml:"datatype,attr"`
+//					Operation string `xml:"operation,attr"`
+//				} `xml:"evr"`
+//			} `xml:"rpminfo_state"`
+//		} `xml:"states"`
 	}
 
 	var ovaldata OvalDefinitions
@@ -787,8 +820,10 @@ func ParseOval(file string) map[string]OvalData {
 //			matched, _ := regexp.MatchString(cvere, ref.RefID)
 //			matched, _ := cvere.MatchString(ref.RefID)
 //			if matched {
+//			fmt.Printf("Loading %s for %s\n", ref.RefID, id)
 			if cvere.MatchString(ref.RefID) {
 				cves = append(cves, ref.RefID)
+//				fmt.Printf("Adding %s for %s\n", ref.RefID, id)
 			}
 		}
 
@@ -966,6 +1001,9 @@ func get_oval_data (errata string, field string, oval map[string]OvalData, uncha
 				return oval[errata].Description
 			}
 		}
+		if field == "CVEs" {
+			return strings.Join(oval[errata].References, " ")
+		}
 		if field == "Rights" {
 			return "The description and CVE numbers have been taken from Red Hat OVAL definitions.\n\n" + oval[errata].Rights
 		}
@@ -997,7 +1035,15 @@ func publish_errata (client *xmlrpc.Client, sessionkey string, errata string, ch
         params[1] = errata
         params[2] = channels
 
-	var response int
+	type Response struct {
+		Id			int	`xmlrpc:"id"`
+		Date			string	`xmlrpc:"date"`
+		AdvisoryType		string	`xmlrpc:"advisory_type"`
+		AdvisoryName		string	`xmlrpc:"advisory_name"`
+		AdvisorySynopsis	string	`xmlrpc:"advisory_synopsis"`
+	}
+	var response Response
+
 	err := client.Call("errata.publish", params, &response)
 	if err != nil {
 		return false
@@ -1006,17 +1052,45 @@ func publish_errata (client *xmlrpc.Client, sessionkey string, errata string, ch
 	return true
 }
 
-func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata string, cves []string) bool {
-	type Details struct {
-		cves	[]string	`xmlrpc:"cves"`
+//func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata string, cves []string) bool {
+func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrata, cves []string) bool {
+//func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrata) bool {
+//	type Details struct {
+//		cves	[]string	`xmlrpc:"cves"`
+//	}
+//
+//	var details Details
+	type SWerrata2 struct {
+		Synopsis	string	`xmlrpc:"synopsis"`
+		AdvisoryName	string	`xmlrpc:"advisory_name"`
+		AdvisoryRelease	int	`xmlrpc:"advisory_release"`
+		AdvisoryType	string	`xmlrpc:"advisory_type"`
+		From		string	`xmlrpc:"errataFrom"`
+		Product		string	`xmlrpc:"product"`
+		Topic		string	`xmlrpc:"topic"`
+		Description	string	`xmlrpc:"description"`
+		References	string	`xmlrpc:"references"`
+		Notes		string	`xmlrpc:"notes"`
+		Solution	string	`xmlrpc:"solution"`
+		CVEs		[]string	`xmlrpc:"cves"`
 	}
-
-	var details Details
-	details.cves = cves
+	var details SWerrata2
+	details.Synopsis = errata.Synopsis
+	details.AdvisoryName = errata.AdvisoryName
+	details.AdvisoryRelease = errata.AdvisoryRelease
+	details.AdvisoryType = errata.AdvisoryType
+	details.From = errata.From
+	details.Product = errata.Product
+	details.Topic = errata.Topic
+	details.Description = errata.Description
+	details.References = errata.References
+	details.Notes = errata.Notes
+	details.Solution = errata.Solution
+	details.CVEs = cves
 
 	params := make([]interface{}, 3)
 	params[0] = sessionkey
-	params[1] = errata
+	params[1] = errata.AdvisoryName
         params[2] = details
 
 	var response int
@@ -1100,4 +1174,21 @@ func errata_is_excluded (errata string, exerrata *[]string) bool {
 	}
 
 	return false
+}
+
+func only_in_first (a []int64, b []int64) []int64 {
+	var result []int64
+
+	bmap := make(map[int64]bool)
+	for _, value := range b {
+		bmap[value] = true
+	}
+
+	for _, value := range a {
+		if _, exists := bmap[value]; !exists {
+			result = append(result, value)
+		}
+	}
+
+	return result
 }

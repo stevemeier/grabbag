@@ -5,7 +5,7 @@ import "encoding/xml"
 import "fmt"
 import "io/ioutil"
 import "github.com/DavidGamba/go-getoptions"
-import "github.com/davecgh/go-spew/spew"
+//import "github.com/davecgh/go-spew/spew"
 import "github.com/kolo/xmlrpc"
 import "log"
 import "os"
@@ -211,14 +211,11 @@ func main () {
 //	}
 //	_ = latest
 
-
 	// Load Red Hat OVAL data
-//	var oval map[string]OvalData = ParseOval("/Users/smeier/tmp/com.redhat.rhsa-all.xml")
 	var oval map[string]OvalData = ParseOval(rhsaovalfile)
 	if len(oval) > 0 {
 		fmt.Printf("Loaded %d datasets from Red Hat OVAL file\n", len(oval))
 	}
-//	_ = oval
 
 	// Disable TLS certificate checks (insecure!)
 	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
@@ -292,34 +289,34 @@ func main () {
 
 	// List all channels
 	var channels []string = get_channel_list(client, sessionkey)
-	fmt.Println("Full channel list:")
+//	fmt.Println("Full channel list:")
 //	spew.Dump(channels)
 
-	fmt.Println("Include settings")
+//	fmt.Println("Include settings")
 //	spew.Dump(*inchannels)
 
-	fmt.Println("Exclude settings")
+//	fmt.Println("Exclude settings")
 //	spew.Dump(*exchannels)
 
 	channels = include_channels(channels, inchannels)
 	channels = exclude_channels(channels, exchannels)
 
-	fmt.Println("Filtered channel list:")
+//	fmt.Println("Filtered channel list:")
 //	spew.Dump(channels)
 
 	// Get packages of channel
 	fmt.Println("Getting server inventory")
 	var inv Inventory = get_inventory(client, sessionkey, channels)
-	_ = inv
+//	_ = inv
 //	fmt.Println("Server inventory:")
 //	spew.Dump(inv)
 
-	fmt.Println("---")
+//	fmt.Println("---")
 
 	// Get existing errata
 //	var existing = make(map[string]bool)
 	var existing = get_existing_errata(client, sessionkey, channels)
-	spew.Dump(existing)
+//	spew.Dump(existing)
 
 //	fmt.Println("DATA from JSON:")
 //	for _, errata := range allerrata {

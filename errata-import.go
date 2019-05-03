@@ -92,8 +92,6 @@ type SWerrata struct {
 	References	string	`xmlrpc:"references"`
 	Notes		string	`xmlrpc:"notes"`
 	Solution	string	`xmlrpc:"solution"`
-//	CVEs		[]string	`xmlrpc:"-"`
-//	cves		[]string
 }
 
 type Bug struct {
@@ -368,23 +366,18 @@ func main () {
 		info.AdvisoryName = errata.Id
 		info.AdvisoryType = errata.Type
 		info.Synopsis = errata.Synopsis
-//		info.Description = errata.Description
 		info.Description = get_oval_data(errata.Id, "Description", oval, errata.Description)
 		info.Product = errata.Product
 		info.References = errata.References
-//		info.References = get_oval_data(errata.Id, "CVEs", oval, errata.Description)
 		info.Solution = errata.Solution
 		info.Topic = errata.Topic
-//		info.Notes = errata.Notes
 		info.Notes = get_oval_data(errata.Id, "Rights", oval, errata.Notes)
 		info.From = errata.From
-//		info.CVEs = strings.Split(get_oval_data(errata.Id, "CVEs", oval, errata.Notes), " ")
-//		info.cves = strings.Split(get_oval_data(errata.Id, "CVEs", oval, errata.Notes), " ")
 
 		if exists := existing[(errata.Id)]; !exists {
 			// Create Errata
 			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
-			created++
+			if success { created++ }
 //			spew.Dump(success)
 			if string_to_float(apiversion) >= 12 {
 				fmt.Printf("Adding issue date to %s\n", errata.Id)
@@ -402,9 +395,6 @@ func main () {
 				}
 				if errata.Type == "Security Advisory" {
 					fmt.Printf("Adding CVE information to %s\n", errata.Id)
-//					success = add_cve_to_errata(client, sessionkey, errata.Id, oval[(errata.Id)].References)
-//					success = add_cve_to_errata(client, sessionkey, info, oval[(errata.Id)].References)
-//					success = add_cve_to_errata(client, sessionkey, info, strings.Split(oval[(errata.Id)].References, " "))
 					success = add_cve_to_errata(client, sessionkey, info, strings.Split(get_oval_data(errata.Id, "CVEs", oval, ""), " ") )
 				}
 			}
@@ -415,9 +405,8 @@ func main () {
 
 			if len(pkglist) > len(curlist) {
 				fmt.Printf("Adding packages to %s\n", errata.Id)
-				updated++
 				var pkgsadded int64 = add_packages(client, sessionkey, errata.Id, newlist)
-				_ = pkgsadded
+				if pkgsadded > 0 { updated++ }
 
 				if publish {
 					for _, channel := range get_channels_of_packages(newlist, inv) {
@@ -1049,14 +1038,7 @@ func publish_errata (client *xmlrpc.Client, sessionkey string, errata string, ch
 	return true
 }
 
-//func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata string, cves []string) bool {
 func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrata, cves []string) bool {
-//func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrata) bool {
-//	type Details struct {
-//		cves	[]string	`xmlrpc:"cves"`
-//	}
-//
-//	var details Details
 	type SWerrata2 struct {
 		Synopsis	string	`xmlrpc:"synopsis"`
 		AdvisoryName	string	`xmlrpc:"advisory_name"`
@@ -1071,7 +1053,15 @@ func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrat
 		Solution	string	`xmlrpc:"solution"`
 		CVEs		[]string	`xmlrpc:"cves"`
 	}
+
+//	type SWerrataWithCVE struct {
+//		SWerrata
+//		CVEs		[]string	`xmlrpc:"cves"`
+//	}
+// 	^^ does NOT work
+
 	var details SWerrata2
+//	var details SWerrataWithCVE
 	details.Synopsis = errata.Synopsis
 	details.AdvisoryName = errata.AdvisoryName
 	details.AdvisoryRelease = errata.AdvisoryRelease

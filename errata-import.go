@@ -7,11 +7,9 @@ import "io/ioutil"
 import "github.com/DavidGamba/go-getoptions"
 import "github.com/davecgh/go-spew/spew"
 import "github.com/kolo/xmlrpc"
-//import "github.com/sbabiv/xml2map"
 import "log"
 import "os"
 import "regexp"
-//import "strings"
 import "strconv"
 import "time"
 //import "net"
@@ -129,6 +127,9 @@ func main () {
 	var publish bool
 	var server string
 
+	var created int
+	var updated int
+
 	var security bool
 	var bugfix bool
 	var enhancement bool
@@ -137,6 +138,8 @@ func main () {
 
 	var inchannels *[]string
 	var exchannels *[]string
+
+	var exerrata *[]string
 
 	opt := getoptions.New()
 	opt.BoolVar(&debug, "debug", false)
@@ -151,6 +154,8 @@ func main () {
 
 	inchannels = opt.StringSlice("include-channels", 1, 255)
 	exchannels = opt.StringSlice("exclude-channels", 1, 255)
+
+	exerrata = opt.StringSlice("exclude-errata", 1, 255)
 
 	remaining, err := opt.Parse(os.Args[1:])
 	if err != nil {
@@ -236,7 +241,11 @@ func main () {
 
 	// Get server version
 	var apiversion string
-	client.Call("api.get_version", nil, &apiversion)
+	err = client.Call("api.get_version", nil, &apiversion)
+	if err != nil {
+		fmt.Println("Could not determine server version!")
+		os.Exit(2)
+	}
 	spew.Dump(apiversion)
 
 	if apiversion == "" {
@@ -249,8 +258,14 @@ func main () {
 		os.Exit(3)
 	}
 
-	username := "admin"
-	password := "admin1"
+	// Read and check credentials
+	username := os.Getenv("SPACEWALK_USER")
+	password := os.Getenv("SPACEWALK_PASS")
+
+	if (username == "") || (password == "") {
+		fmt.Println("Credentials not set!")
+		os.Exit(3)
+	}
 
 	// Authenticate and get sessionKey
 	var sessionkey string = init_session(client, username, password)
@@ -304,6 +319,11 @@ func main () {
 	fmt.Println("DATA from JSON:")
 	for _, errata := range allerrata.Advisories {
 
+		if errata_is_excluded(errata.Id, exerrata) {
+			fmt.Printf("Excluding %s\n", errata.Id)
+			continue
+		}
+
 		if (errata.Type == "Security Advisory" && !security) {
 			fmt.Printf("Skipping %s\n", errata.Id)
 			continue
@@ -350,6 +370,7 @@ func main () {
 		if exists := existing[(errata.Id)]; !exists {
 			// Create Errata
 			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
+			created++
 			spew.Dump(success)
 			if string_to_float(apiversion) >= 12 {
 				fmt.Printf("Adding issue date to %s\n", errata.Id)
@@ -361,8 +382,10 @@ func main () {
 				success = add_severity(client, sessionkey, errata.Id, errata.Severity)
 			}
 			if publish {
-				fmt.Printf("Publishing %s\n", errata.Id)
-				success = publish_errata(client, sessionkey, errata.Id, chanlist)
+				for _, singlechannel := range chanlist {
+					fmt.Printf("Publishing %s to channel %s\n", errata.Id, singlechannel)
+					success = publish_errata(client, sessionkey, errata.Id, []string{singlechannel})
+				}
 				if errata.Type == "Security Advisory" {
 					fmt.Printf("Adding CVE information to %s\n", errata.Id)
 					success = add_cve_to_errata(client, sessionkey, errata.Id, oval[(errata.Id)].References)
@@ -372,12 +395,20 @@ func main () {
 			// Update Errata
 			var curlist []int64 = list_packages(client, sessionkey, errata.Id)
 			if len(pkglist) > len(curlist) {
+				updated++
 				var pkgsadded int64 = add_packages(client, sessionkey, errata.Id, curlist)
 				_ = pkgsadded
 			}
 		}
 
 
+	}
+
+	if !publish && created > 0 {
+		fmt.Println("Errata have been created but NOT published!");
+		fmt.Println("Please go to: Errata -> Manage Errata -> Unpublished to find them");
+		fmt.Println("If you want to publish them please delete the unpublished Errata and run this script again");
+		fmt.Println("with the --publish parameter");
 	}
 
 	_ = close_session(client, sessionkey)
@@ -390,7 +421,11 @@ func init_session (client *xmlrpc.Client, username string, password string) stri
 	params[1] = password
 
 	var sessionkey string
-	client.Call("auth.login", params, &sessionkey)
+	err := client.Call("auth.login", params, &sessionkey)
+
+	if err != nil {
+		return ""
+	}
 
 	return sessionkey
 }
@@ -399,7 +434,10 @@ func close_session (client *xmlrpc.Client, sessionkey string) bool {
 	params := make([]interface{}, 1)
 	params[0] = sessionkey
 
-	client.Call("auth.logout", params, nil)
+	err := client.Call("auth.logout", params, nil)
+	if err != nil {
+		return false
+	}
 
 	return true
 }
@@ -410,7 +448,11 @@ func user_is_admin (client *xmlrpc.Client, sessionkey string, username string) b
 	params[1] = username
 
 	var roles []string
-	client.Call("user.list_roles", params, &roles)
+	err := client.Call("user.list_roles", params, &roles)
+
+	if err != nil {
+		return false
+	}
 
 	for _, role := range roles {
 		if (role == "satellite_admin" || role == "org_admin" || role == "channel_admin") {
@@ -426,9 +468,13 @@ func get_channel_list (client *xmlrpc.Client, sessionkey string) []string {
 	params[0] = sessionkey
 
 	var channels []interface{}
-	client.Call("channel.list_all_channels", params, &channels)
+	err := client.Call("channel.list_all_channels", params, &channels)
 
 	var channelnames []string
+	if err != nil {
+		return channelnames
+	}
+
 	for _, channel := range channels {
 		if details, ok := channel.(map[string]interface{}); ok {
 			channelnames = append(channelnames, details["label"].(string))
@@ -449,7 +495,10 @@ func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string)
 		params[1] = channel
 
 		var packages []interface{}
-		client.Call("channel.software.list_all_packages", params, &packages)
+		err := client.Call("channel.software.list_all_packages", params, &packages)
+		if err != nil {
+			return inv
+		}
 
 		for _, pkg := range packages {
 			if details, ok := pkg.(map[string]interface{}); ok {
@@ -499,8 +548,11 @@ func get_existing_errata (client *xmlrpc.Client, sessionkey string, channels []s
 
 	var unpub []Unpub
 	fmt.Println("Fetching unpublished errata")
-	client.Call("errata.list_unpublished_errata", params, &unpub)
-//	spew.Dump(unpub)
+	err := client.Call("errata.list_unpublished_errata", params, &unpub)
+	if err != nil {
+		return existing
+	}
+
 	for _, errata := range unpub {
 		existing[(errata.AdvisoryName)] = true
 	}
@@ -508,9 +560,11 @@ func get_existing_errata (client *xmlrpc.Client, sessionkey string, channels []s
 	for _, channel := range channels {
 		params[1] = channel
 		fmt.Printf("Fetching existing errata for channel %s\n", channel)
-//		var response []Response
-		client.Call("channel.software.list_errata", params, &response)
-//		spew.Dump(response)
+
+		err := client.Call("channel.software.list_errata", params, &response)
+		if err != nil {
+			return existing
+		}
 
 		for _, errata := range response {
 			existing[(errata.AdvisoryName)] = true
@@ -527,7 +581,10 @@ func get_package_details (client *xmlrpc.Client, sessionkey string, id int64) (s
 
 	var details interface{}
 	var inchannels []string
-	client.Call("packages.get_details", params, &details)
+	err := client.Call("packages.get_details", params, &details)
+	if err != nil {
+		return "", []string{}
+	}
 
 	if detail, ok := details.(map[string]interface{}); ok {
 		for _, provchan := range detail["providing_channels"].([]interface{}) {
@@ -776,9 +833,9 @@ func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bug
 	}
 
 	var response Response
-	client.Call("errata.create", params, &response)
+	err := client.Call("errata.create", params, &response)
 
-	if response.Id > 0 {
+	if err == nil && response.Id > 0 {
 		return true
 	}
 
@@ -868,9 +925,9 @@ func add_issue_date (client *xmlrpc.Client, sessionkey string, errata string, is
 	params[2] = details
 
 	var response int
-	client.Call("errata.set_details", params, &response)
+	err := client.Call("errata.set_details", params, &response)
 
-	if response > 0 {
+	if err == nil && response > 0 {
 		return true
 	}
 
@@ -891,9 +948,9 @@ func add_severity (client *xmlrpc.Client, sessionkey string, errata string, seve
         params[2] = details
 
 	var response int
-        client.Call("errata.set_details", params, &response)
+	err := client.Call("errata.set_details", params, &response)
 
-        if response > 0 {
+        if err == nil && response > 0 {
                 return true
         }
 
@@ -941,7 +998,10 @@ func publish_errata (client *xmlrpc.Client, sessionkey string, errata string, ch
         params[2] = channels
 
 	var response int
-        client.Call("errata.publish", params, &response)
+	err := client.Call("errata.publish", params, &response)
+	if err != nil {
+		return false
+	}
 
 	return true
 }
@@ -960,9 +1020,9 @@ func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata string,
         params[2] = details
 
 	var response int
-        client.Call("errata.set_details", params, &response)
+	err := client.Call("errata.set_details", params, &response)
 
-        if response > 0 {
+        if err == nil && response > 0 {
                 return true
         }
 
@@ -1003,10 +1063,13 @@ func list_packages (client *xmlrpc.Client, sessionkey string, errata string) []i
 	}
 
 	var response []Response
-
-        client.Call("errata.list_packages", params, &response)
-
 	var result []int64
+
+	err := client.Call("errata.list_packages", params, &response)
+	if err != nil {
+		return result
+	}
+
 	for _, pkg := range response {
 		result = append(result, pkg.Id)
 	}
@@ -1021,7 +1084,20 @@ func add_packages (client *xmlrpc.Client, sessionkey string, errata string, pkgs
         params[2] = pkgs
 
 	var response int64
-	client.Call("errata.add_packages", params, &response)
+	err := client.Call("errata.add_packages", params, &response)
+	if err != nil {
+		return -1
+	}
 
 	return response
+}
+
+func errata_is_excluded (errata string, exerrata *[]string) bool {
+	for _, excluded := range *exerrata {
+		if errata == excluded {
+			return true
+		}
+	}
+
+	return false
 }

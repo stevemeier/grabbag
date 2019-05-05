@@ -7,7 +7,7 @@ import "io/ioutil"
 import "github.com/DavidGamba/go-getoptions"
 //import "github.com/davecgh/go-spew/spew"
 import "github.com/kolo/xmlrpc"
-import "log"
+//import "log"
 import "os"
 import "regexp"
 import "strings"
@@ -60,7 +60,7 @@ type Erratum struct {
 	Description	string		`json:"description"`
 	From		string		`json:"from"`
 	IssueDate	string		`json:"issue_date"`
-	Keywords	[]string	`json:"keywords"`
+	Keywords	[]string		`json:"keywords"`	// Should be an array
 	Manual		string		`json:"manual"`
 	Notes		string		`json:"notes"`
 	OsArch		[]string	`json:"os_arch"`
@@ -113,18 +113,6 @@ type OvalData struct {
 }
 
 func main () {
-	// This works if JSON data is an array
-//	file, _ := ioutil.ReadFile("errata.test_array.json")
-//	var errata []Erratum
-//	_ = json.Unmarshal([]byte(file), &errata)
-//	spew.Dump(errata)
-
-	// This works if JSON data is a hash (as it currently is)
-//	file, _ := ioutil.ReadFile("errata.test_map.json")
-//	var errata = map[string]Erratum{}
-//	_ = json.Unmarshal([]byte(file), &errata)
-//	spew.Dump(errata)
-
 	var debug bool
 	var publish bool
 	var server string
@@ -183,32 +171,12 @@ func main () {
 		os.Exit(4)
 	}
 
-//	fmt.Printf("Remaining is %v\n", remaining)
-//	fmt.Printf("Debug is %t\n", debug)
-//	fmt.Printf("Publish is %t\n", publish)
-//	fmt.Printf("Server is %s\n", server)
-
 	// If no errata type is selected, enable all
 	if (!(security || bugfix || enhancement)) {
 		security, bugfix, enhancement = true, true, true
 	}
 
-	// Test on a full dataset
-//	file, _ := ioutil.ReadFile("/Users/smeier/tmp/errata.latest.json")
-//	var allerrata = map[string]Erratum{}
-//	_ = json.Unmarshal([]byte(file), &allerrata)
-//	^^ works, but not with `meta` section
-//	x := 1
-//	spew.Dump(x)
-
-//	file, _ := ioutil.ReadFile("/Users/smeier/tmp/errata.newform.json")
-//	var allerrata Raw
-//	err = json.Unmarshal([]byte(file), &allerrata)
-//	if err != nil {
-//		fmt.Println("Could not parse errata data")
-//		os.Exit(5)
-//	}
-//	spew.Dump(allerrata.Meta)
+	// Load errata data
 	var allerrata Raw = ParseErrata(erratafile)
 	if len(allerrata.Advisories) == 0 {
 		fmt.Printf("Could not parse errata data from %s\n", erratafile)
@@ -216,24 +184,6 @@ func main () {
 	} else{
 		fmt.Printf("Loaded %d advisories from errata file\n", len(allerrata.Advisories))
 	}
-
-//	var home string = os.Getenv("HOME")
-//	var latest map[string]interface{}
-
-	// Test current XML format
-//	if _, err := os.Stat(home + "/tmp/errata.latest.xml"); err == nil {
-//		data, err := ioutil.ReadFile(home +"/tmp/errata.latest.xml")
-//		if err != nil {
-//			fmt.Println("Could not read " + home + "/tmp/errata.latest.xml")
-//			os.Exit(1)
-//		}
-//		fmt.Println("Loading " + home + "/tmp/errata.latest.xml")
-//		decoder := xml2map.NewDecoder(strings.NewReader(string(data[:])))
-//		latest, err = decoder.Decode()
-//		spew.Dump(latest)
-//		_, err = decoder.Decode()
-//	}
-//	_ = latest
 
 	// Load Red Hat OVAL data
 	var oval map[string]OvalData = ParseOval(rhsaovalfile)
@@ -245,30 +195,14 @@ func main () {
 	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: insecure}
 
-	// Configure timeout
+	// FIXME: Configure timeout
 //	http.DefaultTransport.(*http.Transport).ResponseHeaderTimeout = time.Second * 5
 //	^^ doesn't work
 
-//	var myTransport http.RoundTripper = &http.Transport{
- //       Proxy:                 http.ProxyFromEnvironment,
-  //      ResponseHeaderTimeout: time.Second * 5,
-//	DialContext: (&net.Dialer{Timeout: time.Second * 5}).DialContext,
-//	}
-	// DialContext actually does it for unreachable server
-
-	// Initialize XML-RPC Client
-//	client, err := xmlrpc.NewClient("https://192.168.227.132/rpc/api", nil)
-//	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", nil)
+	// Create XML-RPC client
 	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", nil)
-//	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", myTransport)
-//	^^ timeout is 5 minutes(!)
-//	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", myTransport)
-//	^^ should work
-//	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", {Timeout: &timeout})
-//	fmt.Fprintf(os.Stdout, "NewClient is type %T\n", client)
 	if err != nil {
-//		fmt.Println("Could not read XML")
-		log.Fatal(err)
+		fmt.Println("Could not create XML-RPC client: ", err.Error())
 		os.Exit(2)
 	}
 
@@ -321,43 +255,19 @@ func main () {
 
 	// List all channels
 	var channels []string = get_channel_list(client, sessionkey)
-//	fmt.Println("Full channel list:")
-//	spew.Dump(channels)
 
-//	fmt.Println("Include settings")
-//	spew.Dump(*inchannels)
-
-//	fmt.Println("Exclude settings")
-//	spew.Dump(*exchannels)
-
+	// Handle channel includes and excludes
 	channels = include_channels(channels, inchannels)
 	channels = exclude_channels(channels, exchannels)
-
-//	fmt.Println("Filtered channel list:")
-//	spew.Dump(channels)
 
 	// Get packages of channel
 	fmt.Println("Getting server inventory")
 	var inv Inventory = get_inventory(client, sessionkey, channels)
-//	_ = inv
-//	fmt.Println("Server inventory:")
-//	spew.Dump(inv)
-
-//	fmt.Println("---")
 
 	// Get existing errata
-//	var existing = make(map[string]bool)
 	var existing = get_existing_errata(client, sessionkey, channels)
-//	spew.Dump(existing)
 
-//	fmt.Println("DATA from JSON:")
-//	for _, errata := range allerrata {
-//		for _, rpm := range errata.Packages {
-//			fmt.Printf("%s includes package %s\n", errata.Id, rpm);
-//		}
-//	}
-	// ^^ works
-	fmt.Println("DATA from JSON:")
+	// Process errata
 	for _, errata := range allerrata.Advisories {
 
 		if errata_is_excluded(errata.Id, exerrata) {
@@ -381,8 +291,6 @@ func main () {
 		fmt.Printf("Processing %s\n", errata.Id)
 
 		var pkglist []int64 = get_packages_for_errata(errata, inv)
-//		fmt.Println("Package ID list")
-//		spew.Dump(pkglist)
 
 		if len(pkglist) == 0 {
 			fmt.Printf("Skipping errata %s (%s) -- No packages found\n", errata.Id, errata.Synopsis);
@@ -390,11 +298,6 @@ func main () {
 		}
 
 		var chanlist []string = get_channels_of_packages(pkglist, inv)
-//		fmt.Println("Channel label list")
-//		spew.Dump(chanlist)
-
-		var success bool
-		_ = success
 
 		var info SWerrata
 		info.AdvisoryName = errata.Id
@@ -408,8 +311,10 @@ func main () {
 		info.Notes = get_oval_data(errata.Id, "Rights", oval, errata.Notes)
 		info.From = errata.From
 
+		var success bool
 		if exists := existing[(errata.Id)]; !exists {
 			// Create Errata
+			fmt.Printf("Creating errata for %s (%s) (%d of %d)\n", errata.Id, errata.Synopsis, len(pkglist), len(errata.Packages))
 			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
 			if success { created++ }
 
@@ -432,7 +337,7 @@ func main () {
 				}
 				if errata.Type == "Security Advisory" {
 					fmt.Printf("Adding CVE information to %s\n", errata.Id)
-					success = add_cve_to_errata(client, sessionkey, info, strings.Split(get_oval_data(errata.Id, "CVEs", oval, ""), " ") )
+					success = add_cve_to_errata(client, sessionkey, info, (strings.Split(get_oval_data(errata.Id, "CVEs", oval, ""), " ")) )
 					if !success { fmt.Printf("Adding CVE information to %s FAILED\n", errata.Id) }
 				}
 			}
@@ -491,11 +396,7 @@ func close_session (client *xmlrpc.Client, sessionkey string) bool {
 	params[0] = sessionkey
 
 	err := client.Call("auth.logout", params, nil)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 func user_is_admin (client *xmlrpc.Client, sessionkey string, username string) bool {
@@ -560,7 +461,6 @@ func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string)
 			if details, ok := pkg.(map[string]interface{}); ok {
 				id := details["id"].(int64)
 				filename, inchannels := get_package_details(client, sessionkey, id)
-				fmt.Printf("Adding %s (%d) to inventory\n", filename, id)
 				inv.filename2id[filename] = id
 				inv.id2channels[id] = inchannels
 			}
@@ -664,7 +564,11 @@ func ParseErrata(file string) Raw {
 	}
 
 	jsondata, _ := ioutil.ReadFile(file)
-	json.Unmarshal([]byte(jsondata), &allerrata)
+	err := json.Unmarshal([]byte(jsondata), &allerrata)
+	if err != nil {
+		fmt.Println("Parsing JSON data failed: ", err.Error())
+		os.Exit(5)
+	}
 
 	return allerrata
 }
@@ -688,14 +592,6 @@ func ParseOval(file string) map[string]OvalData {
 		UnixDef        string   `xml:"unix-def,attr"`
 		Xsi            string   `xml:"xsi,attr"`
 		SchemaLocation string   `xml:"schemaLocation,attr"`
-//		Generator      struct {
-//			Text           string `xml:",chardata"`
-//			ProductName    string `xml:"product_name"`
-//			ProductVersion string `xml:"product_version"`
-//			SchemaVersion  string `xml:"schema_version"`
-//			Timestamp      string `xml:"timestamp"`
-//			ContentVersion string `xml:"content_version"`
-//		} `xml:"generator"`
 		Definitions struct {
 			Text       string `xml:",chardata"`
 			Definition []struct {
@@ -751,97 +647,8 @@ func ParseOval(file string) map[string]OvalData {
 						} `xml:"affected_cpe_list"`
 					} `xml:"advisory"`
 				} `xml:"metadata"`
-//				Criteria struct {
-//					Text      string `xml:",chardata"`
-//					Operator  string `xml:"operator,attr"`
-//					Criterion []struct {
-//						Text    string `xml:",chardata"`
-//						Comment string `xml:"comment,attr"`
-//						TestRef string `xml:"test_ref,attr"`
-//					} `xml:"criterion"`
-//					Criteria []struct {
-//						Text      string `xml:",chardata"`
-//						Operator  string `xml:"operator,attr"`
-//						Criterion []struct {
-//							Text    string `xml:",chardata"`
-//							Comment string `xml:"comment,attr"`
-//							TestRef string `xml:"test_ref,attr"`
-//						} `xml:"criterion"`
-//						Criteria []struct {
-//							Text     string `xml:",chardata"`
-//							Operator string `xml:"operator,attr"`
-//							Criteria []struct {
-//								Text      string `xml:",chardata"`
-//								Operator  string `xml:"operator,attr"`
-//								Criterion []struct {
-//									Text    string `xml:",chardata"`
-//									Comment string `xml:"comment,attr"`
-//									TestRef string `xml:"test_ref,attr"`
-//								} `xml:"criterion"`
-//							} `xml:"criteria"`
-//							Criterion []struct {
-//								Text    string `xml:",chardata"`
-//								Comment string `xml:"comment,attr"`
-//								TestRef string `xml:"test_ref,attr"`
-//							} `xml:"criterion"`
-//						} `xml:"criteria"`
-//					} `xml:"criteria"`
-//				} `xml:"criteria"`
 			} `xml:"definition"`
 		} `xml:"definitions"`
-//		Tests struct {
-//			Text        string `xml:",chardata"`
-//			RpminfoTest []struct {
-//				Text    string `xml:",chardata"`
-//				Check   string `xml:"check,attr"`
-//				Comment string `xml:"comment,attr"`
-//				ID      string `xml:"id,attr"`
-//				Version string `xml:"version,attr"`
-//				Object  struct {
-//					Text      string `xml:",chardata"`
-//					ObjectRef string `xml:"object_ref,attr"`
-//				} `xml:"object"`
-//				State struct {
-//					Text     string `xml:",chardata"`
-//					StateRef string `xml:"state_ref,attr"`
-//				} `xml:"state"`
-//			} `xml:"rpminfo_test"`
-//		} `xml:"tests"`
-//		Objects struct {
-//			Text          string `xml:",chardata"`
-//			RpminfoObject []struct {
-//				Text    string `xml:",chardata"`
-//				ID      string `xml:"id,attr"`
-//				Version string `xml:"version,attr"`
-//				Name    string `xml:"name"`
-//			} `xml:"rpminfo_object"`
-//		} `xml:"objects"`
-//		States struct {
-//			Text         string `xml:",chardata"`
-//			RpminfoState []struct {
-//				Text           string `xml:",chardata"`
-//				ID             string `xml:"id,attr"`
-//				AttrVersion    string `xml:"version,attr"`
-//				SignatureKeyid struct {
-//					Text      string `xml:",chardata"`
-//					Operation string `xml:"operation,attr"`
-//				} `xml:"signature_keyid"`
-//				Version struct {
-//					Text      string `xml:",chardata"`
-//					Operation string `xml:"operation,attr"`
-//				} `xml:"version"`
-//				Arch struct {
-//					Text      string `xml:",chardata"`
-//					Datatype  string `xml:"datatype,attr"`
-//					Operation string `xml:"operation,attr"`
-//				} `xml:"arch"`
-//				Evr struct {
-//					Text      string `xml:",chardata"`
-//					Datatype  string `xml:"datatype,attr"`
-//					Operation string `xml:"operation,attr"`
-//				} `xml:"evr"`
-//			} `xml:"rpminfo_state"`
-//		} `xml:"states"`
 	}
 
 	var ovaldata OvalDefinitions
@@ -856,14 +663,8 @@ func ParseOval(file string) map[string]OvalData {
 		var cves []string
 		cvere, _ := regexp.Compile(`^CVE`)
 		for _, ref := range def.Metadata.Reference {
-//			matched, _ := regexp.MatchString(`^CVE`, ref.RefID)
-//			matched, _ := regexp.MatchString(cvere, ref.RefID)
-//			matched, _ := cvere.MatchString(ref.RefID)
-//			if matched {
-//			fmt.Printf("Loading %s for %s\n", ref.RefID, id)
 			if cvere.MatchString(ref.RefID) {
 				cves = append(cves, ref.RefID)
-//				fmt.Printf("Adding %s for %s\n", ref.RefID, id)
 			}
 		}
 
@@ -1010,6 +811,11 @@ func add_issue_date (client *xmlrpc.Client, sessionkey string, errata string, is
 }
 
 func add_severity (client *xmlrpc.Client, sessionkey string, errata string, severity string) bool {
+	if severity == "" {
+		// no severity set, so we bail nicely
+		return true
+	}
+
 	type Details struct {
 		Severity	string	`xmlrpc:"severity"`
 	}
@@ -1085,14 +891,15 @@ func publish_errata (client *xmlrpc.Client, sessionkey string, errata string, ch
 	var response Response
 
 	err := client.Call("errata.publish", params, &response)
-	if err != nil {
-		return false
-	}
-
-	return true
+	return err == nil
 }
 
 func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrata, cves []string) bool {
+	if len(cves) < 1 {
+		// called without CVE information, so we bail nicely
+		return true
+	}
+
 	type SWerrata2 struct {
 		Synopsis	string	`xmlrpc:"synopsis"`
 		AdvisoryName	string	`xmlrpc:"advisory_name"`
@@ -1108,14 +915,7 @@ func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrat
 		CVEs		[]string	`xmlrpc:"cves"`
 	}
 
-//	type SWerrataWithCVE struct {
-//		SWerrata
-//		CVEs		[]string	`xmlrpc:"cves"`
-//	}
-// 	^^ does NOT work
-
 	var details SWerrata2
-//	var details SWerrataWithCVE
 	details.Synopsis = errata.Synopsis
 	details.AdvisoryName = errata.AdvisoryName
 	details.AdvisoryRelease = errata.AdvisoryRelease

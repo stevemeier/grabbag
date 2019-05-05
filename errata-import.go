@@ -56,23 +56,24 @@ type Meta struct {
 }
 
 type Erratum struct {
-	Id          string   `json:"id"`		// Only needed in array approach
-	Description string   `json:"description"`
-	From        string   `json:"from"`
-	IssueDate   string   `json:"issue_date"`
-	Manual      string   `json:"manual"`
-	Notes       string   `json:"notes"`
-	OsArch      []string `json:"os_arch"`
-	OsRelease   []string `json:"os_release"`
-	Packages    []string `json:"packages"`
-	Product     string   `json:"product"`
-	References  string   `json:"references"`
-	Release     string   `json:"release"`
-	Severity    string   `json:"severity"`
-	Solution    string   `json:"solution"`
-	Synopsis    string   `json:"synopsis"`
-	Topic       string   `json:"topic"`
-	Type        string   `json:"type"`
+	Id		string		`json:"id"`		// Only needed in array approach
+	Description	string		`json:"description"`
+	From		string		`json:"from"`
+	IssueDate	string		`json:"issue_date"`
+	Keywords	[]string	`json:"keywords"`
+	Manual		string		`json:"manual"`
+	Notes		string		`json:"notes"`
+	OsArch		[]string	`json:"os_arch"`
+	OsRelease	[]string	`json:"os_release"`
+	Packages	[]string	`json:"packages"`
+	Product		string		`json:"product"`
+	References	string		`json:"references"`
+	Release		string		`json:"release"`
+	Severity	string		`json:"severity"`
+	Solution	string		`json:"solution"`
+	Synopsis	string		`json:"synopsis"`
+	Topic		string		`json:"topic"`
+	Type		string		`json:"type"`
 }
 
 type Raw struct {
@@ -136,12 +137,15 @@ func main () {
 	var enhancement bool
 
 	var ignoreapiversion bool
+	var protocol string
+	var insecure bool
 
 	var inchannels *[]string
 	var exchannels *[]string
 
 	var exerrata *[]string
 
+	var erratafile string
 	var rhsaovalfile string
 
 	opt := getoptions.New()
@@ -154,24 +158,35 @@ func main () {
 	opt.BoolVar(&enhancement, "enhancement", false)
 
 	opt.BoolVar(&ignoreapiversion, "ignore-api-version", false)
+	opt.StringVar(&protocol, "protocol", "http")
+	opt.BoolVar(&insecure, "insecure", false)
 
 	inchannels = opt.StringSlice("include-channels", 1, 255)
 	exchannels = opt.StringSlice("exclude-channels", 1, 255)
 
 	exerrata = opt.StringSlice("exclude-errata", 1, 255)
 
-	opt.StringVar(&rhsaovalfile, "rhsa-oval", "")
+	opt.StringVar(&erratafile, "errata", "errata.latest.json")
+	opt.StringVar(&rhsaovalfile, "rhsa-oval", "com.redhat.rhsa-all.xml")
 
 	remaining, err := opt.Parse(os.Args[1:])
+	if len(os.Args[1:]) == 0 {
+		fmt.Fprintf(os.Stderr, opt.Help())
+		os.Exit(4)
+	}
 	if err != nil {
 		fmt.Println("Failed to parse options")
 		os.Exit(4)
 	}
+	if len(remaining) > 0 {
+		fmt.Printf("The following options are unrecognized: %v\n", remaining)
+		os.Exit(4)
+	}
 
-	fmt.Printf("Remaining is %v\n", remaining)
-	fmt.Printf("Debug is %t\n", debug)
-	fmt.Printf("Publish is %t\n", publish)
-	fmt.Printf("Server is %s\n", server)
+//	fmt.Printf("Remaining is %v\n", remaining)
+//	fmt.Printf("Debug is %t\n", debug)
+//	fmt.Printf("Publish is %t\n", publish)
+//	fmt.Printf("Server is %s\n", server)
 
 	// If no errata type is selected, enable all
 	if (!(security || bugfix || enhancement)) {
@@ -186,10 +201,21 @@ func main () {
 //	x := 1
 //	spew.Dump(x)
 
-	file, _ := ioutil.ReadFile("/Users/smeier/tmp/errata.newform.json")
-	var allerrata Raw
-	_ = json.Unmarshal([]byte(file), &allerrata)
+//	file, _ := ioutil.ReadFile("/Users/smeier/tmp/errata.newform.json")
+//	var allerrata Raw
+//	err = json.Unmarshal([]byte(file), &allerrata)
+//	if err != nil {
+//		fmt.Println("Could not parse errata data")
+//		os.Exit(5)
+//	}
 //	spew.Dump(allerrata.Meta)
+	var allerrata Raw = ParseErrata(erratafile)
+	if len(allerrata.Advisories) == 0 {
+		fmt.Printf("Could not parse errata data from %s\n", erratafile)
+		os.Exit(5)
+	} else{
+		fmt.Printf("Loaded %d advisories from errata file\n", len(allerrata.Advisories))
+	}
 
 //	var home string = os.Getenv("HOME")
 //	var latest map[string]interface{}
@@ -217,7 +243,7 @@ func main () {
 
 	// Disable TLS certificate checks (insecure!)
 	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: insecure}
 
 	// Configure timeout
 //	http.DefaultTransport.(*http.Transport).ResponseHeaderTimeout = time.Second * 5
@@ -232,7 +258,8 @@ func main () {
 
 	// Initialize XML-RPC Client
 //	client, err := xmlrpc.NewClient("https://192.168.227.132/rpc/api", nil)
-	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", nil)
+//	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", nil)
+	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", nil)
 //	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", myTransport)
 //	^^ timeout is 5 minutes(!)
 //	client, err := xmlrpc.NewClient("https://" + server + "/rpc/api", myTransport)
@@ -249,10 +276,17 @@ func main () {
 	var apiversion string
 	err = client.Call("api.get_version", nil, &apiversion)
 	if err != nil {
-		fmt.Println("Could not determine server version!")
+		if strings.Contains(err.Error(), "cannot validate certificate") {
+			fmt.Println("Certicate verification failed. Use --insecure if you have a self-signed cert.")
+			os.Exit(6)
+		}
+		if strings.Contains(err.Error(), "i/o timeout") {
+			fmt.Println("Timeout connecting to server.")
+			os.Exit(6)
+		}
+		fmt.Printf("Could not determine server version: %v\n", err)
 		os.Exit(2)
 	}
-//	spew.Dump(apiversion)
 
 	if apiversion == "" {
 		fmt.Println("Could not connect to server!");
@@ -378,24 +412,28 @@ func main () {
 			// Create Errata
 			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
 			if success { created++ }
-//			spew.Dump(success)
+
 			if string_to_float(apiversion) >= 12 {
 				fmt.Printf("Adding issue date to %s\n", errata.Id)
 				issuedate, _ := time.Parse(timelayout, errata.IssueDate)
 				success = add_issue_date(client, sessionkey, errata.Id, issuedate)
+				if !success { fmt.Printf("Adding issue date to %s FAILED\n", errata.Id) }
 			}
 			if string_to_float(apiversion) >= 21 && errata.Severity != "" {
 				fmt.Printf("Adding severity %s to %s\n", errata.Severity, errata.Id)
 				success = add_severity(client, sessionkey, errata.Id, errata.Severity)
+				if !success { fmt.Printf("Adding severity to %s FAILED\n", errata.Id) }
 			}
 			if publish {
 				for _, singlechannel := range chanlist {
 					fmt.Printf("Publishing %s to channel %s\n", errata.Id, singlechannel)
 					success = publish_errata(client, sessionkey, errata.Id, []string{singlechannel})
+					if !success { fmt.Printf("Publishing %s to channel %s FAILED\n", errata.Id, singlechannel) }
 				}
 				if errata.Type == "Security Advisory" {
 					fmt.Printf("Adding CVE information to %s\n", errata.Id)
 					success = add_cve_to_errata(client, sessionkey, info, strings.Split(get_oval_data(errata.Id, "CVEs", oval, ""), " ") )
+					if !success { fmt.Printf("Adding CVE information to %s FAILED\n", errata.Id) }
 				}
 			}
 		} else {
@@ -412,12 +450,11 @@ func main () {
 					for _, channel := range get_channels_of_packages(newlist, inv) {
 						fmt.Printf("Republishing %s to channel %s\n", errata.Id, channel)
 						success = publish_errata(client, sessionkey, errata.Id, []string{channel})
+						if !success { fmt.Printf("Republishing %s to channel %s FAILED\n", errata.Id, channel) }
 					}
 				}
 			}
 		}
-
-
 	}
 
 	fmt.Printf("Errata created: %d\n", created);
@@ -613,6 +650,23 @@ func get_package_details (client *xmlrpc.Client, sessionkey string, id int64) (s
 	}
 
 	return "", []string{}
+}
+
+func ParseErrata(file string) Raw {
+	var allerrata Raw
+
+	if file == "" {
+		return allerrata
+	}
+
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return allerrata
+	}
+
+	jsondata, _ := ioutil.ReadFile(file)
+	json.Unmarshal([]byte(jsondata), &allerrata)
+
+	return allerrata
 }
 
 func ParseOval(file string) map[string]OvalData {
@@ -945,7 +999,7 @@ func add_issue_date (client *xmlrpc.Client, sessionkey string, errata string, is
 	params[1] = errata
 	params[2] = details
 
-	var response int
+	var response int64
 	err := client.Call("errata.set_details", params, &response)
 
 	if err == nil && response > 0 {
@@ -968,7 +1022,7 @@ func add_severity (client *xmlrpc.Client, sessionkey string, errata string, seve
 	params[1] = errata
         params[2] = details
 
-	var response int
+	var response int64
 	err := client.Call("errata.set_details", params, &response)
 
         if err == nil && response > 0 {
@@ -1080,7 +1134,7 @@ func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrat
 	params[1] = errata.AdvisoryName
         params[2] = details
 
-	var response int
+	var response int64
 	err := client.Call("errata.set_details", params, &response)
 
         if err == nil && response > 0 {
@@ -1088,30 +1142,6 @@ func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrat
         }
 
         return false
-}
-
-func set_compare (a []string, b []string, mode bool) bool {
-	// if mode is false, check for subset
-	// if mode is true, check for superset
-	bmap := make(map[string]bool)
-
-	for _, key := range b {
-		bmap[key] = true
-	}
-
-	for _, key := range a {
-		if exists := bmap[key]; exists {
-			delete(bmap, key)
-		}
-	}
-
-	if len(bmap) > 0 {
-		// b has more elements than a
-		return false || !mode
-	}
-
-	// a has more elements than b (or is identical)
-	return true && mode
 }
 
 func list_packages (client *xmlrpc.Client, sessionkey string, errata string) []int64 {

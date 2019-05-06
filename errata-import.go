@@ -221,11 +221,6 @@ func main () {
 		os.Exit(2)
 	}
 
-	if apiversion == "" {
-		fmt.Println("Could not connect to server!");
-		os.Exit(2)
-	}
-
 	if (!check_api_support(apiversion, SupportedAPI) && !ignoreapiversion) {
 		fmt.Printf("API version %s is not supported!\n", apiversion)
 		os.Exit(3)
@@ -248,8 +243,16 @@ func main () {
 	}
 
 	// Check admin status
-	if (user_is_admin(client, sessionkey, username)) {
-		fmt.Printf("User %s has administrator access to this server\n", username)
+	if publish {
+		if (user_is_admin(client, sessionkey, username)) {
+			fmt.Printf("User %s has administrator access to this server\n", username)
+		} else {
+			fmt.Printf("User %s does NOT have administrator access", username);
+			fmt.Println("You have set --publish but your user has insufficient access rights\n");
+			fmt.Println("Either use an account that is Satellite/Org/Channel Administator privileges or omit --publish\n");
+			_ = close_session(client, sessionkey)
+			os.Exit(1)
+		}
 	}
 
 	// List all channels

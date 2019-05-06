@@ -303,12 +303,18 @@ func main () {
 		info.AdvisoryName = errata.Id
 		info.AdvisoryType = errata.Type
 		info.Synopsis = errata.Synopsis
-		info.Description = get_oval_data(errata.Id, "Description", oval, errata.Description)
+		info.Description = errata.Description
+		if oval[(errata.Id)].Description != "" {
+			info.Description = oval[(errata.Id)].Description
+		}
 		info.Product = errata.Product
 		info.References = errata.References
 		info.Solution = errata.Solution
 		info.Topic = errata.Topic
-		info.Notes = get_oval_data(errata.Id, "Rights", oval, errata.Notes)
+		info.Notes = errata.Notes
+		if oval[(errata.Id)].Rights != "" {
+			info.Notes = oval[(errata.Id)].Rights
+		}
 		info.From = errata.From
 
 		var success bool
@@ -337,7 +343,7 @@ func main () {
 				}
 				if errata.Type == "Security Advisory" {
 					fmt.Printf("Adding CVE information to %s\n", errata.Id)
-					success = add_cve_to_errata(client, sessionkey, info, (strings.Split(get_oval_data(errata.Id, "CVEs", oval, ""), " ")) )
+					success = add_cve_to_errata(client, sessionkey, info, oval[(errata.Id)].References)
 					if !success { fmt.Printf("Adding CVE information to %s FAILED\n", errata.Id) }
 				}
 			}
@@ -838,26 +844,6 @@ func add_severity (client *xmlrpc.Client, sessionkey string, errata string, seve
         return false
 }
 
-func get_oval_data (errata string, field string, oval map[string]OvalData, unchanged string) string {
-	if _, exists := oval[errata]; exists {
-		if field == "Description" {
-			if len(oval[errata].Description) > 4000 {
-				return oval[errata].Description[:3999]
-			} else {
-				return oval[errata].Description
-			}
-		}
-		if field == "CVEs" {
-			return strings.Join(oval[errata].References, " ")
-		}
-		if field == "Rights" {
-			return "The description and CVE numbers have been taken from Red Hat OVAL definitions.\n\n" + oval[errata].Rights
-		}
-	}
-
-	return unchanged
-}
-
 func get_channels_of_packages (pkglist []int64, inv Inventory) []string {
 	labels := make(map[string]bool)
 	var result []string
@@ -895,7 +881,7 @@ func publish_errata (client *xmlrpc.Client, sessionkey string, errata string, ch
 }
 
 func add_cve_to_errata (client *xmlrpc.Client, sessionkey string, errata SWerrata, cves []string) bool {
-	if len(cves) < 1 {
+	if cves == nil {
 		// called without CVE information, so we bail nicely
 		return true
 	}

@@ -7,13 +7,12 @@ import "io/ioutil"
 import "github.com/DavidGamba/go-getoptions"
 //import "github.com/davecgh/go-spew/spew"
 import "github.com/kolo/xmlrpc"
-//import "log"
 import "os"
 import "regexp"
 import "strings"
 import "strconv"
 import "time"
-//import "net"
+import "net"
 
 // These two need to be loaded if cert-check is to be disabled
 import "net/http"
@@ -60,7 +59,7 @@ type Erratum struct {
 	Description	string		`json:"description"`
 	From		string		`json:"from"`
 	IssueDate	string		`json:"issue_date"`
-	Keywords	[]string		`json:"keywords"`	// Should be an array
+	Keywords	[]string	`json:"keywords"`
 	Manual		string		`json:"manual"`
 	Notes		string		`json:"notes"`
 	OsArch		[]string	`json:"os_arch"`
@@ -195,12 +194,12 @@ func main () {
 	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: insecure}
 
-	// FIXME: Configure timeout
-//	http.DefaultTransport.(*http.Transport).ResponseHeaderTimeout = time.Second * 5
-//	^^ doesn't work
+	// Configure timeout
+	// Source: https://medium.com/@nate510/don-t-use-go-s-default-http-client-4804cb19f779
+	var netTransport = &http.Transport{ Dial: (&net.Dialer{ Timeout: 5 * time.Second, }).Dial, TLSHandshakeTimeout: 5 * time.Second, }
 
 	// Create XML-RPC client
-	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", nil)
+	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", netTransport)
 	if err != nil {
 		fmt.Println("Could not create XML-RPC client: ", err.Error())
 		os.Exit(2)
@@ -304,18 +303,20 @@ func main () {
 		info.AdvisoryType = errata.Type
 		info.Synopsis = errata.Synopsis
 		info.Description = errata.Description
-		if oval[(errata.Id)].Description != "" {
-			info.Description = oval[(errata.Id)].Description
-		}
 		info.Product = errata.Product
 		info.References = errata.References
 		info.Solution = errata.Solution
 		info.Topic = errata.Topic
 		info.Notes = errata.Notes
+		info.From = errata.From
+
+		// If Red Hat Oval data is available, use it
+		if oval[(errata.Id)].Description != "" {
+			info.Description = oval[(errata.Id)].Description
+		}
 		if oval[(errata.Id)].Rights != "" {
 			info.Notes = oval[(errata.Id)].Rights
 		}
-		info.From = errata.From
 
 		var success bool
 		if exists := existing[(errata.Id)]; !exists {
@@ -341,7 +342,7 @@ func main () {
 					success = publish_errata(client, sessionkey, errata.Id, []string{singlechannel})
 					if !success { fmt.Printf("Publishing %s to channel %s FAILED\n", errata.Id, singlechannel) }
 				}
-				if errata.Type == "Security Advisory" {
+				if errata.Type == "Security Advisory" && oval[(errata.Id)].References != nil {
 					fmt.Printf("Adding CVE information to %s\n", errata.Id)
 					success = add_cve_to_errata(client, sessionkey, info, oval[(errata.Id)].References)
 					if !success { fmt.Printf("Adding CVE information to %s FAILED\n", errata.Id) }

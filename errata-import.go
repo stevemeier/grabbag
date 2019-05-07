@@ -12,7 +12,7 @@ import "regexp"
 import "strings"
 import "strconv"
 import "time"
-//import "net"
+import "net"
 
 // These two need to be loaded if cert-check is to be disabled
 import "net/http"
@@ -196,18 +196,16 @@ func main () {
 		fmt.Printf("Loaded %d datasets from Red Hat OVAL file\n", len(oval))
 	}
 
-	// Disable TLS certificate checks (insecure!)
-	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: insecure}
-
 	// Configure timeout
 	// Source: https://medium.com/@nate510/don-t-use-go-s-default-http-client-4804cb19f779
-//	var netTransport = &http.Transport{ Dial: (&net.Dialer{ Timeout: 5 * time.Second, }).Dial, TLSHandshakeTimeout: 5 * time.Second, }
-	// ^^ timeout works but breaks the --insecure option
+	// and TLS options
+	// Source: https://stackoverflow.com/questions/12122159/how-to-do-a-https-request-with-bad-certificate
+	var netTransport = &http.Transport{ Dial: (&net.Dialer{ Timeout: 5 * time.Second, }).Dial,
+	TLSHandshakeTimeout: 5 * time.Second,
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: insecure}, }
 
 	// Create XML-RPC client
-//	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", netTransport)
-	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", nil)
+	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", netTransport)
 	if err != nil {
 		fmt.Println("Could not create XML-RPC client: ", err.Error())
 		os.Exit(2)

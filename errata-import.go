@@ -12,7 +12,7 @@ import "regexp"
 import "strings"
 import "strconv"
 import "time"
-import "net"
+//import "net"
 
 // These two need to be loaded if cert-check is to be disabled
 import "net/http"
@@ -98,11 +98,11 @@ type SWerrata struct {
 }
 
 // The Url field is not supported in all versions of Spacewalk
-// 1.4 and newer seems to support it
-type Bug struct {
-	Id		int
-	Summary		string
-	Url		string
+// Version 1.3 and newer seems to support it
+type Bugzilla struct {
+	Text string	`xml:",chardata" xmlrpc:"summary"`
+	Href string	`xml:"href,attr" xmlrpc:"url"`
+	ID   int64	`xml:"id,attr" xmlrpc:"id"`
 }
 
 type Inventory struct {
@@ -114,6 +114,7 @@ type OvalData struct {
 	Description	string
 	References	[]string
 	Rights		string
+	Bugs		[]Bugzilla
 }
 
 func main () {
@@ -201,10 +202,12 @@ func main () {
 
 	// Configure timeout
 	// Source: https://medium.com/@nate510/don-t-use-go-s-default-http-client-4804cb19f779
-	var netTransport = &http.Transport{ Dial: (&net.Dialer{ Timeout: 5 * time.Second, }).Dial, TLSHandshakeTimeout: 5 * time.Second, }
+//	var netTransport = &http.Transport{ Dial: (&net.Dialer{ Timeout: 5 * time.Second, }).Dial, TLSHandshakeTimeout: 5 * time.Second, }
+	// ^^ timeout works but breaks the --insecure option
 
 	// Create XML-RPC client
-	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", netTransport)
+//	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", netTransport)
+	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", nil)
 	if err != nil {
 		fmt.Println("Could not create XML-RPC client: ", err.Error())
 		os.Exit(2)
@@ -330,8 +333,16 @@ func main () {
 		if exists := existing[(errata.Id)]; !exists {
 			// Create Errata
 			fmt.Printf("Creating errata for %s (%s) (%d of %d)\n", errata.Id, errata.Synopsis, len(pkglist), len(errata.Packages))
-			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
-			if success { created++ }
+//			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
+			if string_to_float(apiversion) >= 10.16 {
+//				success = create_errata(client, sessionkey, info, oval[(errata.Id)].Bugs, []string{}, pkglist, false, []string{})
+				success = create_errata(client, sessionkey, info, oval[(errata.Id)].Bugs, errata.Keywords, pkglist, false, []string{})
+				if success { created++ }
+			} else {
+//				success = create_errata(client, sessionkey, info, []Bugzilla{}, []string{}, pkglist, false, []string{})
+				success = create_errata(client, sessionkey, info, []Bugzilla{}, errata.Keywords, pkglist, false, []string{})
+				if success { created++ }
+			}
 
 			if string_to_float(apiversion) >= 12 {
 				fmt.Printf("Adding issue date to %s\n", errata.Id)
@@ -652,9 +663,10 @@ func ParseOval(file string) map[string]OvalData {
 							Cvss3  string `xml:"cvss3,attr"`
 						} `xml:"cve"`
 						Bugzilla []struct {
-							Text string `xml:",chardata"`
-							Href string `xml:"href,attr"`
-							ID   string `xml:"id,attr"`
+							Text string `xml:",chardata" xmlrpc:"summary"`
+							Href string `xml:"href,attr" xmlrpc:"url"`
+//							ID   string `xml:"id,attr"`
+							ID   int64  `xml:"id,attr" xmlrpc:"id"`
 						} `xml:"bugzilla"`
 						AffectedCpeList struct {
 							Text string   `xml:",chardata"`
@@ -676,17 +688,23 @@ func ParseOval(file string) map[string]OvalData {
 		id = "CESA-" + id[len(id)-8:len(id)-4] + ":" + id[len(id)-4:]
 
 		var cves []string
+		var bugs []Bugzilla
 		cvere, _ := regexp.Compile(`^CVE`)
 		for _, ref := range def.Metadata.Reference {
 			if cvere.MatchString(ref.RefID) {
 				cves = append(cves, ref.RefID)
 			}
 		}
+		for _, bug := range def.Metadata.Advisory.Bugzilla {
+			bugs = append(bugs, bug)
+		}
 
 		var current = oval[id]
 		current.Description = def.Metadata.Description
 		current.Rights = def.Metadata.Advisory.Rights
 		current.References = cves
+//		current.Bugs = def.Metadata.Advisory.Bugzilla
+		current.Bugs = bugs
 		oval[id] = current
 	}
 
@@ -705,7 +723,8 @@ func get_packages_for_errata (errata Erratum, inv Inventory) []int64 {
 	return pkglist
 }
 
-func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bugs []Bug, keywords []string, pkglist []int64, publish bool, channels []string) bool {
+//func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bugs []Bug, keywords []string, pkglist []int64, publish bool, channels []string) bool {
+func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bugs []Bugzilla, keywords []string, pkglist []int64, publish bool, channels []string) bool {
 	params := make([]interface{}, 7)
 	params[0] = sessionkey
 	params[1] = info

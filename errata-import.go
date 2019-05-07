@@ -843,11 +843,6 @@ func add_issue_date (client *xmlrpc.Client, sessionkey string, errata string, is
 }
 
 func add_severity (client *xmlrpc.Client, sessionkey string, errata string, severity string) bool {
-	if severity == "" {
-		// no severity set, so we bail nicely
-		return true
-	}
-
 	type Details struct {
 		Severity	string	`xmlrpc:"severity"`
 	}

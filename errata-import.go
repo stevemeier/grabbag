@@ -21,7 +21,10 @@ import "crypto/tls"
 const Version int = 20190426
 const timelayout = "2006-01-02 15:04:05"
 var SupportedAPI = []float64{10.9,  // Spacewalk 0.6
-                             10.11, // Spacewalk 1.0 and 1.1
+                             10.10, // Spacewalk 0.7
+                             10.11, // Spacewalk 0.8 through 1.1
+			     10.15, // Spacewalk 1.2
+			     10.16, // Spacewalk 1.3 and 1.4
 			     11.00, // Spacewalk 1.5
 			     11.1,  // Spacewalk 1.6 through 1.8
 			     12,    // Spacewalk 1.9
@@ -94,6 +97,8 @@ type SWerrata struct {
 	Solution	string	`xmlrpc:"solution"`
 }
 
+// The Url field is not supported in all versions of Spacewalk
+// 1.4 and newer seems to support it
 type Bug struct {
 	Id		int
 	Summary		string

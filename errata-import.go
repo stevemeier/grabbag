@@ -1,5 +1,6 @@
 package main
 
+import "compress/bzip2"
 import "encoding/json"
 import "encoding/xml"
 import "fmt"
@@ -19,6 +20,10 @@ import "net"
 // These two need to be loaded if cert-check is to be disabled
 import "net/http"
 import "crypto/tls"
+
+// URLs (used in --simple mode)
+const errataurl = "https://cefs.steve-meier.de/errata.latest.json.bz2"
+const ovalurl = "https://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml.bz2"
 
 const Version int = 20190426
 const timelayout = "2006-01-02 15:04:05"
@@ -684,13 +689,12 @@ func ParseOval(file string) map[string]OvalData {
 						Bugzilla []struct {
 							Text string `xml:",chardata" xmlrpc:"summary"`
 							Href string `xml:"href,attr" xmlrpc:"url"`
-//							ID   string `xml:"id,attr"`
 							ID   int64  `xml:"id,attr" xmlrpc:"id"`
 						} `xml:"bugzilla"`
-						AffectedCpeList struct {
-							Text string   `xml:",chardata"`
-							Cpe  []string `xml:"cpe"`
-						} `xml:"affected_cpe_list"`
+//						AffectedCpeList struct {
+//							Text string   `xml:",chardata"`
+//							Cpe  []string `xml:"cpe"`
+//						} `xml:"affected_cpe_list"`
 					} `xml:"advisory"`
 				} `xml:"metadata"`
 			} `xml:"definition"`
@@ -1042,4 +1046,19 @@ func min_log_level (debug bool, quiet bool) string {
 	if debug { return "DEBUG" }
 	if quiet { return "ERROR" }
 	return "INFO"
+}
+
+func download_bzip2 (url string) []byte {
+	resp, err := http.Get(ovalurl)
+        if err != nil {
+		return []byte{}
+	}
+	defer resp.Body.Close()
+
+	data, err := ioutil.ReadAll(bzip2.NewReader(resp.Body))
+	if err != nil {
+		return []byte{}
+	}
+
+	return data
 }

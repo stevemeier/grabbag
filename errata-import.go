@@ -6,7 +6,9 @@ import "fmt"
 import "io/ioutil"
 import "github.com/DavidGamba/go-getoptions"
 //import "github.com/davecgh/go-spew/spew"
+import "github.com/hashicorp/logutils"
 import "github.com/kolo/xmlrpc"
+import "log"
 import "os"
 import "regexp"
 import "strings"
@@ -119,6 +121,8 @@ type OvalData struct {
 
 func main () {
 	var debug bool
+	var quiet bool
+
 	var publish bool
 	var server string
 
@@ -143,6 +147,7 @@ func main () {
 
 	opt := getoptions.New()
 	opt.BoolVar(&debug, "debug", false)
+	opt.BoolVar(&quiet, "quiet", false)
 	opt.StringVar(&server, "server", "localhost")
 	opt.BoolVar(&publish, "publish", false)
 
@@ -162,17 +167,33 @@ func main () {
 	opt.StringVar(&erratafile, "errata", "errata.latest.json")
 	opt.StringVar(&rhsaovalfile, "rhsa-oval", "com.redhat.rhsa-all.xml")
 
+	// Parse options
 	remaining, err := opt.Parse(os.Args[1:])
+
+	// Set up logger
+	filter := &logutils.LevelFilter{
+		Levels: []logutils.LogLevel{"DEBUG","INFO","WARNING","ERROR"},
+		MinLevel: logutils.LogLevel(min_log_level(debug, quiet)),
+		Writer: os.Stdout,
+	}
+
+	// Set up log filter
+	log.SetOutput(filter)
+
+	log.Printf("[DEBUG] Version is %d\n", Version)
 	if len(os.Args[1:]) == 0 {
-		fmt.Fprintf(os.Stderr, opt.Help())
+//		fmt.Fprintf(os.Stderr, opt.Help())
+		log.Printf(opt.Help())
 		os.Exit(4)
 	}
 	if err != nil {
-		fmt.Println("Failed to parse options")
+//		fmt.Println("Failed to parse options")
+		log.Printf("[ERROR] Failed to parse options: %v\n", err)
 		os.Exit(4)
 	}
 	if len(remaining) > 0 {
-		fmt.Printf("The following options are unrecognized: %v\n", remaining)
+//		fmt.Printf("The following options are unrecognized: %v\n", remaining)
+		log.Printf("The following options are unrecognized: %v\n", remaining)
 		os.Exit(4)
 	}
 
@@ -1015,4 +1036,10 @@ func only_in_first (a []int64, b []int64) []int64 {
 	}
 
 	return result
+}
+
+func min_log_level (debug bool, quiet bool) string {
+	if debug { return "DEBUG" }
+	if quiet { return "ERROR" }
+	return "INFO"
 }

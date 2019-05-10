@@ -129,7 +129,7 @@ type OvalData struct {
 func main () {
 	var debug bool
 	var quiet bool
-
+	var autopush bool
 	var publish bool
 	var server string
 
@@ -157,6 +157,7 @@ func main () {
 	opt.BoolVar(&quiet, "quiet", false)
 	opt.StringVar(&server, "server", "localhost")
 	opt.BoolVar(&publish, "publish", false)
+	opt.BoolVar(&autopush, "autopush", false)
 
 	opt.BoolVar(&security, "security", false)
 	opt.BoolVar(&bugfix, "bugfix", false)
@@ -201,6 +202,11 @@ func main () {
 		os.Exit(4)
 	}
 
+	// --autopush is deprecated
+	if autopush {
+		log.Println("[INFO] The --autopush option is deprecated and has no effect anymore")
+	}
+
 	// If no errata type is selected, enable all
 	if (!(security || bugfix || enhancement)) {
 		security, bugfix, enhancement = true, true, true
@@ -210,10 +216,10 @@ func main () {
 	var allerrata Raw
 	if erratafile != "" {
 		log.Printf("[INFO] Loading errata data from %s\n", erratafile)
-		allerrata = ParseErrata2(*file_content(erratafile))
+		allerrata = ParseErrata(*file_content(erratafile))
 	} else {
 		log.Printf("[INFO] Loading errata data from %s\n", errataurl)
-		allerrata = ParseErrata2(*download_bzip2(errataurl))
+		allerrata = ParseErrata(*download_bzip2(errataurl))
 	}
 	if len(allerrata.Advisories) > 0 {
 		log.Printf("[INFO] Loaded %d advisories from errata file\n", len(allerrata.Advisories))
@@ -223,14 +229,13 @@ func main () {
 	}
 
 	// Load Red Hat OVAL data
-//	var oval map[string]OvalData = ParseOval(rhsaovalfile)
 	var oval map[string]OvalData
 	if rhsaovalfile != "" {
 		log.Printf("[INFO] Loading RHSA oval data from %s\n", rhsaovalfile)
-		oval = ParseOval2(*file_content(rhsaovalfile))
+		oval = ParseOval(*file_content(rhsaovalfile))
 	} else {
 		log.Printf("[INFO] Loading RHSA oval data from %s\n", rhsaovalurl)
-		oval = ParseOval2(*download_bzip2(rhsaovalurl))
+		oval = ParseOval(*download_bzip2(rhsaovalurl))
 	}
 	if len(oval) > 0 {
 		log.Printf("[INFO] Loaded %d datasets from Red Hat OVAL file\n", len(oval))
@@ -371,13 +376,10 @@ func main () {
 		if exists := existing[(errata.Id)]; !exists {
 			// Create Errata
 			log.Printf("[INFO] Creating errata for %s (%s) (%d of %d)\n", errata.Id, errata.Synopsis, len(pkglist), len(errata.Packages))
-//			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
 			if string_to_float(apiversion) >= 10.16 {
-//				success = create_errata(client, sessionkey, info, oval[(errata.Id)].Bugs, []string{}, pkglist, false, []string{})
 				success = create_errata(client, sessionkey, info, oval[(errata.Id)].Bugs, errata.Keywords, pkglist, false, []string{})
 				if success { created++ }
 			} else {
-//				success = create_errata(client, sessionkey, info, []Bugzilla{}, []string{}, pkglist, false, []string{})
 				success = create_errata(client, sessionkey, info, []Bugzilla{}, errata.Keywords, pkglist, false, []string{})
 				if success { created++ }
 			}
@@ -388,11 +390,13 @@ func main () {
 				success = add_issue_date(client, sessionkey, errata.Id, issuedate)
 				if !success { log.Printf("[ERROR] Adding issue date to %s failed\n", errata.Id) }
 			}
+
 			if string_to_float(apiversion) >= 21 && errata.Severity != "" {
 				log.Printf("[INFO] Adding severity %s to %s\n", errata.Severity, errata.Id)
 				success = add_severity(client, sessionkey, errata.Id, errata.Severity)
 				if !success { log.Printf("[ERROR] Adding severity to %s failed\n", errata.Id) }
 			}
+
 			if publish {
 				for _, singlechannel := range chanlist {
 					log.Printf("[INFO] Publishing %s to channel %s\n", errata.Id, singlechannel)
@@ -405,10 +409,11 @@ func main () {
 					if !success { log.Printf("[INFO] Adding CVE information to %s failed\n", errata.Id) }
 				}
 			}
+
 		} else {
 			// Update Errata
 			var curlist []int64 = list_packages(client, sessionkey, errata.Id)
-			var newlist []int64 = only_in_first(pkglist, curlist)
+			var newlist []int64 = only_in_first_int64(pkglist, curlist)
 
 			if len(pkglist) > len(curlist) {
 				log.Printf("[INFO] Adding packages to %s\n", errata.Id)
@@ -425,7 +430,7 @@ func main () {
 			}
 		}
 		// Restore channel membership of package after publishing to multiple channels
-		if publish {
+		if publish && len(chanlist) > 1 {
 			for _, pkg := range pkglist {
 				oldchannels := inv.id2channels[pkg]
 				nowchannels := list_providing_channels(client, sessionkey, pkg)
@@ -630,150 +635,18 @@ func get_package_details (client *xmlrpc.Client, sessionkey string, id int64) (s
 	return "", []string{}
 }
 
-func ParseErrata (file string) Raw {
-	var allerrata Raw
-
-	if file == "" {
-		return allerrata
-	}
-
-	if _, err := os.Stat(file); os.IsNotExist(err) {
-		return allerrata
-	}
-
-	jsondata, _ := ioutil.ReadFile(file)
-	err := json.Unmarshal([]byte(jsondata), &allerrata)
-	if err != nil {
-		log.Println("[ERROR] Parsing JSON data failed: ", err.Error())
-		os.Exit(5)
-	}
-
-	return allerrata
-}
-
-func ParseErrata2 (data []byte) Raw {
+func ParseErrata (data []byte) Raw {
 	var allerrata Raw
 	err := json.Unmarshal(data, &allerrata)
 	if err != nil {
-		log.Println("[ERROR] Parsing JSON data failed: ", err.Error())
+		log.Printf("[ERROR] Parsing JSON data failed: %v\n", err.Error())
 		os.Exit(5)
 	}
 
 	return allerrata
 }
 
-func ParseOval (file string) map[string]OvalData {
-	if file == "" {
-		return nil
-	}
-
-	if _, err := os.Stat(file); os.IsNotExist(err) {
-		return nil
-	}
-
-	// OvalDefinitions was generated 2019-04-24 22:06:30 by root on localhost.localdomain.
-	type OvalDefinitions struct {
-		XMLName        xml.Name `xml:"oval_definitions"`
-		Text           string   `xml:",chardata"`
-		Xmlns          string   `xml:"xmlns,attr"`
-		Oval           string   `xml:"oval,attr"`
-		RedDef         string   `xml:"red-def,attr"`
-		UnixDef        string   `xml:"unix-def,attr"`
-		Xsi            string   `xml:"xsi,attr"`
-		SchemaLocation string   `xml:"schemaLocation,attr"`
-		Definitions struct {
-			Text       string `xml:",chardata"`
-			Definition []struct {
-				Text     string `xml:",chardata"`
-				Class    string `xml:"class,attr"`
-				ID       string `xml:"id,attr"`
-				Version  string `xml:"version,attr"`
-				Metadata struct {
-					Text     string `xml:",chardata"`
-					Title    string `xml:"title"`
-					Affected struct {
-						Text     string   `xml:",chardata"`
-						Family   string   `xml:"family,attr"`
-						Platform []string `xml:"platform"`
-					} `xml:"affected"`
-					Reference []struct {
-						Text   string `xml:",chardata"`
-						RefID  string `xml:"ref_id,attr"`
-						RefURL string `xml:"ref_url,attr"`
-						Source string `xml:"source,attr"`
-					} `xml:"reference"`
-					Description string `xml:"description"`
-					Advisory    struct {
-						Text     string `xml:",chardata"`
-						From     string `xml:"from,attr"`
-						Severity string `xml:"severity"`
-						Rights   string `xml:"rights"`
-						Issued   struct {
-							Text string `xml:",chardata"`
-							Date string `xml:"date,attr"`
-						} `xml:"issued"`
-						Updated struct {
-							Text string `xml:",chardata"`
-							Date string `xml:"date,attr"`
-						} `xml:"updated"`
-						Cve []struct {
-							Text   string `xml:",chardata"`
-							Href   string `xml:"href,attr"`
-							Public string `xml:"public,attr"`
-							Impact string `xml:"impact,attr"`
-							Cwe    string `xml:"cwe,attr"`
-							Cvss2  string `xml:"cvss2,attr"`
-							Cvss3  string `xml:"cvss3,attr"`
-						} `xml:"cve"`
-						Bugzilla []struct {
-							Text string `xml:",chardata" xmlrpc:"summary"`
-							Href string `xml:"href,attr" xmlrpc:"url"`
-							ID   int64  `xml:"id,attr" xmlrpc:"id"`
-						} `xml:"bugzilla"`
-//						AffectedCpeList struct {
-//							Text string   `xml:",chardata"`
-//							Cpe  []string `xml:"cpe"`
-//						} `xml:"affected_cpe_list"`
-					} `xml:"advisory"`
-				} `xml:"metadata"`
-			} `xml:"definition"`
-		} `xml:"definitions"`
-	}
-
-	var ovaldata OvalDefinitions
-	data, _ := ioutil.ReadFile(file)
-        _ = xml.Unmarshal([]byte(data), &ovaldata)
-	oval := make(map[string]OvalData)
-
-	for _, def := range ovaldata.Definitions.Definition {
-		id := def.ID
-		id = "CESA-" + id[len(id)-8:len(id)-4] + ":" + id[len(id)-4:]
-
-		var cves []string
-		var bugs []Bugzilla
-		cvere, _ := regexp.Compile(`^CVE`)
-		for _, ref := range def.Metadata.Reference {
-			if cvere.MatchString(ref.RefID) {
-				cves = append(cves, ref.RefID)
-			}
-		}
-		for _, bug := range def.Metadata.Advisory.Bugzilla {
-			bugs = append(bugs, bug)
-		}
-
-		var current = oval[id]
-		current.Description = def.Metadata.Description
-		current.Rights = def.Metadata.Advisory.Rights
-		current.References = cves
-//		current.Bugs = def.Metadata.Advisory.Bugzilla
-		current.Bugs = bugs
-		oval[id] = current
-	}
-
-	return oval
-}
-
-func ParseOval2 (data []byte) map[string]OvalData {
+func ParseOval (data []byte) map[string]OvalData {
 	// OvalDefinitions was generated 2019-04-24 22:06:30 by root on localhost.localdomain.
 	type OvalDefinitions struct {
 		XMLName        xml.Name `xml:"oval_definitions"`
@@ -882,7 +755,6 @@ func get_packages_for_errata (errata Erratum, inv Inventory) []int64 {
 	return pkglist
 }
 
-//func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bugs []Bug, keywords []string, pkglist []int64, publish bool, channels []string) bool {
 func create_errata (client *xmlrpc.Client, sessionkey string, info SWerrata, bugs []Bugzilla, keywords []string, pkglist []int64, publish bool, channels []string) bool {
 	params := make([]interface{}, 7)
 	params[0] = sessionkey
@@ -1161,7 +1033,7 @@ func errata_is_excluded (errata string, exerrata *[]string) bool {
 	return false
 }
 
-func only_in_first (a []int64, b []int64) []int64 {
+func only_in_first_int64 (a []int64, b []int64) []int64 {
 	var result []int64
 
 	bmap := make(map[int64]bool)
@@ -1207,11 +1079,9 @@ func download_bzip2 (url string) *[]byte {
 	request, _ := http.NewRequest("GET", url, nil)
 	request.Header.Set("User-Agent", "errata-import/" + strconv.Itoa(Version))
 	resp, err := client.Do(request)
-//	resp, err := http.Get(ovalurl)
         if err != nil {
 		log.Printf("[ERROR] Download failed: %v", err.Error())
 		return &[]byte{}
-//		return nil
 	}
 	defer resp.Body.Close()
 
@@ -1221,19 +1091,10 @@ func download_bzip2 (url string) *[]byte {
 		return &[]byte{}
 	}
 
-////	body, _ := ioutil.ReadAll(resp.Body)
-//	if len(body) == 0 {
-//		log.Println("[ERROR] Download return zero bytes")
-//		return &[]byte{}
-//	}
-//	fmt.Printf("Downloaded %i bytes\n", len(body))
-//	spew.Dump(body)
-
 	data, err := ioutil.ReadAll(bzip2.NewReader(resp.Body))
 	if err != nil {
 		log.Printf("[ERROR] Decompressing failed: %v", err.Error())
 		return &[]byte{}
-//		return nil
 	}
 
 	return &data
@@ -1291,5 +1152,6 @@ func remove_packages_from_channel (client *xmlrpc.Client, sessionkey string, cha
         if err == nil && response > 0 {
                 return true
         }
+
 	return false
 }

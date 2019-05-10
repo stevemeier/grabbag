@@ -14,6 +14,7 @@ import "os"
 import "regexp"
 import "strings"
 import "strconv"
+import "syscall"
 import "time"
 import "net"
 
@@ -200,6 +201,11 @@ func main () {
 	if len(remaining) > 0 {
 		log.Printf("[ERROR] The following options are unrecognized: %v\n", remaining)
 		os.Exit(4)
+	}
+
+	// Check if running as root
+	if running_as_root() {
+		log.Println("[INFO] Running as root is not recommended!")
 	}
 
 	// --autopush is deprecated
@@ -1153,5 +1159,11 @@ func remove_packages_from_channel (client *xmlrpc.Client, sessionkey string, cha
                 return true
         }
 
+	return false
+}
+
+func running_as_root () bool {
+	if syscall.Getuid() == 0  { return true }
+	if syscall.Geteuid() == 0 { return true }
 	return false
 }

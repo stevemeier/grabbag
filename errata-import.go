@@ -22,8 +22,9 @@ import "net/http"
 import "crypto/tls"
 
 // URLs (used in --simple mode)
-const errataurl = "https://cefs.steve-meier.de/errata.latest.json.bz2"
-const ovalurl = "https://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml.bz2"
+//const errataurl = "https://cefs.steve-meier.de/errata.latest.json.bz2"
+const errataurl = "https://www.lordy.de/errata.latest.json.bz2"
+const rhsaovalurl = "https://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml.bz2"
 
 const Version int = 20190426
 const timelayout = "2006-01-02 15:04:05"
@@ -115,6 +116,7 @@ type Bugzilla struct {
 type Inventory struct {
 	filename2id	map[string]int64
 	id2channels	map[int64][]string
+	id2filename	map[int64]string
 }
 
 type OvalData struct {
@@ -169,8 +171,8 @@ func main () {
 
 	exerrata = opt.StringSlice("exclude-errata", 1, 255)
 
-	opt.StringVar(&erratafile, "errata", "errata.latest.json")
-	opt.StringVar(&rhsaovalfile, "rhsa-oval", "com.redhat.rhsa-all.xml")
+	opt.StringVar(&erratafile, "errata", "")
+	opt.StringVar(&rhsaovalfile, "rhsa-oval", "")
 
 	// Parse options
 	remaining, err := opt.Parse(os.Args[1:])
@@ -187,18 +189,15 @@ func main () {
 
 	log.Printf("[DEBUG] Version is %d\n", Version)
 	if len(os.Args[1:]) == 0 {
-//		fmt.Fprintf(os.Stderr, opt.Help())
-		log.Printf(opt.Help())
+		log.Print(opt.Help())
 		os.Exit(4)
 	}
 	if err != nil {
-//		fmt.Println("Failed to parse options")
 		log.Printf("[ERROR] Failed to parse options: %v\n", err)
 		os.Exit(4)
 	}
 	if len(remaining) > 0 {
-//		fmt.Printf("The following options are unrecognized: %v\n", remaining)
-		log.Printf("The following options are unrecognized: %v\n", remaining)
+		log.Printf("[ERROR] The following options are unrecognized: %v\n", remaining)
 		os.Exit(4)
 	}
 
@@ -208,18 +207,33 @@ func main () {
 	}
 
 	// Load errata data
-	var allerrata Raw = ParseErrata(erratafile)
-	if len(allerrata.Advisories) == 0 {
-		fmt.Printf("Could not parse errata data from %s\n", erratafile)
+	var allerrata Raw
+	if erratafile != "" {
+		log.Printf("[INFO] Loading errata data from %s\n", erratafile)
+		allerrata = ParseErrata2(*file_content(erratafile))
+	} else {
+		log.Printf("[INFO] Loading errata data from %s\n", errataurl)
+		allerrata = ParseErrata2(*download_bzip2(errataurl))
+	}
+	if len(allerrata.Advisories) > 0 {
+		log.Printf("[INFO] Loaded %d advisories from errata file\n", len(allerrata.Advisories))
+	} else {
+		log.Printf("[ERROR] Could not parse errata data from %s\n", erratafile)
 		os.Exit(5)
-	} else{
-		fmt.Printf("Loaded %d advisories from errata file\n", len(allerrata.Advisories))
 	}
 
 	// Load Red Hat OVAL data
-	var oval map[string]OvalData = ParseOval(rhsaovalfile)
+//	var oval map[string]OvalData = ParseOval(rhsaovalfile)
+	var oval map[string]OvalData
+	if rhsaovalfile != "" {
+		log.Printf("[INFO] Loading RHSA oval data from %s\n", rhsaovalfile)
+		oval = ParseOval2(*file_content(rhsaovalfile))
+	} else {
+		log.Printf("[INFO] Loading RHSA oval data from %s\n", rhsaovalurl)
+		oval = ParseOval2(*download_bzip2(rhsaovalurl))
+	}
 	if len(oval) > 0 {
-		fmt.Printf("Loaded %d datasets from Red Hat OVAL file\n", len(oval))
+		log.Printf("[INFO] Loaded %d datasets from Red Hat OVAL file\n", len(oval))
 	}
 
 	// Configure timeout
@@ -233,7 +247,7 @@ func main () {
 	// Create XML-RPC client
 	client, err := xmlrpc.NewClient(protocol + "://" + server + "/rpc/api", netTransport)
 	if err != nil {
-		fmt.Println("Could not create XML-RPC client: ", err.Error())
+		log.Println("[ERROR] Could not create XML-RPC client: ", err.Error())
 		os.Exit(2)
 	}
 
@@ -242,19 +256,19 @@ func main () {
 	err = client.Call("api.get_version", nil, &apiversion)
 	if err != nil {
 		if strings.Contains(err.Error(), "cannot validate certificate") {
-			fmt.Println("Certicate verification failed. Use --insecure if you have a self-signed cert.")
+			log.Println("[ERROR] Certicate verification failed. Use --insecure if you have a self-signed cert")
 			os.Exit(6)
 		}
 		if strings.Contains(err.Error(), "i/o timeout") {
-			fmt.Println("Timeout connecting to server.")
+			log.Println("[ERROR] Timeout connecting to server")
 			os.Exit(6)
 		}
-		fmt.Printf("Could not determine server version: %v\n", err)
+		log.Printf("[ERROR] Could not determine server version: %v\n", err)
 		os.Exit(2)
 	}
 
 	if (!check_api_support(apiversion, SupportedAPI) && !ignoreapiversion) {
-		fmt.Printf("API version %s is not supported!\n", apiversion)
+		log.Printf("[ERROR] API version %s is not supported!\n", apiversion)
 		os.Exit(3)
 	}
 
@@ -263,25 +277,25 @@ func main () {
 	password := os.Getenv("SPACEWALK_PASS")
 
 	if (username == "") || (password == "") {
-		fmt.Println("Credentials not set!")
+		log.Println("[ERROR] Credentials not set!")
 		os.Exit(3)
 	}
 
 	// Authenticate and get sessionKey
 	var sessionkey string = init_session(client, username, password)
 	if sessionkey == "" {
-		fmt.Println("Authentication failed!")
+		log.Println("[ERROR] Authentication failed!")
 		os.Exit(1)
 	}
 
 	// Check admin status
 	if publish {
 		if (user_is_admin(client, sessionkey, username)) {
-			fmt.Printf("User %s has administrator access to this server\n", username)
+			log.Printf("[INFO] User %s has administrator access to this server\n", username)
 		} else {
-			fmt.Printf("User %s does NOT have administrator access", username);
-			fmt.Println("You have set --publish but your user has insufficient access rights\n");
-			fmt.Println("Either use an account that is Satellite/Org/Channel Administator privileges or omit --publish\n");
+			log.Printf("[ERROR] User %s does NOT have administrator access", username);
+			log.Println("[ERROR] You have set --publish but your user has insufficient access rights");
+			log.Println("[ERROR] Either use an account that is Satellite/Org/Channel Administator privileges or omit --publish");
 			_ = close_session(client, sessionkey)
 			os.Exit(1)
 		}
@@ -295,7 +309,7 @@ func main () {
 	channels = exclude_channels(channels, exchannels)
 
 	// Get packages of channel
-	fmt.Println("Getting server inventory")
+	log.Println("[INFO] Getting server inventory")
 	var inv Inventory = get_inventory(client, sessionkey, channels)
 
 	// Get existing errata
@@ -305,29 +319,29 @@ func main () {
 	for _, errata := range allerrata.Advisories {
 
 		if errata_is_excluded(errata.Id, exerrata) {
-			fmt.Printf("Excluding %s\n", errata.Id)
+			log.Printf("[INFO] Excluding %s\n", errata.Id)
 			continue
 		}
 
 		if (errata.Type == "Security Advisory" && !security) {
-			fmt.Printf("Skipping %s\n", errata.Id)
+			log.Printf("[INFO] Skipping %s\n", errata.Id)
 			continue
 		}
 		if (errata.Type == "Bug Fix Advisory" && !bugfix) {
-			fmt.Printf("Skipping %s\n", errata.Id)
+			log.Printf("[INFO] Skipping %s\n", errata.Id)
 			continue
 		}
 		if (errata.Type == "Product Enhancement Advisory" && !enhancement) {
-			fmt.Printf("Skipping %s\n", errata.Id)
+			log.Printf("[INFO] Skipping %s\n", errata.Id)
 			continue
 		}
 
-		fmt.Printf("Processing %s\n", errata.Id)
+		log.Printf("[INFO] Processing %s\n", errata.Id)
 
 		var pkglist []int64 = get_packages_for_errata(errata, inv)
 
 		if len(pkglist) == 0 {
-			fmt.Printf("Skipping errata %s (%s) -- No packages found\n", errata.Id, errata.Synopsis);
+			log.Printf("[INFO] Skipping errata %s (%s) -- No packages found\n", errata.Id, errata.Synopsis);
 			continue
 		}
 
@@ -356,7 +370,7 @@ func main () {
 		var success bool
 		if exists := existing[(errata.Id)]; !exists {
 			// Create Errata
-			fmt.Printf("Creating errata for %s (%s) (%d of %d)\n", errata.Id, errata.Synopsis, len(pkglist), len(errata.Packages))
+			log.Printf("[INFO] Creating errata for %s (%s) (%d of %d)\n", errata.Id, errata.Synopsis, len(pkglist), len(errata.Packages))
 //			success = create_errata(client, sessionkey, info, []Bug{}, []string{}, pkglist, false, []string{})
 			if string_to_float(apiversion) >= 10.16 {
 //				success = create_errata(client, sessionkey, info, oval[(errata.Id)].Bugs, []string{}, pkglist, false, []string{})
@@ -369,26 +383,26 @@ func main () {
 			}
 
 			if string_to_float(apiversion) >= 12 {
-				fmt.Printf("Adding issue date to %s\n", errata.Id)
+				log.Printf("[INFO] Adding issue date to %s\n", errata.Id)
 				issuedate, _ := time.Parse(timelayout, errata.IssueDate)
 				success = add_issue_date(client, sessionkey, errata.Id, issuedate)
-				if !success { fmt.Printf("Adding issue date to %s FAILED\n", errata.Id) }
+				if !success { log.Printf("[ERROR] Adding issue date to %s failed\n", errata.Id) }
 			}
 			if string_to_float(apiversion) >= 21 && errata.Severity != "" {
-				fmt.Printf("Adding severity %s to %s\n", errata.Severity, errata.Id)
+				log.Printf("[INFO] Adding severity %s to %s\n", errata.Severity, errata.Id)
 				success = add_severity(client, sessionkey, errata.Id, errata.Severity)
-				if !success { fmt.Printf("Adding severity to %s FAILED\n", errata.Id) }
+				if !success { log.Printf("[ERROR] Adding severity to %s failed\n", errata.Id) }
 			}
 			if publish {
 				for _, singlechannel := range chanlist {
-					fmt.Printf("Publishing %s to channel %s\n", errata.Id, singlechannel)
+					log.Printf("[INFO] Publishing %s to channel %s\n", errata.Id, singlechannel)
 					success = publish_errata(client, sessionkey, errata.Id, []string{singlechannel})
-					if !success { fmt.Printf("Publishing %s to channel %s FAILED\n", errata.Id, singlechannel) }
+					if !success { log.Printf("[ERROR] Publishing %s to channel %s failed\n", errata.Id, singlechannel) }
 				}
 				if errata.Type == "Security Advisory" && oval[(errata.Id)].References != nil {
-					fmt.Printf("Adding CVE information to %s\n", errata.Id)
+					log.Printf("[INFO] Adding CVE information to %s\n", errata.Id)
 					success = add_cve_to_errata(client, sessionkey, info, oval[(errata.Id)].References)
-					if !success { fmt.Printf("Adding CVE information to %s FAILED\n", errata.Id) }
+					if !success { log.Printf("[INFO] Adding CVE information to %s failed\n", errata.Id) }
 				}
 			}
 		} else {
@@ -397,29 +411,41 @@ func main () {
 			var newlist []int64 = only_in_first(pkglist, curlist)
 
 			if len(pkglist) > len(curlist) {
-				fmt.Printf("Adding packages to %s\n", errata.Id)
+				log.Printf("[INFO] Adding packages to %s\n", errata.Id)
 				var pkgsadded int64 = add_packages(client, sessionkey, errata.Id, newlist)
 				if pkgsadded > 0 { updated++ }
 
 				if publish {
 					for _, channel := range get_channels_of_packages(newlist, inv) {
-						fmt.Printf("Republishing %s to channel %s\n", errata.Id, channel)
+						log.Printf("[INFO] Republishing %s to channel %s\n", errata.Id, channel)
 						success = publish_errata(client, sessionkey, errata.Id, []string{channel})
-						if !success { fmt.Printf("Republishing %s to channel %s FAILED\n", errata.Id, channel) }
+						if !success { log.Printf("[ERROR] Republishing %s to channel %s failed\n", errata.Id, channel) }
 					}
+				}
+			}
+		}
+		// Restore channel membership of package after publishing to multiple channels
+		if publish {
+			for _, pkg := range pkglist {
+				oldchannels := inv.id2channels[pkg]
+				nowchannels := list_providing_channels(client, sessionkey, pkg)
+				pushedto := only_in_first_string(nowchannels, oldchannels)
+				for _, channel := range pushedto {
+					log.Printf("[INFO] Removing package %s from channel %s\n", inv.id2filename[pkg], channel)
+					remove_packages_from_channel(client, sessionkey, channel, []int64{pkg})
 				}
 			}
 		}
 	}
 
-	fmt.Printf("Errata created: %d\n", created);
-	fmt.Printf("Errata updated: %d\n", updated);
+	log.Printf("[INFO] Errata created: %d\n", created);
+	log.Printf("[INFO] Errata updated: %d\n", updated);
 
 	if !publish && created > 0 {
-		fmt.Println("Errata have been created but NOT published!");
-		fmt.Println("Please go to: Errata -> Manage Errata -> Unpublished to find them");
-		fmt.Println("If you want to publish them please delete the unpublished Errata and run this script again");
-		fmt.Println("with the --publish parameter");
+		log.Println("[INFO] Errata have been created but NOT published!");
+		log.Println("[INFO] Please go to: Errata -> Manage Errata -> Unpublished to find them");
+		log.Println("[INFO] If you want to publish them please delete the unpublished Errata and run this script again");
+		log.Println("[INFO] with the --publish parameter");
 	}
 
 	_ = close_session(client, sessionkey)
@@ -497,6 +523,7 @@ func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string)
 	var inv Inventory
 	inv.filename2id = make(map[string]int64)
 	inv.id2channels = make(map[int64][]string)
+	inv.id2filename = make(map[int64]string)
 	for _, channel := range channels {
 		params[0] = sessionkey
 		params[1] = channel
@@ -513,6 +540,7 @@ func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string)
 				filename, inchannels := get_package_details(client, sessionkey, id)
 				inv.filename2id[filename] = id
 				inv.id2channels[id] = inchannels
+				inv.id2filename[id] = filename
 			}
 		}
 
@@ -553,7 +581,7 @@ func get_existing_errata (client *xmlrpc.Client, sessionkey string, channels []s
 	}
 
 	var unpub []Unpub
-	fmt.Println("Fetching unpublished errata")
+	log.Println("[INFO] Fetching unpublished errata")
 	err := client.Call("errata.list_unpublished_errata", params, &unpub)
 	if err != nil {
 		return existing
@@ -565,7 +593,7 @@ func get_existing_errata (client *xmlrpc.Client, sessionkey string, channels []s
 
 	for _, channel := range channels {
 		params[1] = channel
-		fmt.Printf("Fetching existing errata for channel %s\n", channel)
+		log.Printf("[INFO] Fetching existing errata for channel %s\n", channel)
 
 		err := client.Call("channel.software.list_errata", params, &response)
 		if err != nil {
@@ -602,7 +630,7 @@ func get_package_details (client *xmlrpc.Client, sessionkey string, id int64) (s
 	return "", []string{}
 }
 
-func ParseErrata(file string) Raw {
+func ParseErrata (file string) Raw {
 	var allerrata Raw
 
 	if file == "" {
@@ -616,14 +644,25 @@ func ParseErrata(file string) Raw {
 	jsondata, _ := ioutil.ReadFile(file)
 	err := json.Unmarshal([]byte(jsondata), &allerrata)
 	if err != nil {
-		fmt.Println("Parsing JSON data failed: ", err.Error())
+		log.Println("[ERROR] Parsing JSON data failed: ", err.Error())
 		os.Exit(5)
 	}
 
 	return allerrata
 }
 
-func ParseOval(file string) map[string]OvalData {
+func ParseErrata2 (data []byte) Raw {
+	var allerrata Raw
+	err := json.Unmarshal(data, &allerrata)
+	if err != nil {
+		log.Println("[ERROR] Parsing JSON data failed: ", err.Error())
+		os.Exit(5)
+	}
+
+	return allerrata
+}
+
+func ParseOval (file string) map[string]OvalData {
 	if file == "" {
 		return nil
 	}
@@ -727,6 +766,103 @@ func ParseOval(file string) map[string]OvalData {
 		current.Rights = def.Metadata.Advisory.Rights
 		current.References = cves
 //		current.Bugs = def.Metadata.Advisory.Bugzilla
+		current.Bugs = bugs
+		oval[id] = current
+	}
+
+	return oval
+}
+
+func ParseOval2 (data []byte) map[string]OvalData {
+	// OvalDefinitions was generated 2019-04-24 22:06:30 by root on localhost.localdomain.
+	type OvalDefinitions struct {
+		XMLName        xml.Name `xml:"oval_definitions"`
+		Text           string   `xml:",chardata"`
+		Xmlns          string   `xml:"xmlns,attr"`
+		Oval           string   `xml:"oval,attr"`
+		RedDef         string   `xml:"red-def,attr"`
+		UnixDef        string   `xml:"unix-def,attr"`
+		Xsi            string   `xml:"xsi,attr"`
+		SchemaLocation string   `xml:"schemaLocation,attr"`
+		Definitions struct {
+//			Text       string `xml:",chardata"`
+			Definition []struct {
+//				Text     string `xml:",chardata"`
+//				Class    string `xml:"class,attr"`
+				ID       string `xml:"id,attr"`
+//				Version  string `xml:"version,attr"`
+				Metadata struct {
+//					Text     string `xml:",chardata"`
+//					Title    string `xml:"title"`
+//					Affected struct {
+//						Text     string   `xml:",chardata"`
+//						Family   string   `xml:"family,attr"`
+//						Platform []string `xml:"platform"`
+//					} `xml:"affected"`
+					Reference []struct {
+						Text   string `xml:",chardata"`
+						RefID  string `xml:"ref_id,attr"`
+//						RefURL string `xml:"ref_url,attr"`
+//						Source string `xml:"source,attr"`
+					} `xml:"reference"`
+					Description string `xml:"description"`
+					Advisory    struct {
+						Text     string `xml:",chardata"`
+//						From     string `xml:"from,attr"`
+//						Severity string `xml:"severity"`
+						Rights   string `xml:"rights"`
+//						Issued   struct {
+//							Text string `xml:",chardata"`
+//							Date string `xml:"date,attr"`
+//						} `xml:"issued"`
+//						Updated struct {
+//							Text string `xml:",chardata"`
+//							Date string `xml:"date,attr"`
+//						} `xml:"updated"`
+						Cve []struct {
+							Text   string `xml:",chardata"`
+							Href   string `xml:"href,attr"`
+							Public string `xml:"public,attr"`
+							Impact string `xml:"impact,attr"`
+							Cwe    string `xml:"cwe,attr"`
+							Cvss2  string `xml:"cvss2,attr"`
+							Cvss3  string `xml:"cvss3,attr"`
+						} `xml:"cve"`
+						Bugzilla []struct {
+							Text string `xml:",chardata" xmlrpc:"summary"`
+							Href string `xml:"href,attr" xmlrpc:"url"`
+							ID   int64  `xml:"id,attr" xmlrpc:"id"`
+						} `xml:"bugzilla"`
+					} `xml:"advisory"`
+				} `xml:"metadata"`
+			} `xml:"definition"`
+		} `xml:"definitions"`
+	}
+
+	var ovaldata OvalDefinitions
+        _ = xml.Unmarshal([]byte(data), &ovaldata)
+	oval := make(map[string]OvalData)
+
+	for _, def := range ovaldata.Definitions.Definition {
+		id := def.ID
+		id = "CESA-" + id[len(id)-8:len(id)-4] + ":" + id[len(id)-4:]
+
+		var cves []string
+		var bugs []Bugzilla
+		cvere, _ := regexp.Compile(`^CVE`)
+		for _, ref := range def.Metadata.Reference {
+			if cvere.MatchString(ref.RefID) {
+				cves = append(cves, ref.RefID)
+			}
+		}
+		for _, bug := range def.Metadata.Advisory.Bugzilla {
+			bugs = append(bugs, bug)
+		}
+
+		var current = oval[id]
+		current.Description = def.Metadata.Description
+		current.Rights = def.Metadata.Advisory.Rights
+		current.References = cves
 		current.Bugs = bugs
 		oval[id] = current
 	}
@@ -1042,23 +1178,118 @@ func only_in_first (a []int64, b []int64) []int64 {
 	return result
 }
 
+func only_in_first_string (a []string, b []string) []string {
+	var result []string
+
+	bmap := make(map[string]bool)
+	for _, value := range b {
+		bmap[value] = true
+	}
+
+	for _, value := range a {
+		if _, exists := bmap[value]; !exists {
+			result = append(result, value)
+		}
+	}
+
+	return result
+}
+
 func min_log_level (debug bool, quiet bool) string {
 	if debug { return "DEBUG" }
 	if quiet { return "ERROR" }
 	return "INFO"
 }
 
-func download_bzip2 (url string) []byte {
-	resp, err := http.Get(ovalurl)
+func download_bzip2 (url string) *[]byte {
+	log.Printf("[DEBUG] Downloading %s", url)
+	client := &http.Client{}
+	request, _ := http.NewRequest("GET", url, nil)
+	request.Header.Set("User-Agent", "errata-import/" + strconv.Itoa(Version))
+	resp, err := client.Do(request)
+//	resp, err := http.Get(ovalurl)
         if err != nil {
-		return []byte{}
+		log.Printf("[ERROR] Download failed: %v", err.Error())
+		return &[]byte{}
+//		return nil
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(bzip2.NewReader(resp.Body))
-	if err != nil {
-		return []byte{}
+	if resp.StatusCode != 200 {
+		log.Printf("[ERROR] Download failed with status code %d", resp.StatusCode)
+		os.Exit(7)
+		return &[]byte{}
 	}
 
-	return data
+////	body, _ := ioutil.ReadAll(resp.Body)
+//	if len(body) == 0 {
+//		log.Println("[ERROR] Download return zero bytes")
+//		return &[]byte{}
+//	}
+//	fmt.Printf("Downloaded %i bytes\n", len(body))
+//	spew.Dump(body)
+
+	data, err := ioutil.ReadAll(bzip2.NewReader(resp.Body))
+	if err != nil {
+		log.Printf("[ERROR] Decompressing failed: %v", err.Error())
+		return &[]byte{}
+//		return nil
+	}
+
+	return &data
+}
+
+func file_content (file string) *[]byte {
+       if file == "" {
+                return &[]byte{}
+        }
+
+        if _, err := os.Stat(file); os.IsNotExist(err) {
+                return &[]byte{}
+        }
+
+        data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return &[]byte{}
+	}
+
+        return &data
+}
+
+func list_providing_channels (client *xmlrpc.Client, sessionkey string, pkgid int64) []string {
+        params := make([]interface{}, 2)
+        params[0] = sessionkey
+        params[1] = pkgid
+
+	type Channel struct {
+		Label		string	`xmlrpc:"label"`
+		Parent_label	string	`xmlrpc:"parent_label"`
+		Name		string	`xmlrpc:"name"`
+	}
+	var response []Channel
+	var result []string
+	err := client.Call("packages.list_providing_channels", params, &response)
+	if err != nil {
+		return result
+	}
+
+	for _, channel := range response {
+		result = append(result, channel.Label)
+	}
+
+	return result
+}
+
+func remove_packages_from_channel (client *xmlrpc.Client, sessionkey string, channel string, pkgs []int64) bool {
+        params := make([]interface{}, 3)
+        params[0] = sessionkey
+        params[1] = channel
+        params[2] = pkgs
+
+	var response int64
+	err := client.Call("channel.software.remove_packages", params, &response)
+        if err == nil && response > 0 {
+                return true
+        }
+	return false
 }

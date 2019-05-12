@@ -293,11 +293,13 @@ func main () {
 	}
 
 	// Authenticate and get sessionKey
+	// Setup defered closing of session
 	var sessionkey string = init_session(client, username, password)
 	if sessionkey == "" {
 		log.Println("[ERROR] Authentication failed!")
 		os.Exit(1)
 	}
+	defer close_session(client, sessionkey)
 
 	// Check admin status
 	if publish {
@@ -307,7 +309,6 @@ func main () {
 			log.Printf("[ERROR] User %s does NOT have administrator access", username);
 			log.Println("[ERROR] You have set --publish but your user has insufficient access rights");
 			log.Println("[ERROR] Either use an account that is Satellite/Org/Channel Administator privileges or omit --publish");
-			_ = close_session(client, sessionkey)
 			os.Exit(1)
 		}
 	}
@@ -459,7 +460,6 @@ func main () {
 		log.Println("[INFO] with the --publish parameter");
 	}
 
-	_ = close_session(client, sessionkey)
 	os.Exit(0)
 }
 

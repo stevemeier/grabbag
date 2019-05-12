@@ -148,6 +148,9 @@ func main () {
 	var inchannels *[]string
 	var exchannels *[]string
 
+	var syncchannels bool
+	var synctimeout int
+
 	var exerrata *[]string
 
 	var erratafile string
@@ -170,6 +173,9 @@ func main () {
 
 	inchannels = opt.StringSlice("include-channels", 1, 255)
 	exchannels = opt.StringSlice("exclude-channels", 1, 255)
+
+	opt.BoolVar(&syncchannels, "sync-channels", false)
+	opt.IntVar(&synctimeout, "sync-timeout", 600)
 
 	exerrata = opt.StringSlice("exclude-errata", 1, 255)
 
@@ -281,6 +287,8 @@ func main () {
 	if (!check_api_support(apiversion, SupportedAPI) && !ignoreapiversion) {
 		log.Printf("[ERROR] API version %s is not supported!\n", apiversion)
 		os.Exit(3)
+	} else {
+		log.Printf("[INFO] API version %s is supported", apiversion)
 	}
 
 	// Read and check credentials
@@ -319,6 +327,33 @@ func main () {
 	// Handle channel includes and excludes
 	channels = include_channels(channels, inchannels)
 	channels = exclude_channels(channels, exchannels)
+
+	// Sync channels, if requested
+	if string_to_float(apiversion) < 11 {
+		log.Println("[INFO] This API version does not support synching")
+		syncchannels = false
+	}
+	if syncchannels {
+		for _, channel := range channels {
+			log.Printf("[INFO] Starting Repository Sync for channel %s\n", channel)
+			if channel_sync_repo(client, sessionkey, channel) {
+				syncstart := time.Now()
+				for {
+					time.Sleep(30)
+					if get_channel_last_sync(client, sessionkey, channel).After(syncstart) {
+						// Sync finished
+						log.Printf("[INFO] Sync for channel %s finished\n", channel)
+						break
+					}
+					if time.Now().After(syncstart.Add(time.Duration(synctimeout) * time.Second)) {
+						// Sync failed
+						log.Printf("[ERROR] Repository Sync for channel %s failed!\n", channel)
+						break
+					}
+				}
+			}
+		}
+	}
 
 	// Get packages of channel
 	log.Println("[INFO] Getting server inventory")
@@ -1166,4 +1201,34 @@ func running_as_root () bool {
 	if syscall.Getuid() == 0  { return true }
 	if syscall.Geteuid() == 0 { return true }
 	return false
+}
+
+func get_channel_last_sync (client *xmlrpc.Client, sessionkey string, channel string) time.Time {
+        params := make([]interface{}, 2)
+        params[0] = sessionkey
+        params[1] = channel
+
+	type Response struct {
+		Id		int		`xmlrpc:"id"`
+		Name		string		`xmlrpc:"name"`
+		LastSync	time.Time	`xmlrpc:"yumrepo_last_sync"`
+	}
+
+	var response Response
+	err := client.Call("channel.software.get_details", params, &response)
+        if err == nil {
+                return response.LastSync
+        }
+
+	return time.Date(1970, 1, 1, 0, 0, 1, 0, time.UTC)
+}
+
+func channel_sync_repo (client *xmlrpc.Client, sessionkey string, channel string) bool {
+        params := make([]interface{}, 2)
+        params[0] = sessionkey
+        params[1] = channel
+
+	var response int64
+	err := client.Call("channel.software.sync_repo", params, &response)
+        return err == nil
 }

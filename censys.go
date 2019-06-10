@@ -384,9 +384,13 @@ func main () {
 
 	var cert string
 	var fullchain string
-	opt.StringVar(&cert, "cert", "")
+	opt.StringVar(&cert, "cert", "", opt.Required())
 	opt.StringVar(&fullchain, "fullchain", "")
 	remaining, err := opt.Parse(os.Args[1:])
+	if len(os.Args[1:]) == 0 {
+		log.Print(opt.Help())
+		os.Exit(1)
+        }
 	if err != nil {
 		log.Fatalf("Could not parse options: %s\n", err)
 		os.Exit(1)

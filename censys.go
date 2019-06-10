@@ -477,9 +477,13 @@ func main () {
 		}
 		defer fc.Close()
 
+		// Full chain should include the new certificate
+		_, _ = fc.WriteString(format_certificate(replacement.Raw, 64))
+
+		// Download parent certificates and write them to full chain file
 		for _, parent := range replacement.Validation.Nss.Parents {
-			certdetails := get_certificate_by_sha256(client, username, password, parent)
-			_, _ = fc.WriteString(format_certificate(certdetails.Raw, 64))
+			parentdetails := get_certificate_by_sha256(client, username, password, parent)
+			_, _ = fc.WriteString(format_certificate(parentdetails.Raw, 64))
 		}
 		fc.Sync()
 	}

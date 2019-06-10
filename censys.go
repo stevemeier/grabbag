@@ -383,7 +383,9 @@ func main () {
 	opt := getoptions.New()
 
 	var cert string
+	var fullchain string
 	opt.StringVar(&cert, "cert", "")
+	opt.StringVar(&fullchain, "fullchain", "")
 	remaining, err := opt.Parse(os.Args[1:])
 	if err != nil {
 		log.Fatalf("Could not parse options: %s\n", err)
@@ -466,17 +468,34 @@ func main () {
 
 	fmt.Print(replacement.Raw)
 
-	// Download "parents" from "nss"
-	var parents map[string]string
-	for _, parent := range replacement.Validation.Nss.Parents {
-		certdetails := get_certificate_by_sha256(client, username, password, parent)
-		parents[parent] = certdetails.Raw
+	// Download "parents" from "nss" and write fullchain, if enabled
+	if fullchain != "" {
+		fc, err := os.Create(fullchain)
+		if err != nil {
+			log.Fatal("Could not open fullchain file: %s\n", err)
+			os.Exit(4)
+		}
+		defer fc.Close()
+
+		for _, parent := range replacement.Validation.Nss.Parents {
+			certdetails := get_certificate_by_sha256(client, username, password, parent)
+			_, _ = fc.WriteString(format_certificate(certdetails.Raw, 64))
+		}
+		fc.Sync()
 	}
 
-	// Generate PEM files
+	// Write out new certificate
+	crt, err := os.Create(cert)
+	if err != nil {
+		log.Fatal("Could not open certificate file for writing: %s\n", err)
+		os.Exit(4)
+	}
+	defer crt.Close()
 
-	// Restart nginx
+	_, _ = crt.WriteString(format_certificate(replacement.Raw, 64))
+	crt.Sync()
 
+	os.Exit(0)
 }
 
 func get_cert_details (filename string) (string, time.Time) {

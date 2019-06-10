@@ -7,7 +7,6 @@ import "crypto/x509/pkix"
 import "math/big"
 
 import "encoding/json"
-import "fmt"
 import "io/ioutil"
 import "log"
 import "os"
@@ -17,7 +16,6 @@ import "net/url"
 import "strings"
 import "time"
 
-import "github.com/davecgh/go-spew/spew"
 import "github.com/DavidGamba/go-getoptions"
 
 // Source: https://golang.org/pkg/crypto/x509/#Certificate
@@ -372,12 +370,14 @@ func main () {
 	// read username and password from ENV
 	username := os.Getenv("CENSYS_APIID")
 	password := os.Getenv("CENSYS_SECRET")
-
-	// Test code
-//	client2 := &http.Client{}
-//	data := get_certificate_by_sha256(client2, username, password, "7764A7E399D7A12C24A4A9F4115CCA051B7C7DDF4BE8E0C702255A20D9567A9C")
-//	fmt.Print(format_certificate(data, 64))
-//	os.Exit(0)
+	if username == "" {
+		log.Fatal("Please set $CENSYS_APIID to your API ID\n")
+		os.Exit(1)
+	}
+	if password == "" {
+		log.Fatal("Please set $CENSYS_SECRET to your API secret\n")
+		os.Exit(1)
+	}
 
 	// Parse arguments
 	opt := getoptions.New()
@@ -387,6 +387,8 @@ func main () {
 	opt.StringVar(&cert, "cert", "", opt.Required())
 	opt.StringVar(&fullchain, "fullchain", "")
 	remaining, err := opt.Parse(os.Args[1:])
+
+	// Handle empty or unknown options
 	if len(os.Args[1:]) == 0 {
 		log.Print(opt.Help())
 		os.Exit(1)
@@ -404,7 +406,6 @@ func main () {
 	var subject string
 	var notbefore time.Time
 	subject, notbefore = get_cert_details(cert)
-	_ = notbefore
 
 	// Create HTTP client
 	client := &http.Client{}
@@ -443,18 +444,15 @@ func main () {
 	for _, certificate := range searchresult.Results {
 		candidates = append(candidates, certificate.ParsedFingerprintSha256)
 	}
-	spew.Dump(candidates)
 
 	for _, candidate := range candidates {
-		fmt.Printf("Retrieving details for %s\n", candidate)
 		certdetails := get_certificate_by_sha256(client, username, password, candidate)
 
 		// Parsed.Validity.Start
 		var isnewer bool
 		isnewer = (certdetails.Parsed.Validity.Start).After(notbefore)
 
-		fmt.Printf("This certificate is newer: %v\n", isnewer)
-		if replacement.Parsed.SerialNumber == "" {
+		if isnewer && replacement.Parsed.SerialNumber == "" {
 			// This is the first possible replacement we found
 			replacement = certdetails
 		} else {
@@ -469,8 +467,6 @@ func main () {
 		log.Fatal("No new certificate found\n");
 		os.Exit(1)
 	}
-
-	fmt.Print(replacement.Raw)
 
 	// Download "parents" from "nss" and write fullchain, if enabled
 	if fullchain != "" {

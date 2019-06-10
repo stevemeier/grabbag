@@ -1,12 +1,14 @@
 package main
 
+import "crypto/sha256"
 import "crypto/x509"
+import "crypto/x509/pkix"
 import "encoding/asn1"
 import "encoding/pem"
-import "crypto/x509/pkix"
 import "math/big"
 
 import "encoding/json"
+import "fmt"
 import "io/ioutil"
 import "log"
 import "os"
@@ -372,8 +374,10 @@ func main () {
 
 	var cert string
 	var fullchain string
+	var debug bool
 	opt.StringVar(&cert, "cert", "", opt.Required())
 	opt.StringVar(&fullchain, "fullchain", "")
+        opt.BoolVar(&debug, "debug", false)
 	remaining, err := opt.Parse(os.Args[1:])
 
 	// Handle empty or unknown options
@@ -403,9 +407,12 @@ func main () {
 	}
 
 	// Parse certificate
-	var subject string
-	var notbefore time.Time
-	subject, notbefore = get_cert_details(cert)
+	subject, notbefore, sha256fp := get_cert_details(cert)
+	if debug {
+		fmt.Printf("Current cert subject:     %s\n", subject)
+		fmt.Printf("Current cert start date:  %s\n", notbefore)
+		fmt.Printf("Current cert fingerprint: %s\n", sha256fp)
+	}
 
 	// Create HTTP client
 	client := &http.Client{}
@@ -442,11 +449,22 @@ func main () {
 
 	var candidates []string
 	for _, certificate := range searchresult.Results {
+		if certificate.ParsedFingerprintSha256 == sha256fp {
+			// The current cert is not a candidate
+			continue
+		}
 		candidates = append(candidates, certificate.ParsedFingerprintSha256)
+		if debug {
+			fmt.Printf("Found candidate with fingerprint %s\n", certificate.ParsedFingerprintSha256)
+		}
 	}
 
 	for _, candidate := range candidates {
 		certdetails := get_certificate_by_sha256(client, username, password, candidate)
+
+		if debug {
+			fmt.Printf("Candidate %s was issued at %s\n", candidate, certdetails.Parsed.Validity.Start)
+		}
 
 		// Parsed.Validity.Start
 		var isnewer bool
@@ -460,6 +478,10 @@ func main () {
 				// This is an even newer replacement
 				replacement = certdetails
 			}
+		}
+
+		if debug {
+			fmt.Printf("Best candidate currently is %s\n", replacement.Parsed.FingerprintSha256)
 		}
 	}
 
@@ -502,7 +524,7 @@ func main () {
 	os.Exit(0)
 }
 
-func get_cert_details (filename string) (string, time.Time) {
+func get_cert_details (filename string) (string, time.Time, string) {
 	file, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Could not read file: %s\n", filename)
@@ -516,7 +538,7 @@ func get_cert_details (filename string) (string, time.Time) {
 		os.Exit(2)
 	}
 
-	return (cert.Subject).String(), cert.NotBefore
+	return (cert.Subject).String(), cert.NotBefore, fmt.Sprintf("%x", sha256.Sum256(cert.Raw))
 }
 
 func format_certificate (raw string, limit int) (string) {

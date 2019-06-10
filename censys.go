@@ -367,18 +367,6 @@ type CertificateDetails struct {
 }
 
 func main () {
-	// read username and password from ENV
-	username := os.Getenv("CENSYS_APIID")
-	password := os.Getenv("CENSYS_SECRET")
-	if username == "" {
-		log.Fatal("Please set $CENSYS_APIID to your API ID\n")
-		os.Exit(1)
-	}
-	if password == "" {
-		log.Fatal("Please set $CENSYS_SECRET to your API secret\n")
-		os.Exit(1)
-	}
-
 	// Parse arguments
 	opt := getoptions.New()
 
@@ -399,6 +387,18 @@ func main () {
 	}
 	if len(remaining) > 0 {
 		log.Fatalf("Unsupported parameter: %s\n", remaining)
+		os.Exit(1)
+	}
+
+	// read username and password from ENV
+	username := os.Getenv("CENSYS_APIID")
+	password := os.Getenv("CENSYS_SECRET")
+	if username == "" {
+		log.Fatal("Please set $CENSYS_APIID to your API ID\n")
+		os.Exit(1)
+	}
+	if password == "" {
+		log.Fatal("Please set $CENSYS_SECRET to your API secret\n")
 		os.Exit(1)
 	}
 

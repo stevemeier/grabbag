@@ -470,7 +470,11 @@ func main () {
 		var isnewer bool
 		isnewer = (certdetails.Parsed.Validity.Start).After(notbefore)
 
-		if isnewer && replacement.Parsed.SerialNumber == "" {
+		if !isnewer {
+			continue
+		}
+
+		if replacement.Parsed.SerialNumber == "" {
 			// This is the first possible replacement we found
 			replacement = certdetails
 		} else {

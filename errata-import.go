@@ -23,8 +23,7 @@ import "net/http"
 import "crypto/tls"
 
 // URLs (used in --simple mode)
-//const errataurl = "https://cefs.steve-meier.de/errata.latest.json.bz2"
-const errataurl = "https://www.lordy.de/errata.latest.json.bz2"
+const errataurl = "https://cefs.steve-meier.de/errata.latest.json.bz2"
 const rhsaovalurl = "https://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml.bz2"
 
 const Version int = 20190426
@@ -328,6 +327,12 @@ func main () {
 	channels = include_channels(channels, inchannels)
 	channels = exclude_channels(channels, exchannels)
 
+	// Check that there are still channels left
+	if len(channels) == 0 {
+		log.Println("[ERROR] All channels have been excluded")
+		os.Exit(8)
+	}
+
 	// Sync channels, if requested
 	if string_to_float(apiversion) < 11 {
 		log.Println("[INFO] This API version does not support synching")
@@ -339,7 +344,7 @@ func main () {
 			if channel_sync_repo(client, sessionkey, channel) {
 				syncstart := time.Now()
 				for {
-					time.Sleep(30)
+					time.Sleep(30 * time.Second)
 					if get_channel_last_sync(client, sessionkey, channel).After(syncstart) {
 						// Sync finished
 						log.Printf("[INFO] Sync for channel %s finished\n", channel)

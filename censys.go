@@ -375,9 +375,11 @@ func main () {
 	var cert string
 	var fullchain string
 	var debug bool
+	var force bool
 	opt.StringVar(&cert, "cert", "", opt.Required())
 	opt.StringVar(&fullchain, "fullchain", "")
         opt.BoolVar(&debug, "debug", false)
+        opt.BoolVar(&force, "force", false)
 	remaining, err := opt.Parse(os.Args[1:])
 
 	// Handle empty or unknown options
@@ -470,7 +472,7 @@ func main () {
 		var isnewer bool
 		isnewer = (certdetails.Parsed.Validity.Start).After(notbefore)
 
-		if !isnewer {
+		if !isnewer && !force {
 			continue
 		}
 

@@ -33,10 +33,8 @@ func main () {
 	opt := getoptions.New()
 
 	var cert string
-	var fullchain string
 	var debug bool
 	opt.StringVar(&cert, "cert", "", opt.Required())
-	opt.StringVar(&fullchain, "fullchain", "")
         opt.BoolVar(&debug, "debug", false)
 	remaining, err := opt.Parse(os.Args[1:])
 
@@ -62,11 +60,11 @@ func main () {
 	}
 
 	// Parse certificate
-	subject, notbefore, sha256fp := get_cert_details(cert)
+	subject, notbefore, certsha256, pubkeysha256 := get_cert_details(cert)
 	if debug {
 		fmt.Printf("Current cert subject:     %s\n", subject)
 		fmt.Printf("Current cert start date:  %s\n", notbefore)
-		fmt.Printf("Current cert fingerprint: %s\n", sha256fp)
+		fmt.Printf("Current cert fingerprint: %s\n", certsha256)
 	}
 
 	// Create HTTP client
@@ -97,14 +95,18 @@ func main () {
 	var bestcandidate SearchResult
 	bestcandidate.NotBefore = time.Now()
 	for _, certificate := range searchresult {
-		if certificate.Cert.Sha256 == sha256fp {
-//			fmt.Printf("Found current certificate (%s) in search results\n", sha256fp)
+		if certificate.Cert.Sha256 == certsha256 {
+//			fmt.Printf("Found current certificate (%s) in search results\n", certsha256)
 			continue
 		}
 
 		if (certificate.NotBefore).After(notbefore) && (certificate.NotBefore).Before(bestcandidate.NotBefore) {
-//			fmt.Println("Found better candidate")
-			bestcandidate = certificate
+			if pubkeysha256 == certificate.PubkeySha256 {
+				fmt.Println("Found better candidate")
+				bestcandidate = certificate
+			} else {
+				fmt.Println("Found better candidate but with different public key. Ignoring it.")
+			}
 		}
 	}
 
@@ -127,7 +129,7 @@ func main () {
 	os.Exit(0)
 }
 
-func get_cert_details (filename string) (string, time.Time, string) {
+func get_cert_details (filename string) (string, time.Time, string, string) {
 	file, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Fatalf("Could not read file: %s\n", filename)
@@ -141,7 +143,7 @@ func get_cert_details (filename string) (string, time.Time, string) {
 		os.Exit(2)
 	}
 
-	return (cert.Subject).String(), cert.NotBefore, fmt.Sprintf("%x", sha256.Sum256(cert.Raw))
+	return (cert.Subject).String(), cert.NotBefore, fmt.Sprintf("%x", sha256.Sum256(cert.Raw)), fmt.Sprintf("%x", sha256.Sum256(cert.RawSubjectPublicKeyInfo))
 }
 
 func format_certificate (raw string, limit int) (string) {

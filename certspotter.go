@@ -96,16 +96,22 @@ func main () {
 	bestcandidate.NotBefore = time.Now()
 	for _, certificate := range searchresult {
 		if certificate.Cert.Sha256 == certsha256 {
-//			fmt.Printf("Found current certificate (%s) in search results\n", certsha256)
+			if debug {
+				fmt.Printf("Found current certificate (%s) in search results\n", certsha256)
+			}
 			continue
 		}
 
 		if (certificate.NotBefore).After(notbefore) && (certificate.NotBefore).Before(bestcandidate.NotBefore) {
 			if pubkeysha256 == certificate.PubkeySha256 {
-				fmt.Println("Found better candidate")
+				if debug {
+					fmt.Println("Found better candidate")
+				}
 				bestcandidate = certificate
 			} else {
-				fmt.Println("Found better candidate but with different public key. Ignoring it.")
+				if debug {
+					fmt.Println("Found better candidate but with different public key. Ignoring it.")
+				}
 			}
 		}
 	}

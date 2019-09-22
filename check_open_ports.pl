@@ -81,7 +81,8 @@ exit(4);
 
 sub port_range {
   my ($tcp, $udp) = @_;
-  my ($tcpstring, $udpstring);
+  my $tcpstring = '';
+  my $udpstring = '';
   
   if ($tcp) { $tcpstring .= "T:$tcp" }
   if ($udp) { $udpstring .= "U:$udp" }

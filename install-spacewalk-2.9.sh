@@ -26,14 +26,13 @@ if [ ! -f /etc/yum.repos.d/spacewalk.repo ]; then
   echo "#####################################"
   echo "## Installing Spacewalk Repository ##"
   echo "#####################################"
+  yum install -y yum-plugin-tmprepo
   if [ "${CENTOSVERSION}" -eq 6 ]; then
-    (cd ${TEMPDIR} && curl ${CURLOPTS} -O https://copr-be.cloud.fedoraproject.org/results/@spacewalkproject/spacewalk-2.9/epel-6-x86_64/00830557-spacewalk-repo/spacewalk-repo-2.9-4.el6.noarch.rpm)
+    yum install -y spacewalk-repo --tmprepo=https://copr-be.cloud.fedoraproject.org/results/%40spacewalkproject/spacewalk-2.9/epel-6-x86_64/repodata/repomd.xml --nogpg
   fi
   if [ "${CENTOSVERSION}" -eq 7 ]; then
-    (cd ${TEMPDIR} && curl ${CURLOPTS} -O https://copr-be.cloud.fedoraproject.org/results/@spacewalkproject/spacewalk-2.9/epel-7-x86_64/00830557-spacewalk-repo/spacewalk-repo-2.9-4.el7.noarch.rpm)
+    yum install -y spacewalk-repo --tmprepo=https://copr-be.cloud.fedoraproject.org/results/%40spacewalkproject/spacewalk-2.9/epel-7-x86_64/repodata/repomd.xml --nogpg
   fi
-  rpm -Uvh ${TEMPDIR}/spacewalk-repo-*.noarch.rpm || exit 1
-  rm -f ${TEMPDIR}/spacewalk-repo-*.noarch.rpm
 fi
 
 # Install EPEL (for dependencies)

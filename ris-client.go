@@ -18,6 +18,7 @@ import (
 
 	"encoding/json"
 	"github.com/davecgh/go-spew/spew"
+	"fmt"
 )
 
 type ris_message struct {
@@ -60,7 +61,8 @@ func main() {
 	// Tell the server what we want
 	// See list of hosts at:
 	// https://www.ripe.net/analyse/internet-measurements/routing-information-service-ris/ris-raw-data
-	c.WriteMessage(1, []byte(`{"type": "ris_subscribe", "data": {"host": "rrc00"}}`) )
+//	c.WriteMessage(1, []byte(`{"type": "ris_subscribe", "data": {"host": "rrc00"}}`) )
+	c.WriteMessage(1, []byte(`{"type": "ris_subscribe", "data": {"host": "rrc00", "type": "UPDATE"}}`) )
 
 	done := make(chan struct{})
 
@@ -115,7 +117,28 @@ func process_message (message []byte) (bool) {
 	if err := json.Unmarshal(message, &rismessage); err != nil {
 		return false
 	}
+	if rismessage.Type != `ris_message` {
+//		fmt.Println(rismessage.Type)
+		return false
+	}
 //	log.Printf("recv: %s", message)
-	spew.Dump(rismessage)
+//	spew.Dump(rismessage)
+	fmt.Printf("Host: %s\n", rismessage.Data.Host)
+	var asn int
+	if len(rismessage.Data.Path) > 0 {
+		asn = rismessage.Data.Path[len(rismessage.Data.Path)-1]
+	} else {
+		asn = -1
+		spew.Dump(rismessage)
+	}
+	fmt.Printf("ASN: %d\n", asn)
+	for _, announcement := range rismessage.Data.Announcements {
+//		fmt.Printf("Prefix: %s\n", prefix)
+//		spew.Dump(announcement)
+		for _, prefix := range announcement.Prefixes {
+			fmt.Printf("Prefix: %s\n", prefix)
+		}
+	}
+	fmt.Println("---")
 	return true
 }

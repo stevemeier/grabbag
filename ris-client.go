@@ -15,7 +15,29 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"encoding/json"
+	"github.com/davecgh/go-spew/spew"
 )
+
+type ris_message struct {
+	Type string `json:"type"`
+	Data struct {
+		Timestamp     float64 `json:"timestamp"`
+		Peer          string  `json:"peer"`
+		PeerAsn       string  `json:"peer_asn"`
+		ID            string  `json:"id"`
+		Host          string  `json:"host"`
+		Type          string  `json:"type"`
+		Path          []int   `json:"path"`
+		Community     [][]int `json:"community"`
+		Origin        string  `json:"origin"`
+		Announcements []struct {
+			NextHop  string   `json:"next_hop"`
+			Prefixes []string `json:"prefixes"`
+		} `json:"announcements"`
+	} `json:"data"`
+}
 
 var addr = flag.String("addr", "ris-live.ripe.net", "http service address")
 
@@ -50,7 +72,8 @@ func main() {
 				log.Println("read:", err)
 				return
 			}
-			log.Printf("recv: %s", message)
+//			log.Printf("recv: %s", message)
+			process_message(message)
 		}
 	}()
 
@@ -84,4 +107,15 @@ func main() {
 			return
 		}
 	}
+}
+
+func process_message (message []byte) (bool) {
+//	log.Printf("recv: %s", message)
+	var rismessage ris_message
+	if err := json.Unmarshal(message, &rismessage); err != nil {
+		return false
+	}
+//	log.Printf("recv: %s", message)
+	spew.Dump(rismessage)
+	return true
 }

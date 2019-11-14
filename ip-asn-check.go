@@ -8,6 +8,7 @@ import "regexp"
 import "strings"
 import "os"
 import "sort"
+import "strconv"
 
 import "github.com/c-robinson/iplib"
 //import "github.com/davecgh/go-spew/spew"
@@ -15,6 +16,7 @@ import "github.com/c-robinson/iplib"
 func main() {
 	ip4world := make(map[uint32][]string)
 	ip6regexp, _ := regexp.Compile(":")
+	curlyregexp, _ := regexp.Compile("{")
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -24,8 +26,26 @@ func main() {
 			continue
 		}
 
+		// Ignore IPv6 addresses
 		if ip6regexp.MatchString(input[0]) {
 			continue
+		}
+
+		// Ignore entries with curly brackets
+		if curlyregexp.MatchString(input[1]) {
+			continue
+		}
+
+		i, err := strconv.ParseInt(input[1], 10, 64)
+		if err == nil {
+			// Ignore 16-bit private AS numbers
+			if i >= 64512 && i <= 65535 {
+				continue
+			}
+			// Ignore 32-bit private AS numbers
+			if i >= 4200000000 && i <= 4294967294 {
+				continue
+			}
 		}
 
 		_, ipna, _ := iplib.ParseCIDR(input[0])

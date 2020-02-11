@@ -7,6 +7,8 @@ import "strings"
 import "time"
 //import "github.com/davecgh/go-spew/spew"
 
+const timezone = "CET"
+
 func main() {
 	var seconds int64
 	seconds, _ = iso_to_seconds("1d@lordy.de")
@@ -41,6 +43,10 @@ func main() {
 
 	fmt.Println("---")
 
+	seconds, _ = iso_to_seconds("jan1@lordy.de")
+	fmt.Printf("jan1: %d\n", seconds)
+	seconds, _ = iso_to_seconds("dez31@lordy.de")
+	fmt.Printf("dez31: %d\n", seconds)
 //	fmt.Println(int(time.Now().Weekday()))
 //	fmt.Println(int(time.Now().Month()))
 }
@@ -92,16 +98,22 @@ func iso_to_seconds (address string) (int64, error) {
 	re6 := regexp.MustCompile(`^(\d+)(jan|feb|mar|mrz|apr|may|mai|jun|jul|aug|sep|oct|okt|nov|dec|dez)`)
 	re6data := re6.FindStringSubmatch(addrparts[0])
 	var month string
-	var day string
+	var day int
 	if len(re5data) == 3 {
-		month = re5data[1]
-		day   = re5data[2]
+		month  = re5data[1]
+		day, _ = strconv.Atoi(re5data[2])
 	}
 	if len(re6data) == 3 {
-		day   = re6data[1]
-		month = re6data[2]
+		day, _ = strconv.Atoi(re6data[2])
+		month  = re6data[2]
 	}
-	if (day != "") && (month != "") {
+	if (day > 0) && (month != "") {
+		location, _ := time.LoadLocation(timezone)
+		goal := time.Date(time.Now().Year(), ShortMonthToNumber(month), day, 0, 0, 0, 0, location)
+		if goal.Sub(time.Now()).Seconds() < 0 {
+			goal = time.Date(time.Now().Year()+1, ShortMonthToNumber(month), day, 0, 0, 0, 0, location)
+		}
+		return int64(goal.Sub(time.Now()).Seconds()), nil
 	}
 
 	return -1, nil
@@ -125,20 +137,20 @@ func ShortDayToNumber(day string) int {
 	return mapping[strings.ToLower(day)]
 }
 
-func ShortMonthToNumber(month string) int {
-	mapping := map[string]int {
-		"jan": 1,
-		"feb": 2,
-		"mar": 3, "mrz": 3,
-		"apr": 4,
-		"may": 5, "mai": 5,
-		"jun": 6,
-		"jul": 7,
-		"aug": 8,
-		"sep": 9,
-		"oct": 10, "okt": 10,
-		"nov": 11,
-		"dec": 12, "dez": 12,
+func ShortMonthToNumber(month string) time.Month {
+	mapping := map[string]time.Month {
+		"jan": time.January,
+		"feb": time.February,
+		"mar": time.March, "mrz": time.March,
+		"apr": time.April,
+		"may": time.May, "mai": time.May,
+		"jun": time.June,
+		"jul": time.July,
+		"aug": time.August,
+		"sep": time.September,
+		"oct": time.October, "okt": time.October,
+		"nov": time.November,
+		"dec": time.December, "dez": time.December,
 	}
 	return mapping[strings.ToLower(month)]
 }

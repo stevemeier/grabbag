@@ -1,5 +1,6 @@
 package main
 
+import "errors"
 import "fmt"
 import "regexp"
 import "strconv"
@@ -58,6 +59,11 @@ func main() {
 	fmt.Printf("jan1: %d\n", seconds)
 	seconds, _ = iso_to_seconds("dez31@lordy.de")
 	fmt.Printf("dez31: %d\n", seconds)
+
+	fmt.Println("---")
+
+	seconds, _ = iso_to_seconds("foo@lordy.de")
+	fmt.Printf("foo: %d\n", seconds)
 }
 
 func iso_to_seconds (address string) (int64, error) {
@@ -139,7 +145,7 @@ func iso_to_seconds (address string) (int64, error) {
 		return int64(goal.Sub(time.Now()).Seconds()), nil
 	}
 
-	return -1, nil
+	return -1, errors.New("Could not parse this: "+addrparts[0])
 }
 
 func getSecondOfDay(t time.Time) int {

@@ -26,6 +26,17 @@ func main() {
 
 	fmt.Println("---")
 
+	seconds, _ = iso_to_seconds("3am@lordy.de")
+	fmt.Printf("3am: %d\n", seconds)
+	seconds, _ = iso_to_seconds("9am@lordy.de")
+	fmt.Printf("9am: %d\n", seconds)
+	seconds, _ = iso_to_seconds("3pm@lordy.de")
+	fmt.Printf("3pm: %d\n", seconds)
+	seconds, _ = iso_to_seconds("9pm@lordy.de")
+	fmt.Printf("9pm: %d\n", seconds)
+
+	fmt.Println("---")
+
 	seconds, _ = iso_to_seconds("mo@lordy.de")
 	fmt.Printf("mo: %d\n", seconds)
 	seconds, _ = iso_to_seconds("di@lordy.de")
@@ -47,8 +58,6 @@ func main() {
 	fmt.Printf("jan1: %d\n", seconds)
 	seconds, _ = iso_to_seconds("dez31@lordy.de")
 	fmt.Printf("dez31: %d\n", seconds)
-//	fmt.Println(int(time.Now().Weekday()))
-//	fmt.Println(int(time.Now().Month()))
 }
 
 func iso_to_seconds (address string) (int64, error) {
@@ -77,7 +86,21 @@ func iso_to_seconds (address string) (int64, error) {
 	}
 
 	re3 := regexp.MustCompile(`(\d{1,2})(am|pm)`)
-	_ = re3
+	re3data := re3.FindStringSubmatch(addrparts[0])
+	if len(re3data) == 3 {
+		hour, _ := strconv.Atoi(re3data[1])
+		if (re3data[2] == "pm") {
+			hour += 12
+		}
+		if (hour * 3600) > getSecondOfDay(time.Now()) {
+			// in the future
+			return int64((hour * 3600) - getSecondOfDay(time.Now())), nil
+		} else {
+			// in the past
+			return int64(86400 - (getSecondOfDay(time.Now()) - (hour * 3600))), nil
+		}
+
+	}
 
 	re4 := regexp.MustCompile(`^(mo|tu|di|we|mi|th|do|fr|sa|su|so)`)
 	re4data := re4.FindStringSubmatch(addrparts[0])

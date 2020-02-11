@@ -62,6 +62,13 @@ func main() {
 
 	fmt.Println("---")
 
+	seconds, _ = iso_to_seconds("1jan@lordy.de")
+	fmt.Printf("1jan: %d\n", seconds)
+	seconds, _ = iso_to_seconds("31dez@lordy.de")
+	fmt.Printf("31dez: %d\n", seconds)
+
+	fmt.Println("---")
+
 	seconds, _ = iso_to_seconds("foo@lordy.de")
 	fmt.Printf("foo: %d\n", seconds)
 }
@@ -69,7 +76,7 @@ func main() {
 func iso_to_seconds (address string) (int64, error) {
         addrparts := strings.Split(address, "@")
 
-	re1 := regexp.MustCompile(`(\d+)([m|h|d|w|m|y])`)
+	re1 := regexp.MustCompile(`(\d+)([m|h|d|w|m|y])$`)
 	re1data := re1.FindStringSubmatch(addrparts[0])
 	if len(re1data) == 3 {
 		if re1data[2] == "d" {
@@ -133,10 +140,11 @@ func iso_to_seconds (address string) (int64, error) {
 		day, _ = strconv.Atoi(re5data[2])
 	}
 	if len(re6data) == 3 {
-		day, _ = strconv.Atoi(re6data[2])
+		day, _ = strconv.Atoi(re6data[1])
 		month  = re6data[2]
 	}
 	if (day > 0) && (month != "") {
+//		fmt.Printf("day: %d -- month: %s\n", day, month)
 		location, _ := time.LoadLocation(timezone)
 		goal := time.Date(time.Now().Year(), ShortMonthToNumber(month), day, 0, 0, 0, 0, location)
 		if goal.Sub(time.Now()).Seconds() < 0 {

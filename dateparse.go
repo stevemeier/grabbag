@@ -20,6 +20,10 @@ func main() {
 	fmt.Printf("14d: %d\n", seconds)
 	seconds, _ = iso_to_seconds("30d@lordy.de")
 	fmt.Printf("30d: %d\n", seconds)
+	seconds, _ = iso_to_seconds("6m@lordy.de")
+	fmt.Printf("6m: %d\n", seconds)
+	seconds, _ = iso_to_seconds("1y@lordy.de")
+	fmt.Printf("1y: %d\n", seconds)
 	seconds, _ = iso_to_seconds("0100@lordy.de")
 	fmt.Printf("0100: %d\n", seconds)
 	seconds, _ = iso_to_seconds("2000@lordy.de")
@@ -76,12 +80,32 @@ func main() {
 func iso_to_seconds (address string) (int64, error) {
         addrparts := strings.Split(address, "@")
 
-	re1 := regexp.MustCompile(`(\d+)([m|h|d|w|m|y])$`)
+	re1 := regexp.MustCompile(`(\d+)([h|d|w|m|y])$`)
 	re1data := re1.FindStringSubmatch(addrparts[0])
 	if len(re1data) == 3 {
+		if re1data[2] == "h" {
+			count, _ := strconv.Atoi(re1data[1])
+			return int64(count * 3600), nil
+		}
 		if re1data[2] == "d" {
 			count, _ := strconv.Atoi(re1data[1])
 			return int64(count * 86400), nil
+		}
+		if re1data[2] == "w" {
+			count, _ := strconv.Atoi(re1data[1])
+			return int64(count * 604800), nil
+		}
+		if re1data[2] == "m" {
+			// Unlike hour, day and week, month has no fixed number of seconds
+			count, _ := strconv.Atoi(re1data[1])
+			goal := time.Now().AddDate(0,count,0)
+			return int64(goal.Sub(time.Now()).Seconds()), nil
+		}
+		if re1data[2] == "y" {
+			// Unlike hour, day and week, year has no fixed number of seconds
+			count, _ := strconv.Atoi(re1data[1])
+			goal := time.Now().AddDate(count,0,0)
+			return int64(goal.Sub(time.Now()).Seconds()), nil
 		}
 	}
 
@@ -144,7 +168,6 @@ func iso_to_seconds (address string) (int64, error) {
 		month  = re6data[2]
 	}
 	if (day > 0) && (month != "") {
-//		fmt.Printf("day: %d -- month: %s\n", day, month)
 		location, _ := time.LoadLocation(timezone)
 		goal := time.Date(time.Now().Year(), ShortMonthToNumber(month), day, 0, 0, 0, 0, location)
 		if goal.Sub(time.Now()).Seconds() < 0 {

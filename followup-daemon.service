@@ -8,6 +8,7 @@ ConditionFileIsExecutable=/usr/local/bin/followup-daemon
 WantedBy=multi-user.target
 
 [Service]
+User=mail
 Type=simple
 Restart=always
 StandardOutput=syslog

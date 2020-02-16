@@ -1,17 +1,27 @@
 package main
 
+import "fmt"
 import "log"
 import "time"
 import "github.com/domodwyer/mailyak"
 import "net/smtp"
+import "os"
+import "strconv"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
+import "github.com/DavidGamba/go-getoptions"
 
 // Global db handle
 var db *sql.DB
 
 func main() {
 	var err error
+	var debug bool
+
+	// Parse options
+	opt := getoptions.New()
+	opt.BoolVar(&debug, "debug", false)
+	_, _ = opt.Parse(os.Args[1:])
 
         // Open database and check that table exists
         db, err = sql.Open("sqlite3", "./followup.db")
@@ -20,22 +30,41 @@ func main() {
         }
 	check_schema()
 
+	// Check settings
+	if get_setting(`smtphost`) == `` { log.Fatal(`ERROR: smtphost (server) not set`) }
+	if get_setting(`smtpuser`) == `` { log.Fatal(`ERROR: smtpuser (username) not set`) }
+	if get_setting(`smtppass`) == `` { log.Fatal(`ERROR: smtppass (password) not set`) }
+	if get_setting(`smtpfrom`) == `` { log.Fatal(`ERROR: smtpfrom (sender) not set`) }
+
 	for {
 		// Find next reminder, one by one
-		id, recipient, subject, messageid := find_next_reminder()
+		var id int64
+		var recipient string
+		var subject string
+		var messageid string
+		id, recipient, subject, messageid = find_next_reminder()
 		if len(recipient) > 0 {
 			// Construct new mail object
 			mail := mailyak.New(get_setting(`smtphost`)+":25", smtp.PlainAuth("", get_setting(`smtpuser`), get_setting(`smtppass`), get_setting(`smtphost`)))
-//			mail := mailyak.New("localhost:25", nil)
 
 			// Set recipient, subject and message-id to make sure it gets associated
 			mail.To(recipient)
 			mail.Subject(subject)
 			mail.AddHeader(`In-Reply-To`, messageid)
 
+			if debug {
+				fmt.Println("Sending reminder to "+recipient)
+			}
+
 			// Send mail and mark it as send
-			if err := mail.Send(); err != nil {
-				mark_as_done(id)
+			err := mail.Send()
+			if err == nil {
+				success := mark_as_done(id)
+				if debug {
+					fmt.Println("mark_as_done returned "+strconv.FormatBool(success))
+				}
+			} else {
+				log.Fatal(err)
 			}
 		}
 
@@ -54,6 +83,8 @@ func check_schema() bool {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer stmt1.Close()
+
 	return true
 }
 
@@ -67,18 +98,16 @@ func find_next_reminder() (int64, string, string, string) {
 		return -1, ``, ``, ``
 	}
 
-//	rows, err2 := stmt1.Query(epoch, ``)
 	var id int64
 	var sender string
 	var subject string
 	var messageid string
-//	err2 := stmt1.QueryRow(epoch, ``).Scan(&id, &sender, &subject, &messageid)
+
 	err2 := stmt1.QueryRow(epoch).Scan(&id, &sender, &subject, &messageid)
 	if err2 != nil {
-//		log.Fatal(err2)
 		return -1, ``, ``, ``
 	}
-//	defer rows.Close()
+	defer stmt1.Close()
 
 	return id, sender, subject, messageid
 }

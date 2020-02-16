@@ -24,7 +24,14 @@ func main() {
 	_, _ = opt.Parse(os.Args[1:])
 
         // Open database and check that table exists
-        db, err = sql.Open("sqlite3", "./followup.db")
+        var dbpath string
+        if env_defined("HOME") {
+                dbpath = os.Getenv("HOME") + "/followup.db"
+        } else {
+                dbpath = "./followup.db"
+        }
+        if debug { fmt.Println("DB is in "+dbpath) }
+        db, err = sql.Open("sqlite3", dbpath)
         if err != nil {
                 log.Fatal(err)
         }
@@ -135,4 +142,9 @@ func get_setting(name string) string {
 	} else {
 		return result
 	}
+}
+
+func env_defined(key string) bool {
+        _, exists := os.LookupEnv(key)
+        return exists
 }

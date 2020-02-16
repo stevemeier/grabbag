@@ -30,6 +30,7 @@ func main() {
         } else {
                 dbpath = "./followup.db"
         }
+	if env_defined("DBPATH") { dbpath = os.Getenv("DBPATH") }
         if debug { fmt.Println("DB is in "+dbpath) }
         db, err = sql.Open("sqlite3", dbpath)
         if err != nil {
@@ -53,6 +54,7 @@ func main() {
 		if len(recipient) > 0 {
 			// Construct new mail object
 			mail := mailyak.New(get_setting(`smtphost`)+":25", smtp.PlainAuth("", get_setting(`smtpuser`), get_setting(`smtppass`), get_setting(`smtphost`)))
+			mail.From(get_setting(`smtpfrom`))
 
 			// Set recipient, subject and message-id to make sure it gets associated
 			mail.To(recipient)
@@ -81,16 +83,28 @@ func main() {
 }
 
 func check_schema() bool {
+	var err error
 	stmt1, err1 := db.Prepare("CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT, subject TEXT, messageid TEXT, timestamp BIGINT, status TEXT)")
 	if err1 != nil {
 		log.Fatal(err1)
 	}
+	defer stmt1.Close()
 
-	_, err := stmt1.Exec()
+	_, err = stmt1.Exec()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer stmt1.Close()
+
+	stmt2, err2 := db.Prepare("CREATE TABLE IF NOT EXISTS settings (name PRIMARY KEY NOT NULL, value TEXT)")
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	defer stmt2.Close()
+
+	_, err = stmt2.Exec()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return true
 }

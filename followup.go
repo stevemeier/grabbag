@@ -1,15 +1,12 @@
 package main
 
-import "fmt"
 import "log"
 import "net/mail"
-import "time"
 import "os"
 import "regexp"
 import "strconv"
 import "strings"
-import "github.com/davecgh/go-spew/spew"
-//import "github.com/DusanKasan/parsemail"
+import "time"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 
@@ -19,48 +16,49 @@ var db *sql.DB
 func main() {
 	var err error
 
+	// Open database and check that table exists
 	db, err = sql.Open("sqlite3", "./followup.db")
 	if err != nil {
 		log.Fatal(err)
 	}
 	check_schema()
 
+	// Read eEmail from STDIN
 	var message *mail.Message
 	message, err = mail.ReadMessage(os.Stdin)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	// Check that there is a From: address we can reply to
 	if len(message.Header.Get("From")) == 0 {
 		log.Fatal("No From Header!")
 	}
 
+	// Parse the sender address
 	var from *mail.Address
 	from, err = mail.ParseAddress(message.Header.Get("From"))
 
-	fmt.Println("From: "+from.Address)
-
+	// Extract To, CC and Bcc fields for processing
 	var dest []string
 	dest = append(dest, AddressesFromField(message.Header, "To")...)
 	dest = append(dest, AddressesFromField(message.Header, "Cc")...)
 	dest = append(dest, AddressesFromField(message.Header, "Bcc")...)
-	spew.Dump(dest)
 
+	// Go through all addresses
 	for _, addr := range dest {
+		// Change address into seconds in the future
 		duration, err := iso_to_seconds(addr)
-//		fmt.Println(duration, err)
 		if err == nil && duration > 0 {
-			fmt.Println(addr, duration)
-//			epoch := time.Now()
-			sender, _ := mail.ParseAddress(message.Header.Get("From"))
-			reminder_created := create_reminder(sender.Address, message.Header.Get("Subject"), message.Header.Get("Message-ID"), time.Now().Unix() + duration)
-			fmt.Println(reminder_created)
+			// Create a reminder to be send later
+			reminder_created := create_reminder(from.Address, message.Header.Get("Subject"), message.Header.Get("Message-ID"), time.Now().Unix() + duration)
+			if reminder_created {
+				os.Exit(0)
+			} else {
+				os.Exit(111)
+			}
 		}
 	}
-
-//	email, err := parsemail.Parse(message.Body)
-//	spew.Dump(email.Attachments)
-//	spew.Dump(email)
 }
 
 func AddressesFromField (header mail.Header, field string) ([]string) {

@@ -181,7 +181,7 @@ func ShortMonthToNumber(month string) int {
 }
 
 func check_schema() bool {
-	stmt1, err1 := db.Prepare("CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT, subject TEXT, messageid TEXT, timestamp BIGINT)")
+	stmt1, err1 := db.Prepare("CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT, subject TEXT, messageid TEXT, timestamp BIGINT, status TEXT)")
 	if err1 != nil {
 		log.Fatal(err1)
 	}

@@ -1,6 +1,7 @@
 package main
 
 import "errors"
+import "fmt"
 import "log"
 import "net/mail"
 import "os"
@@ -10,6 +11,7 @@ import "strings"
 import "time"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
+import "github.com/DavidGamba/go-getoptions"
 
 // Local timezone
 const timezone = "CET"
@@ -19,9 +21,21 @@ var db *sql.DB
 
 func main() {
 	var err error
+	var debug bool
+
+	// Parse options
+	opt := getoptions.New()
+	opt.BoolVar(&debug, "debug", false)
+	_, _ = opt.Parse(os.Args[1:])
 
 	// Open database and check that table exists
-	db, err = sql.Open("sqlite3", "./followup.db")
+	var dbpath string
+	if env_defined(`HOME`) {
+		dbpath = os.Getenv(`HOME`) + `/followup.db"`
+	} else {
+		dbpath = `./followup.db`
+	}
+	db, err = sql.Open("sqlite3", dbpath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -53,6 +67,9 @@ func main() {
 	for _, addr := range dest {
 		// Change address into seconds in the future
 		duration, err := iso_to_seconds(addr)
+		if debug {
+			fmt.Println(addr, duration)
+		}
 		if err == nil && duration > 0 {
 			// Create a reminder to be send later
 			reminder_created := create_reminder(from.Address, message.Header.Get("Subject"), message.Header.Get("Message-ID"), time.Now().Unix() + duration)
@@ -233,4 +250,9 @@ func check_schema() bool {
 		log.Fatal(err)
 	}
 	return true
+}
+
+func env_defined(key string) bool {
+        _, exists := os.LookupEnv(key)
+        return exists
 }

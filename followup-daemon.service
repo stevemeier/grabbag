@@ -1,0 +1,17 @@
+[Unit]
+Description=Follow-Up Daemon (sends mail)
+After=syslog.target
+After=local-fs.target
+ConditionFileIsExecutable=/usr/local/bin/followup-daemon
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+Type=simple
+Restart=always
+StandardOutput=syslog
+StandardError=inherit
+SyslogFacility=mail
+SyslogIdentifier=followup-daemon
+ExecStart=/usr/local/bin/followup-daemon

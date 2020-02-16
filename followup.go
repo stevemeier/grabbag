@@ -1,5 +1,6 @@
 package main
 
+import "errors"
 import "log"
 import "net/mail"
 import "os"
@@ -9,6 +10,9 @@ import "strings"
 import "time"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
+
+// Local timezone
+const timezone = "CET"
 
 // Global db handle
 var db *sql.DB
@@ -83,12 +87,32 @@ func create_reminder (from string, subject string, messageid string, when int64)
 func iso_to_seconds (address string) (int64, error) {
         addrparts := strings.Split(address, "@")
 
-	re1 := regexp.MustCompile(`(\d+)([m|h|d|w|m|y])`)
+	re1 := regexp.MustCompile(`(\d+)([h|d|w|m|y])$`)
 	re1data := re1.FindStringSubmatch(addrparts[0])
 	if len(re1data) == 3 {
+		if re1data[2] == "h" {
+			count, _ := strconv.Atoi(re1data[1])
+			return int64(count * 3600), nil
+		}
 		if re1data[2] == "d" {
 			count, _ := strconv.Atoi(re1data[1])
 			return int64(count * 86400), nil
+		}
+		if re1data[2] == "w" {
+			count, _ := strconv.Atoi(re1data[1])
+			return int64(count * 604800), nil
+		}
+		if re1data[2] == "m" {
+			// Unlike hour, day and week, month has no fixed number of seconds
+			count, _ := strconv.Atoi(re1data[1])
+			goal := time.Now().AddDate(0,count,0)
+			return int64(goal.Sub(time.Now()).Seconds()), nil
+		}
+		if re1data[2] == "y" {
+			// Unlike hour, day and week, year has no fixed number of seconds
+			count, _ := strconv.Atoi(re1data[1])
+			goal := time.Now().AddDate(count,0,0)
+			return int64(goal.Sub(time.Now()).Seconds()), nil
 		}
 	}
 
@@ -106,7 +130,21 @@ func iso_to_seconds (address string) (int64, error) {
 	}
 
 	re3 := regexp.MustCompile(`(\d{1,2})(am|pm)`)
-	_ = re3
+	re3data := re3.FindStringSubmatch(addrparts[0])
+	if len(re3data) == 3 {
+		hour, _ := strconv.Atoi(re3data[1])
+		if (re3data[2] == "pm") {
+			hour += 12
+		}
+		if (hour * 3600) > getSecondOfDay(time.Now()) {
+			// in the future
+			return int64((hour * 3600) - getSecondOfDay(time.Now())), nil
+		} else {
+			// in the past
+			return int64(86400 - (getSecondOfDay(time.Now()) - (hour * 3600))), nil
+		}
+
+	}
 
 	re4 := regexp.MustCompile(`^(mo|tu|di|we|mi|th|do|fr|sa|su|so)`)
 	re4data := re4.FindStringSubmatch(addrparts[0])
@@ -127,19 +165,25 @@ func iso_to_seconds (address string) (int64, error) {
 	re6 := regexp.MustCompile(`^(\d+)(jan|feb|mar|mrz|apr|may|mai|jun|jul|aug|sep|oct|okt|nov|dec|dez)`)
 	re6data := re6.FindStringSubmatch(addrparts[0])
 	var month string
-	var day string
+	var day int
 	if len(re5data) == 3 {
-		month = re5data[1]
-		day   = re5data[2]
+		month  = re5data[1]
+		day, _ = strconv.Atoi(re5data[2])
 	}
 	if len(re6data) == 3 {
-		day   = re6data[1]
-		month = re6data[2]
+		day, _ = strconv.Atoi(re6data[1])
+		month  = re6data[2]
 	}
-	if (day != "") && (month != "") {
+	if (day > 0) && (month != "") {
+		location, _ := time.LoadLocation(timezone)
+		goal := time.Date(time.Now().Year(), ShortMonthToNumber(month), day, 0, 0, 0, 0, location)
+		if goal.Sub(time.Now()).Seconds() < 0 {
+			goal = time.Date(time.Now().Year()+1, ShortMonthToNumber(month), day, 0, 0, 0, 0, location)
+		}
+		return int64(goal.Sub(time.Now()).Seconds()), nil
 	}
 
-	return -1, nil
+	return -1, errors.New("Could not parse this: "+addrparts[0])
 }
 
 func getSecondOfDay(t time.Time) int {
@@ -160,20 +204,20 @@ func ShortDayToNumber(day string) int {
 	return mapping[strings.ToLower(day)]
 }
 
-func ShortMonthToNumber(month string) int {
-	mapping := map[string]int {
-		"jan": 1,
-		"feb": 2,
-		"mar": 3, "mrz": 3,
-		"apr": 4,
-		"may": 5, "mai": 5,
-		"jun": 6,
-		"jul": 7,
-		"aug": 8,
-		"sep": 9,
-		"oct": 10, "okt": 10,
-		"nov": 11,
-		"dec": 12, "dez": 12,
+func ShortMonthToNumber(month string) time.Month {
+	mapping := map[string]time.Month {
+		"jan": time.January,
+		"feb": time.February,
+		"mar": time.March, "mrz": time.March,
+		"apr": time.April,
+		"may": time.May, "mai": time.May,
+		"jun": time.June,
+		"jul": time.July,
+		"aug": time.August,
+		"sep": time.September,
+		"oct": time.October, "okt": time.October,
+		"nov": time.November,
+		"dec": time.December, "dez": time.December,
 	}
 	return mapping[strings.ToLower(month)]
 }

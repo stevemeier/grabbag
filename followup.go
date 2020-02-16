@@ -30,11 +30,12 @@ func main() {
 
 	// Open database and check that table exists
 	var dbpath string
-	if env_defined(`HOME`) {
-		dbpath = os.Getenv(`HOME`) + `/followup.db"`
+	if env_defined("HOME") {
+		dbpath = os.Getenv("HOME") + "/followup.db"
 	} else {
-		dbpath = `./followup.db`
+		dbpath = "./followup.db"
 	}
+	if debug { fmt.Println("DB is in "+dbpath) }
 	db, err = sql.Open("sqlite3", dbpath)
 	if err != nil {
 		log.Fatal(err)

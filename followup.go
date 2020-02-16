@@ -75,7 +75,7 @@ func AddressesFromField (header mail.Header, field string) ([]string) {
 }
 
 func create_reminder (from string, subject string, messageid string, when int64) bool {
-	_, err := db.Exec(`INSERT INTO reminders VALUES (0, "` + from + `","` + subject + `","` + messageid + `","` + strconv.FormatInt(when, 10) + `")`)
+	_, err := db.Exec(`INSERT INTO reminders (sender, subject, messageid, timestamp) VALUES ("` + from + `","` + subject + `","` + messageid + `","` + strconv.FormatInt(when, 10) + `")`)
 	if err != nil {
 		log.Fatal(err)
 	}

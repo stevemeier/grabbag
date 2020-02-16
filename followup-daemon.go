@@ -3,7 +3,7 @@ package main
 import "log"
 import "time"
 import "github.com/domodwyer/mailyak"
-//import "net/smtp"
+import "net/smtp"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 
@@ -24,9 +24,9 @@ func main() {
 		// Find next reminder, one by one
 		id, recipient, subject, messageid := find_next_reminder()
 		if len(recipient) > 0 {
-//			mail := mailyak.New("localhost:25", smtp.PlainAuth("", "user", "pass", "mail.host.com"))
 			// Construct new mail object
-			mail := mailyak.New("localhost:25", nil)
+			mail := mailyak.New(get_setting(`smtphost`)+":25", smtp.PlainAuth("", get_setting(`smtpuser`), get_setting(`smtppass`), get_setting(`smtphost`)))
+//			mail := mailyak.New("localhost:25", nil)
 
 			// Set recipient, subject and message-id to make sure it gets associated
 			mail.To(recipient)
@@ -89,4 +89,21 @@ func mark_as_done(id int64) bool {
 
 	_, err := stmt1.Exec(id)
 	return err == nil
+}
+
+func get_setting(name string) string {
+	var result string
+
+	stmt1, err1 := db.Prepare("SELECT value FROM settings where name = ? LIMIT 1")
+	defer stmt1.Close()
+	if err1 != nil {
+		return ``
+	}
+
+	err2 := stmt1.QueryRow(name).Scan(&result)
+	if err2 != nil {
+		return ``
+	} else {
+		return result
+	}
 }

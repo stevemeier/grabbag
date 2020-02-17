@@ -31,10 +31,10 @@ Here are some example:
 - 1m -- One month from today
 - 2y -- Two years from today
 - 8pm -- 8 o'clock in the afternoon
-- 2000 - 8 o'clock (using 24h scheme)
-- monday - Next monday
-- nov13 - November 13th (month first)
-- 13nov - November 13th (day first)
+- 2000 -- 8 o'clock (using 24h scheme)
+- monday -- Next monday
+- nov13 -- November 13th (month first)
+- 13nov -- November 13th (day first)
 
 
 

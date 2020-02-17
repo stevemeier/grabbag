@@ -17,6 +17,8 @@ type Notification struct {
 	topic		string
 	problem		bool
 	recovery	bool
+	dtstart		bool
+	dtend		bool
 }
 
 type Pair struct {
@@ -106,6 +108,8 @@ func main() {
         var problem_re = regexp.MustCompile(`^\[PROBLEM\] `)
         var recovery_re = regexp.MustCompile(`^\[RECOVERY\] `)
 	var status_re = regexp.MustCompile(`\w+!$`)
+        var dtstart_re = regexp.MustCompile(`^\[DOWNTIMESTART\] `)
+        var dtend_re = regexp.MustCompile(`^\[DOWNTIMEEND\] `)
 	for msg := range messages {
 		// Check sender of email
 		from := msg.Envelope.From[0].MailboxName+"@"+msg.Envelope.From[0].HostName
@@ -126,6 +130,16 @@ func main() {
 			this.topic = strings.Replace(this.subject, `[RECOVERY] `, ``, 1)
 			this.topic = status_re.ReplaceAllString(this.topic, ``)
 		}
+		this.dtstart = dtstart_re.MatchString(this.subject)
+		if this.recovery {
+			this.topic = strings.Replace(this.subject, `[DOWNTIMESTART] `, ``, 1)
+			this.topic = status_re.ReplaceAllString(this.topic, ``)
+		}
+		this.dtend = dtend_re.MatchString(this.subject)
+		if this.recovery {
+			this.topic = strings.Replace(this.subject, `[DOWNTIMEEND] `, ``, 1)
+			this.topic = status_re.ReplaceAllString(this.topic, ``)
+		}
 
 		data = append(data, this)
 	}
@@ -134,14 +148,17 @@ func main() {
 	var matchup = make(map[uint32]bool)
 	for _, l1 := range data {
 		for _, l2 := range data {
-			if l1.problem && l2.recovery && (l1.topic == l2.topic) && !matchup[l1.id] && !matchup[l2.id] && (l1.id < l2.id) {
+			if ((l1.problem && l2.recovery) || (l1.dtstart && l2.dtend)) &&
+			   (l1.topic == l2.topic) &&
+			   !matchup[l1.id] &&
+			   !matchup[l2.id] &&
+			   (l1.id < l2.id) {
 				var this Pair
 				this.problem = l1.id
 				this.recovery = l2.id
 				pairs = append(pairs, this)
 				matchup[l1.id] = true
 				matchup[l2.id] = true
-//				fmt.Printf("Found a match:\n%d: %s\n%d: %s\n", l1.id, l1.topic, l2.id, l2.topic)
 				DeleteMessage(l1.id)
 				DeleteMessage(l2.id)
 
@@ -157,7 +174,6 @@ func main() {
 	if len(pairs) > 0 {
 		_ = c.Expunge(nil)
 	}
-
 }
 
 func DeleteMessage(id uint32) bool {

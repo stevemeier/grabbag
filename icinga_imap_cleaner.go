@@ -6,7 +6,6 @@ import (
 	"strings"
 	"os"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/DavidGamba/go-getoptions"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-imap"
@@ -124,7 +123,9 @@ func main() {
 		var this Notification
 		this.id = msg.SeqNum
 		this.subject = msg.Envelope.Subject
-		log.Printf("Processing #%d -- %s\n", this.id, this.subject)
+		if debug {
+			log.Printf("Processing #%d -- %s\n", this.id, this.subject)
+		}
 
 		this.problem = problem_re.MatchString(this.subject)
 		if this.problem {
@@ -151,7 +152,6 @@ func main() {
 		}
 
 		data = append(data, this)
-		spew.Dump(this)
 	}
 
 	var pairs []Pair
@@ -169,9 +169,13 @@ func main() {
 				pairs = append(pairs, this)
 				matchup[l1.id] = true
 				matchup[l2.id] = true
-				log.Printf("Deleting #%d\n", l1.id)
+				if debug {
+					log.Printf("Deleting #%d\n", l1.id)
+				}
 				DeleteMessage(l1.id)
-				log.Printf("Deleting #%d\n", l2.id)
+				if debug {
+					log.Printf("Deleting #%d\n", l2.id)
+				}
 				DeleteMessage(l2.id)
 
 				break

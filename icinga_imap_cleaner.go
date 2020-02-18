@@ -6,6 +6,7 @@ import (
 	"strings"
 	"os"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/DavidGamba/go-getoptions"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-imap"
@@ -114,34 +115,43 @@ func main() {
 		// Check sender of email
 		from := msg.Envelope.From[0].MailboxName+"@"+msg.Envelope.From[0].HostName
 		if len(sender) > 0 && sender != from {
+			if debug {
+				log.Println("Skipping email from sender "+from)
+			}
 			continue
 		}
 
 		var this Notification
 		this.id = msg.SeqNum
 		this.subject = msg.Envelope.Subject
+		log.Printf("Processing #%d -- %s\n", this.id, this.subject)
+
 		this.problem = problem_re.MatchString(this.subject)
 		if this.problem {
 			this.topic = strings.Replace(this.subject, `[PROBLEM] `, ``, 1)
 			this.topic = status_re.ReplaceAllString(this.topic, ``)
 		}
+
 		this.recovery = recovery_re.MatchString(this.subject)
 		if this.recovery {
 			this.topic = strings.Replace(this.subject, `[RECOVERY] `, ``, 1)
 			this.topic = status_re.ReplaceAllString(this.topic, ``)
 		}
+
 		this.dtstart = dtstart_re.MatchString(this.subject)
-		if this.recovery {
+		if this.dtstart {
 			this.topic = strings.Replace(this.subject, `[DOWNTIMESTART] `, ``, 1)
 			this.topic = status_re.ReplaceAllString(this.topic, ``)
 		}
+
 		this.dtend = dtend_re.MatchString(this.subject)
-		if this.recovery {
+		if this.dtend {
 			this.topic = strings.Replace(this.subject, `[DOWNTIMEEND] `, ``, 1)
 			this.topic = status_re.ReplaceAllString(this.topic, ``)
 		}
 
 		data = append(data, this)
+		spew.Dump(this)
 	}
 
 	var pairs []Pair
@@ -159,7 +169,9 @@ func main() {
 				pairs = append(pairs, this)
 				matchup[l1.id] = true
 				matchup[l2.id] = true
+				log.Printf("Deleting #%d\n", l1.id)
 				DeleteMessage(l1.id)
+				log.Printf("Deleting #%d\n", l2.id)
 				DeleteMessage(l2.id)
 
 				break

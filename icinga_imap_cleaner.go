@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 	"os"
+	"time"
 
 	"github.com/DavidGamba/go-getoptions"
 	"github.com/emersion/go-imap/client"
@@ -35,12 +36,14 @@ func main() {
 	var username string
 	var password string
 	var sender string
+	var maxage int
 	var debug bool
 	opt := getoptions.New()
 	opt.StringVar(&server, "server", "", opt.Required())
 	opt.StringVar(&username, "username", "", opt.Required())
 	opt.StringVar(&password, "password", "", opt.Required())
 	opt.StringVar(&sender, "sender", "")
+	opt.IntVar(&maxage, "maxage", 0)
         opt.BoolVar(&debug, "debug", false)
 
 	remaining, err := opt.Parse(os.Args[1:])
@@ -105,6 +108,7 @@ func main() {
 	}()
 
 	var data []Notification
+	var outdated []uint32
         var problem_re = regexp.MustCompile(`^\[PROBLEM\] `)
         var recovery_re = regexp.MustCompile(`^\[RECOVERY\] `)
 	var status_re = regexp.MustCompile(`\w+!$`)
@@ -119,6 +123,21 @@ func main() {
 			}
 			continue
 		}
+
+		// Check for outdated messages
+		now := time.Now()
+		if maxage > 0 {
+			msgdate := msg.InternalDate
+			msgage := now.Sub(msgdate)
+			if int(msgage.Hours()) > maxage {
+				if debug {
+					log.Println("Message %d has reached maxage\n", msg.SeqNum)
+				}
+			}
+			outdated = append(outdated, msg.SeqNum)
+//			DeleteMessage(msg.SeqNum)
+		}
+
 
 		var this Notification
 		this.id = msg.SeqNum
@@ -187,7 +206,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if len(pairs) > 0 {
+	if len(pairs) > 0 || len(outdated) > 0 {
 		_ = c.Expunge(nil)
 	}
 }

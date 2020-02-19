@@ -70,7 +70,7 @@ func main() {
 			if err == nil {
 				success := mark_as_done(id)
 				if debug {
-					fmt.Println("mark_as_done returned "+strconv.FormatBool(success))
+					fmt.Printf("mark_as_done returned: %t\n", success)
 				}
 			} else {
 				log.Fatal(err)
@@ -134,10 +134,10 @@ func find_next_reminder() (int64, string, string, string) {
 }
 
 func mark_as_done(id int64) bool {
-	stmt1, _ := db.Prepare("UPDATE reminders SET status = 'SENT' WHERE id = ?")
+	stmt1, _ := db.Prepare("UPDATE reminders SET status = ? WHERE id = ?")
 	defer stmt1.Close()
 
-	_, err := stmt1.Exec(id)
+	_, err := stmt1.Exec(`SENT@` + strconv.FormatInt(time.Now().Unix(), 10), id)
 	return err == nil
 }
 

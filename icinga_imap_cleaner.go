@@ -126,7 +126,7 @@ func main() {
 
 		// Check for outdated messages
 		now := time.Now()
-		if maxage > 0 {
+		if maxage > 0 && len(sender) > 0 {
 			msgdate := msg.InternalDate
 			msgage := now.Sub(msgdate)
 			if int(msgage.Hours()) > maxage {

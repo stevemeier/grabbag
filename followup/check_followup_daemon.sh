@@ -14,7 +14,7 @@ if [ ! -r ${DBPATH} ]; then
 	exit 3
 fi
 
-EPOCH=(date +%s)
+EPOCH=$(date +%s)
 NOTSEND=`echo 'SELECT MIN(timestamp) FROM reminders WHERE status IS null;' | sqlite3 ${DBPATH}`
 
 if [ "${NOTSEND}" == "" ]; then

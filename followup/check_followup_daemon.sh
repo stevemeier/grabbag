@@ -21,11 +21,11 @@ if [ "${NOTSEND}" == "" ]; then
 	echo "OK - No pending reminders"
 	exit 0
 fi
-if [ "${NOTSEND}" -le ${EPOCH} ]; then
+if [ "${EPOCH}" -le ${NOTSEND} ]; then
 	echo "OK - Reminder in queue"
 	exit 0
 fi
-if [ "${NOTSEND}" -gt ${EPOCH} ]; then
+if [ "${EPOCH}" -gt ${NOTSEND} ]; then
 	echo "CRITICAL - Reminder not send"
 	exit 2
 fi

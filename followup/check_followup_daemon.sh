@@ -6,7 +6,11 @@ if [ "${DBPATH}" == "" ]; then
 fi
 
 if [ ! -f ${DBPATH} ]; then
-	echo "CRITICAL - $DBPATH not found"
+	echo "UNKNOWN - $DBPATH not found"
+	exit 3
+fi
+if [ ! -r ${DBPATH} ]; then
+	echo "UNKNOWN - $DBPATH not readable"
 	exit 3
 fi
 

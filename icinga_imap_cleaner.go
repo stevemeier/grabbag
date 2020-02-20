@@ -38,6 +38,7 @@ func main() {
 	var sender string
 	var maxage int
 	var debug bool
+	var insecure bool
 	opt := getoptions.New()
 	opt.StringVar(&server, "server", "", opt.Required())
 	opt.StringVar(&username, "username", "", opt.Required())
@@ -45,6 +46,7 @@ func main() {
 	opt.StringVar(&sender, "sender", "")
 	opt.IntVar(&maxage, "maxage", 0)
         opt.BoolVar(&debug, "debug", false)
+        opt.BoolVar(&insecure, "insecure", false)
 
 	remaining, err := opt.Parse(os.Args[1:])
 
@@ -63,7 +65,11 @@ func main() {
         }
 
 	// Connect to server
-	c, _ = client.DialTLS(server+":993", nil)
+	if insecure {
+		c, err = client.Dial(server+":143")
+	} else {
+		c, err = client.DialTLS(server+":993", nil)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}

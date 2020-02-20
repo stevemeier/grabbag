@@ -120,6 +120,7 @@ func main() {
 	var status_re = regexp.MustCompile(`\w+!$`)
         var dtstart_re = regexp.MustCompile(`^\[DOWNTIMESTART\] `)
         var dtend_re = regexp.MustCompile(`^\[DOWNTIMEEND\] `)
+
 	for msg := range messages {
 		// Check sender of email
 		from := msg.Envelope.From[0].MailboxName+"@"+msg.Envelope.From[0].HostName
@@ -139,9 +140,9 @@ func main() {
 				if debug {
 					log.Println("Message %d has reached maxage\n", msg.SeqNum)
 				}
+				outdated = append(outdated, msg.SeqNum)
+				DeleteMessage(msg.SeqNum)
 			}
-			outdated = append(outdated, msg.SeqNum)
-//			DeleteMessage(msg.SeqNum)
 		}
 
 

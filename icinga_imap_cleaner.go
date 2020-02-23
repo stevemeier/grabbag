@@ -138,10 +138,9 @@ func main() {
 			msgage := now.Sub(msgdate)
 			if int(msgage.Hours()) > maxage {
 				if debug {
-					log.Println("Message %d has reached maxage\n", msg.SeqNum)
+					log.Printf("Message #%d has reached maxage, deleting...\n", msg.SeqNum)
 				}
 				outdated = append(outdated, msg.SeqNum)
-				DeleteMessage(msg.SeqNum)
 			}
 		}
 
@@ -207,6 +206,13 @@ func main() {
 				break
 			}
 		}
+	}
+
+	for _, outdated_email := range outdated {
+		if debug {
+			log.Printf("Deleting outdated #%d\n", outdated_email)
+		}
+		DeleteMessage(outdated_email)
 	}
 
 	if err := <-done; err != nil {

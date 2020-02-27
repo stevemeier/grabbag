@@ -100,7 +100,7 @@ if ($download) {
     print STDERR "ERROR: No metadata found in DNS\n";
     exit 1;
   }
-  &debug(join(@filemeta, "\t")."\n");
+  &debug(join("\t", @filemeta)."\n");
 
   # Save to original or provided filename
   if ($output) {

@@ -3,24 +3,29 @@
 # Quick PoC to store and receives files via DNS
 # Date: December 29th, 2017
 # Author: Steve Meier
+#
+# History
+# 20200228 - Added compression and --debug
 
 # Load all required modules
 use strict;
 use warnings;
 use Carp;
+use Compress::Zlib;
 use Digest::SHA;
 use File::Basename qw(basename);
 use Getopt::Long;
 use MIME::Base64 qw(decode_base64 encode_base64);
 use Net::DNS;
 
-my ($encode, $download, $dnsname, $output, $ttl, $hashalg);
+my ($encode, $download, $dnsname, $output, $ttl, $hashalg, $debug);
 GetOptions("encode=s"   => \$encode,
 	   "download"   => \$download,
            "dnsname=s"  => \$dnsname,
            "output=s"   => \$output,
            "ttl=s"      => \$ttl,
-           "hashalg=s"  => \$hashalg);
+           "hashalg=s"  => \$hashalg,
+           "debug"      => \$debug);
 
 if (not(defined($hashalg))) { $hashalg = "sha256" };
 	 
@@ -57,7 +62,7 @@ if ($encode) {
   # Read the file in one go
   open(my $FILE, "<", $encode) || croak "ERROR: Could not read file!\n";
   local($/) = undef;
-  $base64data = encode_base64(<$FILE>, '');  
+  $base64data = encode_base64(compress(<$FILE>), '');
   close($FILE) || croak "ERROR: Could not close file!\n";
 
   # Print the base record with meta information
@@ -81,7 +86,7 @@ if ($download) {
   my $filename;
 
   # Create a resolver object
-  my $res = Net::DNS::Resolver->new;
+  my $res = Net::DNS::Resolver->new(debug => $debug);
 
   # Look up the files meta information (name, size, hashalg, hash)
   $reply = $res->query($dnsname, 'TXT');
@@ -90,6 +95,12 @@ if ($download) {
       @filemeta = $rr->txtdata;
     }
   }
+
+  if ($#filemeta < 0) {
+    print STDERR "ERROR: No metadata found in DNS\n";
+    exit 1;
+  }
+  &debug(join(@filemeta, "\t")."\n");
 
   # Save to original or provided filename
   if ($output) {
@@ -119,7 +130,7 @@ if ($download) {
 
   # Write base64 decoded file to disk
   open(my $FILE, ">", $filename) || croak "ERROR: Could not open $filename for writing";
-  print $FILE decode_base64($base64data);
+  print $FILE uncompress(decode_base64($base64data));
   close($FILE) || croak "ERROR: Could not close $filename";
   
   # Check file size is correct
@@ -138,11 +149,11 @@ if ($download) {
   exit 0;
 }
 
-print "---\n";
 print "Encode a file to zone file format:\n";
-print "$0 --encode <FILE> --dnsname <somename.foobar.com> [ --hashalg <sha...> ]\n\n";
+print "$0 --encode <FILE> --dnsname <somename.foobar.com> [ --hashalg <sha...> --debug ]\n\n";
 print "Download a file from DNS:\n";
-print "$0 --download --dnsname <somename.foobar.com> [ --output <FILE> ]\n";
+print "$0 --download --dnsname <somename.foobar.com> [ --output <FILE> --debug ]\n\n";
+print "Hint: To use a specific nameserver, set the environment variable RES_NAMESERVERS\n";
 exit;
 
 # based on https://stackoverflow.com/a/12823896/1592267
@@ -173,3 +184,12 @@ sub filesize {
 
   return $size;
 }
+
+sub debug {
+  my ($message) = shift;
+
+  if ($debug) {
+    print "DEBUG: $message";
+  }
+}
+

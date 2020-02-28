@@ -86,7 +86,7 @@ if ($download) {
   my $filename;
 
   # Create a resolver object
-  my $res = Net::DNS::Resolver->new(debug => $debug);
+  my $res = Net::DNS::Resolver->new(adflag => 1, debug => $debug);
 
   # Look up the files meta information (name, size, hashalg, hash)
   $reply = $res->query($dnsname, 'TXT');

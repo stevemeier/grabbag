@@ -12,6 +12,7 @@ import "time"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 import "github.com/DavidGamba/go-getoptions"
+import "github.com/gofrs/uuid"
 
 // Local timezone
 const timezone = "CET"
@@ -95,11 +96,15 @@ func AddressesFromField (header mail.Header, field string) ([]string) {
 }
 
 func create_reminder (from string, subject string, messageid string, when int64) bool {
-	_, err := db.Exec(`INSERT INTO reminders (sender, subject, messageid, timestamp) VALUES ("` + from + `","` + subject + `","` + messageid + `","` + strconv.FormatInt(when, 10) + `")`)
-	if err != nil {
-		log.Fatal(err)
+	uuid, err1 := uuid.NewV4()
+	if err1 != nil {
+		log.Fatal(err1)
 	}
-	return err == nil
+	_, err2 := db.Exec(`INSERT INTO reminders (uuid, sender, subject, messageid, timestamp) VALUES ("` + uuid.String() + `","` + from + `","` + subject + `","` + messageid + `","` + strconv.FormatInt(when, 10) + `")`)
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	return err2 == nil
 }
 
 func iso_to_seconds (address string) (int64, error) {
@@ -241,14 +246,14 @@ func ShortMonthToNumber(month string) time.Month {
 }
 
 func check_schema() bool {
-	stmt1, err1 := db.Prepare("CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT, subject TEXT, messageid TEXT, timestamp BIGINT, status TEXT)")
+	stmt1, err1 := db.Prepare("CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, sender TEXT, subject TEXT, messageid TEXT, timestamp BIGINT, status TEXT)")
 	if err1 != nil {
 		log.Fatal(err1)
 	}
 
-	_, err := stmt1.Exec()
-	if err != nil {
-		log.Fatal(err)
+	_, err2 := stmt1.Exec()
+	if err2 != nil {
+		log.Fatal(err2)
 	}
 	return true
 }

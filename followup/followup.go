@@ -68,7 +68,7 @@ func main() {
 	// Go through all addresses
 	for _, addr := range dest {
 		// Change address into seconds in the future
-		duration, err := iso_to_seconds(addr)
+		duration, _, err := iso_to_seconds(addr)
 		if debug {
 			fmt.Println(addr, duration)
 		}
@@ -107,35 +107,42 @@ func create_reminder (from string, subject string, messageid string, when int64)
 	return err2 == nil
 }
 
-func iso_to_seconds (address string) (int64, error) {
+func iso_to_seconds (address string) (int64, int, error) {
         addrparts := strings.Split(address, "@")
+
+	// Recurring support
+	var recurring int = 0
+	plusre := regexp.MustCompile(`\+$`)
+	if plusre.MatchString(addrparts[0]) {
+		recurring = 1
+	}
 
 	re1 := regexp.MustCompile(`(\d+)([h|d|w|m|y])$`)
 	re1data := re1.FindStringSubmatch(addrparts[0])
 	if len(re1data) == 3 {
 		if re1data[2] == "h" {
 			count, _ := strconv.Atoi(re1data[1])
-			return int64(count * 3600), nil
+			return int64(count * 3600), recurring, nil
 		}
 		if re1data[2] == "d" {
 			count, _ := strconv.Atoi(re1data[1])
-			return int64(count * 86400), nil
+			return int64(count * 86400), recurring, nil
 		}
 		if re1data[2] == "w" {
 			count, _ := strconv.Atoi(re1data[1])
-			return int64(count * 604800), nil
+			return int64(count * 604800), recurring, nil
 		}
 		if re1data[2] == "m" {
 			// Unlike hour, day and week, month has no fixed number of seconds
 			count, _ := strconv.Atoi(re1data[1])
 			goal := time.Now().AddDate(0,count,0)
-			return int64(goal.Sub(time.Now()).Seconds()), nil
+			return int64(goal.Sub(time.Now()).Seconds()), recurring, nil
 		}
 		if re1data[2] == "y" {
 			// Unlike hour, day and week, year has no fixed number of seconds
 			count, _ := strconv.Atoi(re1data[1])
 			goal := time.Now().AddDate(count,0,0)
-			return int64(goal.Sub(time.Now()).Seconds()), nil
+			return int64(goal.Sub(time.Now()).Seconds()), recurring, nil
 		}
 	}
 
@@ -146,9 +153,9 @@ func iso_to_seconds (address string) (int64, error) {
 		minute, _ := strconv.Atoi(re2data[2])
 		goalsecond := hour * 3600 + minute * 60
 		if goalsecond > getSecondOfDay(time.Now()) {
-			return int64(goalsecond - getSecondOfDay(time.Now())), nil
+			return int64(goalsecond - getSecondOfDay(time.Now())), recurring, nil
 		} else {
-			return int64(86400 - getSecondOfDay(time.Now()) + goalsecond), nil
+			return int64(86400 - getSecondOfDay(time.Now()) + goalsecond), recurring, nil
 		}
 	}
 
@@ -161,10 +168,10 @@ func iso_to_seconds (address string) (int64, error) {
 		}
 		if (hour * 3600) > getSecondOfDay(time.Now()) {
 			// in the future
-			return int64((hour * 3600) - getSecondOfDay(time.Now())), nil
+			return int64((hour * 3600) - getSecondOfDay(time.Now())), recurring, nil
 		} else {
 			// in the past
-			return int64(86400 - (getSecondOfDay(time.Now()) - (hour * 3600))), nil
+			return int64(86400 - (getSecondOfDay(time.Now()) - (hour * 3600))), recurring, nil
 		}
 
 	}
@@ -173,13 +180,13 @@ func iso_to_seconds (address string) (int64, error) {
 	re4data := re4.FindStringSubmatch(addrparts[0])
 	if len(re4data) == 2 {
 		if ShortDayToNumber(re4data[1]) > int(time.Now().Weekday()) {
-			return int64((ShortDayToNumber(re4data[1]) - int(time.Now().Weekday())) * 86400), nil
+			return int64((ShortDayToNumber(re4data[1]) - int(time.Now().Weekday())) * 86400), recurring, nil
 		}
 		if ShortDayToNumber(re4data[1]) == int(time.Now().Weekday()) {
-			return 604800, nil
+			return 604800, recurring, nil
 		}
 		if ShortDayToNumber(re4data[1]) < int(time.Now().Weekday()) {
-			return int64(604800 - (int(time.Now().Weekday()) - ShortDayToNumber(re4data[1])) * 86400), nil
+			return int64(604800 - (int(time.Now().Weekday()) - ShortDayToNumber(re4data[1])) * 86400), recurring, nil
 		}
 	}
 
@@ -203,10 +210,10 @@ func iso_to_seconds (address string) (int64, error) {
 		if goal.Sub(time.Now()).Seconds() < 0 {
 			goal = time.Date(time.Now().Year()+1, ShortMonthToNumber(month), day, 0, 0, 0, 0, location)
 		}
-		return int64(goal.Sub(time.Now()).Seconds()), nil
+		return int64(goal.Sub(time.Now()).Seconds()), recurring, nil
 	}
 
-	return -1, errors.New("Could not parse this: "+addrparts[0])
+	return -1, recurring, errors.New("Could not parse this: "+addrparts[0])
 }
 
 func getSecondOfDay(t time.Time) int {

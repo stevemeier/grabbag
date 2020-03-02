@@ -50,7 +50,7 @@ func main() {
 		var recipient string
 		var subject string
 		var messageid string
-		id, recipient, subject, messageid = find_next_reminder()
+		id, recipient, subject, messageid, uuid = find_next_reminder()
 		if len(recipient) > 0 {
 			// Construct new mail object
 			mail := mailyak.New(get_setting(`smtphost`)+":25", smtp.PlainAuth("", get_setting(`smtpuser`), get_setting(`smtppass`), get_setting(`smtphost`)))
@@ -60,6 +60,7 @@ func main() {
 			mail.To(recipient)
 			mail.Subject(subject)
 			mail.AddHeader(`In-Reply-To`, messageid)
+			mail.AddHeader(`Reply-To`, uuid + `@` + domain_of(get_setting(`smtpfrom`)))
 
 			if debug {
 				fmt.Println("Sending reminder to "+recipient)
@@ -112,25 +113,26 @@ func check_schema() bool {
 func find_next_reminder() (int64, string, string, string) {
 	epoch := time.Now().Unix()
 
-	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid FROM reminders WHERE timestamp <= ? AND status is null LIMIT 1")
+	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid FROM reminders WHERE timestamp <= ? AND status is null LIMIT 1")
 	defer stmt1.Close()
 	if err1 != nil {
 		log.Fatal(err1)
-		return -1, ``, ``, ``
+		return -1, ``, ``, ``, ``
 	}
 
 	var id int64
 	var sender string
 	var subject string
 	var messageid string
+	var uuid string
 
-	err2 := stmt1.QueryRow(epoch).Scan(&id, &sender, &subject, &messageid)
+	err2 := stmt1.QueryRow(epoch).Scan(&id, &sender, &subject, &messageid, &uuid)
 	if err2 != nil {
-		return -1, ``, ``, ``
+		return -1, ``, ``, ``, ``
 	}
 	defer stmt1.Close()
 
-	return id, sender, subject, messageid
+	return id, sender, subject, messageid, uuid
 }
 
 func mark_as_done(id int64) bool {
@@ -161,4 +163,13 @@ func get_setting(name string) string {
 func env_defined(key string) bool {
         _, exists := os.LookupEnv(key)
         return exists
+}
+
+func domain_of (address string) string {
+	addrparts := strings.Split(address, "@")
+	if len(addrparts) == 2 {
+		return addrparts[1]
+	} else {
+		return address
+	}
 }

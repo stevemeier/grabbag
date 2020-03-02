@@ -7,9 +7,12 @@ import "github.com/domodwyer/mailyak"
 import "net/smtp"
 import "os"
 import "strconv"
+import "strings"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 import "github.com/DavidGamba/go-getoptions"
+
+const version string = "20200302"
 
 // Global db handle
 var db *sql.DB
@@ -50,6 +53,7 @@ func main() {
 		var recipient string
 		var subject string
 		var messageid string
+		var uuid string
 		id, recipient, subject, messageid, uuid = find_next_reminder()
 		if len(recipient) > 0 {
 			// Construct new mail object
@@ -59,8 +63,10 @@ func main() {
 			// Set recipient, subject and message-id to make sure it gets associated
 			mail.To(recipient)
 			mail.Subject(subject)
+			mail.ReplyTo(uuid + `@` + domain_of(get_setting(`smtpfrom`)))
 			mail.AddHeader(`In-Reply-To`, messageid)
-			mail.AddHeader(`Reply-To`, uuid + `@` + domain_of(get_setting(`smtpfrom`)))
+			mail.AddHeader(`X-Followup-Version`, version)
+//			mail.AddHeader(`Reply-To`, uuid + `@` + domain_of(get_setting(`smtpfrom`)))
 
 			if debug {
 				fmt.Println("Sending reminder to "+recipient)
@@ -110,7 +116,7 @@ func check_schema() bool {
 	return true
 }
 
-func find_next_reminder() (int64, string, string, string) {
+func find_next_reminder() (int64, string, string, string, string) {
 	epoch := time.Now().Unix()
 
 	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid FROM reminders WHERE timestamp <= ? AND status is null LIMIT 1")

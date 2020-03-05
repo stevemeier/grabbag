@@ -13,6 +13,7 @@ import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 import "github.com/DavidGamba/go-getoptions"
 import "github.com/gofrs/uuid"
+import lib "./lib"
 
 // Local timezone
 const timezone = "CET"
@@ -31,7 +32,7 @@ func main() {
 
 	// Open database and check that table exists
 	var dbpath string
-	if env_defined("HOME") {
+	if lib.Env_defined("HOME") {
 		dbpath = os.Getenv("HOME") + "/followup.db"
 	} else {
 		dbpath = "./followup.db"
@@ -263,9 +264,4 @@ func check_schema() bool {
 		log.Fatal(err2)
 	}
 	return true
-}
-
-func env_defined(key string) bool {
-        _, exists := os.LookupEnv(key)
-        return exists
 }

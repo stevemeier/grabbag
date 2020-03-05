@@ -11,29 +11,34 @@ import "strings"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 import "github.com/DavidGamba/go-getoptions"
+import "github.com/davecgh/go-spew/spew"
 
-const version string = "20200302"
+const version string = "20200305"
 
 // Global db handle
 var db *sql.DB
+var debug bool
 
 func main() {
 	var err error
-	var debug bool
+	var dbpath string
 
 	// Parse options
 	opt := getoptions.New()
 	opt.BoolVar(&debug, "debug", false)
+	opt.StringVar(&dbpath, "db", "")
 	_, _ = opt.Parse(os.Args[1:])
 
         // Open database and check that table exists
-        var dbpath string
-        if env_defined("HOME") {
-                dbpath = os.Getenv("HOME") + "/followup.db"
-        } else {
-                dbpath = "./followup.db"
-        }
 	if env_defined("DBPATH") { dbpath = os.Getenv("DBPATH") }
+        if (dbpath == ``) {
+	        if env_defined("HOME") {
+			dbpath = os.Getenv("HOME") + "/followup.db"
+	        } else {
+			dbpath = "./followup.db"
+		}
+        }
+
         if debug { fmt.Println("DB is in "+dbpath) }
         db, err = sql.Open("sqlite3", dbpath)
         if err != nil {
@@ -54,8 +59,17 @@ func main() {
 		var subject string
 		var messageid string
 		var uuid string
+		if debug {
+			fmt.Println("INFO: Scanning for reminders")
+		}
 		id, recipient, subject, messageid, uuid = find_next_reminder()
+		if debug {
+			spew.Dump(id, recipient, subject, messageid, uuid)
+		}
 		if len(recipient) > 0 {
+			if debug {
+				fmt.Println("INFO: Found a pending reminder")
+			}
 			// Construct new mail object
 			mail := mailyak.New(get_setting(`smtphost`)+":25", smtp.PlainAuth("", get_setting(`smtpuser`), get_setting(`smtppass`), get_setting(`smtphost`)))
 			mail.From(get_setting(`smtpfrom`))
@@ -66,10 +80,9 @@ func main() {
 			mail.ReplyTo(uuid + `@` + domain_of(get_setting(`smtpfrom`)))
 			mail.AddHeader(`In-Reply-To`, messageid)
 			mail.AddHeader(`X-Followup-Version`, version)
-//			mail.AddHeader(`Reply-To`, uuid + `@` + domain_of(get_setting(`smtpfrom`)))
 
 			if debug {
-				fmt.Println("Sending reminder to "+recipient)
+				fmt.Println("INFO: Sending reminder to "+recipient)
 			}
 
 			// Send mail and mark it as send
@@ -77,7 +90,7 @@ func main() {
 			if err == nil {
 				success := mark_as_done(id)
 				if debug {
-					fmt.Printf("mark_as_done returned: %t\n", success)
+					fmt.Printf("INFO: mark_as_done returned: %t\n", success)
 				}
 			} else {
 				log.Fatal(err)
@@ -119,11 +132,10 @@ func check_schema() bool {
 func find_next_reminder() (int64, string, string, string, string) {
 	epoch := time.Now().Unix()
 
-	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid FROM reminders WHERE timestamp <= ? AND status is null LIMIT 1")
+	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid FROM reminders WHERE timestamp <= ? AND status IS null LIMIT 1")
 	defer stmt1.Close()
 	if err1 != nil {
 		log.Fatal(err1)
-		return -1, ``, ``, ``, ``
 	}
 
 	var id int64
@@ -133,8 +145,10 @@ func find_next_reminder() (int64, string, string, string, string) {
 	var uuid string
 
 	err2 := stmt1.QueryRow(epoch).Scan(&id, &sender, &subject, &messageid, &uuid)
-	if err2 != nil {
+	if err2 == sql.ErrNoRows {
 		return -1, ``, ``, ``, ``
+	} else {
+		log.Fatal(err2)
 	}
 	defer stmt1.Close()
 

@@ -60,10 +60,11 @@ func main() {
 		var subject string
 		var messageid string
 		var uuid string
+		var recurring int
 		if debug {
 			fmt.Println("INFO: Scanning for reminders")
 		}
-		id, recipient, subject, messageid, uuid = find_next_reminder()
+		id, recipient, subject, messageid, uuid, recurring = find_next_reminder()
 		if debug {
 			spew.Dump(id, recipient, subject, messageid, uuid)
 		}
@@ -72,7 +73,8 @@ func main() {
 				fmt.Println("INFO: Found a pending reminder")
 			}
 			// Construct new mail object
-			mail := mailyak.New(get_setting(`smtphost`)+":25", smtp.PlainAuth("", get_setting(`smtpuser`), get_setting(`smtppass`), get_setting(`smtphost`)))
+			mail := mailyak.New(get_setting(`smtphost`)+":25",
+			                    smtp.PlainAuth("", get_setting(`smtpuser`), get_setting(`smtppass`), get_setting(`smtphost`)))
 			mail.From(get_setting(`smtpfrom`))
 
 			// Set recipient, subject and message-id to make sure it gets associated
@@ -81,6 +83,13 @@ func main() {
 			mail.ReplyTo(uuid + `@` + domain_of(get_setting(`smtpfrom`)))
 			mail.AddHeader(`In-Reply-To`, messageid)
 			mail.AddHeader(`X-Followup-Version`, version)
+
+			// Recurring
+			if recurring > 0 {
+				mail.Plain().Set("This is a recurring reminder. Reply to cancel.")
+			} else {
+				mail.Plain().Set("This is a one-time reminder.")
+			}
 
 			if debug {
 				fmt.Println("INFO: Sending reminder to "+recipient)
@@ -103,10 +112,10 @@ func main() {
 	}
 }
 
-func find_next_reminder() (int64, string, string, string, string) {
+func find_next_reminder() (int64, string, string, string, string, int) {
 	epoch := time.Now().Unix()
 
-	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid FROM reminders WHERE timestamp <= ? AND status IS null LIMIT 1")
+	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid, recurring FROM reminders WHERE timestamp <= ? AND status IS null LIMIT 1")
 	defer stmt1.Close()
 	if err1 != nil {
 		log.Fatal(err1)
@@ -117,11 +126,12 @@ func find_next_reminder() (int64, string, string, string, string) {
 	var subject string
 	var messageid string
 	var uuid string
+	var recurring int
 
-	err2 := stmt1.QueryRow(epoch).Scan(&id, &sender, &subject, &messageid, &uuid)
+	err2 := stmt1.QueryRow(epoch).Scan(&id, &sender, &subject, &messageid, &uuid, &recurring)
 	if err2 == sql.ErrNoRows {
 		// No data in the database
-		return -1, ``, ``, ``, ``
+		return -1, ``, ``, ``, ``, -1
 	}
 	if err2 != nil {
 		// Unknown error
@@ -130,7 +140,7 @@ func find_next_reminder() (int64, string, string, string, string) {
 	defer stmt1.Close()
 
 	// Return found data
-	return id, sender, subject, messageid, uuid
+	return id, sender, subject, messageid, uuid, recurring
 }
 
 func mark_as_done(id int64) bool {

@@ -19,7 +19,7 @@ func Check_schema(db *sql.DB) bool {
 				  "subject TEXT," +
 				  "messageid TEXT," +
 				  "timestamp BIGINT," +
-				  "recurring TEXT," +
+				  "recurring INTEGER," +
 				  "status TEXT)")
 	if err1 != nil {
 		log.Fatal(err1)

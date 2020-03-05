@@ -68,6 +68,12 @@ func main() {
 
 	// Go through all addresses
 	for _, addr := range dest {
+		// Remove recurring reminders when replied to
+		if lib.Is_uuid(addr) {
+			lib.Disable_reminder(db, addr)
+			os.Exit(0)
+		}
+
 		// Change address into seconds in the future
 		duration, recurring, err := iso_to_seconds(addr)
 		if debug {
@@ -85,11 +91,6 @@ func main() {
 			} else {
 				os.Exit(111)
 			}
-		}
-
-		// Remove recurring reminders when replied to
-		if lib.Is_uuid(addr) {
-			lib.Disable_reminder(db, addr)
 		}
 	}
 }
@@ -134,7 +135,7 @@ func iso_to_seconds (address string) (int64, int, error) {
 		recurring = 1
 	}
 
-	re1 := regexp.MustCompile(`(\d+)([h|d|w|m|y])$`)
+	re1 := regexp.MustCompile(`^(\d+)([h|d|w|m|y])$`)
 	re1data := re1.FindStringSubmatch(addrparts[0])
 	if len(re1data) == 3 {
 		if re1data[2] == "h" {
@@ -163,7 +164,7 @@ func iso_to_seconds (address string) (int64, int, error) {
 		}
 	}
 
-	re2 := regexp.MustCompile(`(\d{1,2})(\d{2})`)
+	re2 := regexp.MustCompile(`^(\d{1,2})(\d{2})$`)
 	re2data := re2.FindStringSubmatch(addrparts[0])
 	if len(re2data) == 3 {
 		hour, _ := strconv.Atoi(re2data[1])
@@ -176,7 +177,7 @@ func iso_to_seconds (address string) (int64, int, error) {
 		}
 	}
 
-	re3 := regexp.MustCompile(`(\d{1,2})(am|pm)`)
+	re3 := regexp.MustCompile(`^(\d{1,2})(am|pm)$`)
 	re3data := re3.FindStringSubmatch(addrparts[0])
 	if len(re3data) == 3 {
 		hour, _ := strconv.Atoi(re3data[1])

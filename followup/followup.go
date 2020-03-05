@@ -42,7 +42,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	check_schema()
+	lib.Check_schema(db)
 
 	// Read eEmail from STDIN
 	var message *mail.Message
@@ -251,17 +251,4 @@ func ShortMonthToNumber(month string) time.Month {
 		"dec": time.December, "dez": time.December,
 	}
 	return mapping[strings.ToLower(month)]
-}
-
-func check_schema() bool {
-	stmt1, err1 := db.Prepare("CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, sender TEXT, subject TEXT, messageid TEXT, timestamp BIGINT, status TEXT)")
-	if err1 != nil {
-		log.Fatal(err1)
-	}
-
-	_, err2 := stmt1.Exec()
-	if err2 != nil {
-		log.Fatal(err2)
-	}
-	return true
 }

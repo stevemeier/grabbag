@@ -146,12 +146,16 @@ func find_next_reminder() (int64, string, string, string, string) {
 
 	err2 := stmt1.QueryRow(epoch).Scan(&id, &sender, &subject, &messageid, &uuid)
 	if err2 == sql.ErrNoRows {
+		// No data in the database
 		return -1, ``, ``, ``, ``
-	} else {
+	}
+	if err2 != nil {
+		// Unknown error
 		log.Fatal(err2)
 	}
 	defer stmt1.Close()
 
+	// Return found data
 	return id, sender, subject, messageid, uuid
 }
 

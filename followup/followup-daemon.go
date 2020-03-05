@@ -12,6 +12,7 @@ import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 import "github.com/DavidGamba/go-getoptions"
 import "github.com/davecgh/go-spew/spew"
+import lib "./lib"
 
 const version string = "20200305"
 
@@ -30,9 +31,9 @@ func main() {
 	_, _ = opt.Parse(os.Args[1:])
 
         // Open database and check that table exists
-	if env_defined("DBPATH") { dbpath = os.Getenv("DBPATH") }
+	if lib.Env_defined("DBPATH") { dbpath = os.Getenv("DBPATH") }
         if (dbpath == ``) {
-	        if env_defined("HOME") {
+	        if lib.Env_defined("HOME") {
 			dbpath = os.Getenv("HOME") + "/followup.db"
 	        } else {
 			dbpath = "./followup.db"
@@ -182,11 +183,6 @@ func get_setting(name string) string {
 	} else {
 		return result
 	}
-}
-
-func env_defined(key string) bool {
-        _, exists := os.LookupEnv(key)
-        return exists
 }
 
 func domain_of (address string) string {

@@ -69,13 +69,17 @@ func main() {
 	// Go through all addresses
 	for _, addr := range dest {
 		// Change address into seconds in the future
-		duration, _, err := iso_to_seconds(addr)
+		duration, recurring, err := iso_to_seconds(addr)
 		if debug {
 			fmt.Println(addr, duration)
 		}
 		if err == nil && duration > 0 {
 			// Create a reminder to be send later
-			reminder_created := create_reminder(from.Address, message.Header.Get("Subject"), message.Header.Get("Message-ID"), time.Now().Unix() + duration)
+			reminder_created := create_reminder(from.Address,
+			                                    message.Header.Get("Subject"),
+							    message.Header.Get("Message-ID"),
+							    time.Now().Unix() + duration,
+						            recurring)
 			if reminder_created {
 				os.Exit(0)
 			} else {
@@ -96,12 +100,19 @@ func AddressesFromField (header mail.Header, field string) ([]string) {
 	return result
 }
 
-func create_reminder (from string, subject string, messageid string, when int64) bool {
+func create_reminder (from string, subject string, messageid string, when int64, recurring int) bool {
 	uuid, err1 := uuid.NewV4()
 	if err1 != nil {
 		log.Fatal(err1)
 	}
-	_, err2 := db.Exec(`INSERT INTO reminders (uuid, sender, subject, messageid, timestamp) VALUES ("` + uuid.String() + `","` + from + `","` + subject + `","` + messageid + `","` + strconv.FormatInt(when, 10) + `")`)
+	_, err2 := db.Exec(`INSERT INTO reminders (uuid, sender, subject, messageid, timestamp, recurring) VALUES ("` +
+                                                   uuid.String() + `","` +
+						   from + `","` +
+						   subject + `","` +
+						   messageid + `","` +
+						   strconv.FormatInt(when, 10) + `","` +
+						   strconv.FormatInt(int64(recurring), 10) + 
+						   `")`)
 	if err2 != nil {
 		log.Fatal(err2)
 	}

@@ -12,7 +12,15 @@ func Env_defined(key string) bool {
 
 func Check_schema(db *sql.DB) bool {
 	var err error
-	stmt1, err1 := db.Prepare("CREATE TABLE IF NOT EXISTS reminders (id INTEGER PRIMARY KEY AUTOINCREMENT, uuid TEXT, sender TEXT, subject TEXT, messageid TEXT, timestamp BIGINT, status TEXT)")
+	stmt1, err1 := db.Prepare("CREATE TABLE IF NOT EXISTS reminders (" +
+	                          "id INTEGER PRIMARY KEY AUTOINCREMENT," +
+				  "uuid TEXT," +
+				  "sender TEXT," +
+				  "subject TEXT," +
+				  "messageid TEXT," +
+				  "timestamp BIGINT," +
+				  "recurring TEXT," +
+				  "status TEXT)")
 	if err1 != nil {
 		log.Fatal(err1)
 	}

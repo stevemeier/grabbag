@@ -53,3 +53,13 @@ func Is_uuid(input string) bool {
 	return match
 }
 
+func Disable_reminder(db *sql.DB, addr string) bool {
+	stmt1, err1 := db.Prepare("UPDATE reminders SET recurring = 0 WHERE uuid = ?")
+	if err1 != nil {
+		log.Fatal(err1)
+	}
+	defer stmt1.Close()
+
+	_, err := stmt1.Exec(addr)
+	return err == nil
+}

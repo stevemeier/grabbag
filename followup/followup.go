@@ -86,6 +86,11 @@ func main() {
 				os.Exit(111)
 			}
 		}
+
+		// Remove recurring reminders when replied to
+		if lib.Is_uuid(addr) {
+			lib.Disable_reminder(db, addr)
+		}
 	}
 }
 

@@ -1,6 +1,7 @@
 package lib
 
 import "log"
+import "regexp"
 import "os"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
@@ -44,3 +45,11 @@ func Check_schema(db *sql.DB) bool {
 
 	return true
 }
+
+func Is_uuid(input string) bool {
+	// Regex from:
+	// https://github.com/ramsey/uuid/blob/c141cdc8dafa3e506f69753b692f6662b46aa933/src/Uuid.php#L96
+	match, _ := regexp.MatchString("^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$", input)
+	return match
+}
+

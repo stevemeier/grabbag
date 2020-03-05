@@ -3,6 +3,7 @@ package lib
 import "log"
 import "regexp"
 import "os"
+import "strings"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 
@@ -62,4 +63,13 @@ func Disable_reminder(db *sql.DB, addr string) bool {
 
 	_, err := stmt1.Exec(addr)
 	return err == nil
+}
+
+func User_of (address string) string {
+	addrparts := strings.Split(address, "@")
+	if len(addrparts) == 2 {
+		return addrparts[0]
+	} else {
+		return address
+	}
 }

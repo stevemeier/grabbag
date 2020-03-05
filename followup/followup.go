@@ -68,10 +68,19 @@ func main() {
 
 	// Go through all addresses
 	for _, addr := range dest {
+		if debug {
+			fmt.Printf("Processing %s\n", addr)
+		}
 		// Remove recurring reminders when replied to
-		if lib.Is_uuid(addr) {
-			lib.Disable_reminder(db, addr)
-			os.Exit(0)
+		if lib.Is_uuid(lib.User_of(addr)) {
+			if debug {
+				fmt.Printf("Disabling reminder for %s\n", lib.User_of(addr))
+			}
+			if lib.Disable_reminder(db, lib.User_of(addr)) {
+				os.Exit(0)
+			} else {
+				os.Exit(111)
+			}
 		}
 
 		// Change address into seconds in the future

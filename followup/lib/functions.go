@@ -220,3 +220,20 @@ func ShortMonthToNumber(month string) time.Month {
 	}
 	return mapping[strings.ToLower(month)]
 }
+
+func Get_setting(db *sql.DB, name string, undef string) string {
+	var result string
+
+	stmt1, err1 := db.Prepare("SELECT value FROM settings where name = ? LIMIT 1")
+	defer stmt1.Close()
+	if err1 != nil {
+		return undef
+	}
+
+	err2 := stmt1.QueryRow(name).Scan(&result)
+	if err2 != nil {
+		return undef
+	} else {
+		return result
+	}
+}

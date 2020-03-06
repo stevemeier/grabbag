@@ -125,7 +125,8 @@ func main() {
 func find_next_reminder() (int64, string, string, string, string, int, string) {
 	epoch := time.Now().Unix()
 
-	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid, recurring, spec FROM reminders WHERE timestamp <= ? AND status IS null LIMIT 1")
+	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid, recurring, spec FROM reminders" +
+	                          "WHERE timestamp <= ? AND (status IS null OR recurring > 0) LIMIT 1")
 	defer stmt1.Close()
 	if err1 != nil {
 		log.Fatal(err1)
@@ -158,7 +159,7 @@ func mark_as_done(id int64) bool {
 	stmt1, _ := db.Prepare("UPDATE reminders SET status = ? WHERE id = ?")
 	defer stmt1.Close()
 
-	_, err := stmt1.Exec(`SENT@` + strconv.FormatInt(time.Now().Unix(), 10), id)
+	_, err := stmt1.Exec(`DONE@` + strconv.FormatInt(time.Now().Unix(), 10), id)
 	return err == nil
 }
 

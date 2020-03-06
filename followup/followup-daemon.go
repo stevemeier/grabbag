@@ -168,10 +168,10 @@ func update_recurring(id int64, spec string, timezone string) bool {
 		return false
 	}
 
-	stmt1, _ := db.Prepare("UPDATE reminders SET timestamp = timestamp + ? WHERE id = ?")
+	stmt1, _ := db.Prepare("UPDATE reminders SET timestamp = timestamp + ?, status = ? WHERE id = ?")
 	defer stmt1.Close()
 
-	_, err := stmt1.Exec(next, id)
+	_, err := stmt1.Exec(next, `SENT@` + strconv.FormatInt(time.Now().Unix(), 10), id)
 	return err == nil
 }
 

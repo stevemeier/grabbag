@@ -12,10 +12,8 @@ import "github.com/DavidGamba/go-getoptions"
 import "github.com/gofrs/uuid"
 import lib "./lib"
 
-// Global db handle
-var db *sql.DB
-
 func main() {
+	var db *sql.DB
 	var err error
 	var debug bool
 
@@ -84,7 +82,8 @@ func main() {
 		}
 		if err == nil && duration > 0 {
 			// Create a reminder to be send later
-			reminder_created := create_reminder(from.Address,
+			reminder_created := create_reminder(db,
+			                                    from.Address,
 			                                    message.Header.Get("Subject"),
 							    message.Header.Get("Message-ID"),
 							    time.Now().Unix() + duration,
@@ -110,7 +109,7 @@ func AddressesFromField (header mail.Header, field string) ([]string) {
 	return result
 }
 
-func create_reminder (from string, subject string, messageid string, when int64, recurring int, spec string) bool {
+func create_reminder (db *sql.DB, from string, subject string, messageid string, when int64, recurring int, spec string) bool {
 	uuid, err1 := uuid.NewV4()
 	if err1 != nil {
 		log.Fatal(err1)

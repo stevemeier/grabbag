@@ -78,6 +78,15 @@ func User_of (address string) string {
 	}
 }
 
+func Domain_of (address string) string {
+        addrparts := strings.Split(address, "@")
+        if len(addrparts) == 2 {
+                return addrparts[1]
+        } else {
+                return address
+        }
+}
+
 func Parse_spec (address string, timezone string) (int64, int, error) {
 	// Recurring support
 	var recurring int = 0

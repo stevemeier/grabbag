@@ -7,7 +7,6 @@ import "github.com/domodwyer/mailyak"
 import "net/smtp"
 import "os"
 import "strconv"
-import "strings"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 import "github.com/DavidGamba/go-getoptions"
@@ -81,7 +80,7 @@ func main() {
 			// Set recipient, subject and message-id to make sure it gets associated
 			mail.To(recipient)
 			mail.Subject(subject)
-			mail.ReplyTo(uuid + `@` + domain_of(lib.Get_setting(db,`smtpfrom`,``)))
+			mail.ReplyTo(uuid + `@` + lib.Domain_of(lib.Get_setting(db,`smtpfrom`,``)))
 			mail.AddHeader(`In-Reply-To`, messageid)
 			mail.AddHeader(`X-Followup-Version`, version)
 
@@ -125,7 +124,7 @@ func main() {
 func find_next_reminder() (int64, string, string, string, string, int, string) {
 	epoch := time.Now().Unix()
 
-	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid, recurring, spec FROM reminders" +
+	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid, recurring, spec FROM reminders " +
 	                          "WHERE timestamp <= ? AND (status IS null OR recurring > 0) LIMIT 1")
 	defer stmt1.Close()
 	if err1 != nil {
@@ -174,13 +173,4 @@ func update_recurring(id int64, spec string, timezone string) bool {
 
 	_, err := stmt1.Exec(next, `SENT@` + strconv.FormatInt(time.Now().Unix(), 10), id)
 	return err == nil
-}
-
-func domain_of (address string) string {
-	addrparts := strings.Split(address, "@")
-	if len(addrparts) == 2 {
-		return addrparts[1]
-	} else {
-		return address
-	}
 }

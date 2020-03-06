@@ -15,7 +15,6 @@ import "github.com/davecgh/go-spew/spew"
 import lib "./lib"
 
 const version string = "20200305"
-const timezone = "CET" // move to SQLite settings
 
 // Global db handle
 var db *sql.DB
@@ -49,10 +48,10 @@ func main() {
 	lib.Check_schema(db)
 
 	// Check settings
-	if get_setting(`smtphost`) == `` { log.Fatal(`ERROR: smtphost (server) not set`) }
-	if get_setting(`smtpuser`) == `` { log.Fatal(`ERROR: smtpuser (username) not set`) }
-	if get_setting(`smtppass`) == `` { log.Fatal(`ERROR: smtppass (password) not set`) }
-	if get_setting(`smtpfrom`) == `` { log.Fatal(`ERROR: smtpfrom (sender) not set`) }
+	if lib.Get_setting(db,`smtphost`,``) == `` { log.Fatal(`ERROR: smtphost (server) not set`) }
+	if lib.Get_setting(db,`smtpuser`,``) == `` { log.Fatal(`ERROR: smtpuser (username) not set`) }
+	if lib.Get_setting(db,`smtppass`,``) == `` { log.Fatal(`ERROR: smtppass (password) not set`) }
+	if lib.Get_setting(db,`smtpfrom`,``) == `` { log.Fatal(`ERROR: smtpfrom (sender) not set`) }
 
 	for {
 		// Find next reminder, one by one
@@ -75,14 +74,14 @@ func main() {
 				fmt.Println("INFO: Found a pending reminder")
 			}
 			// Construct new mail object
-			mail := mailyak.New(get_setting(`smtphost`)+":25",
-			                    smtp.PlainAuth("", get_setting(`smtpuser`), get_setting(`smtppass`), get_setting(`smtphost`)))
-			mail.From(get_setting(`smtpfrom`))
+			mail := mailyak.New(lib.Get_setting(db,`smtphost`,``)+":25",
+			                    smtp.PlainAuth("", lib.Get_setting(db,`smtpuser`,``), lib.Get_setting(db,`smtppass`,``), lib.Get_setting(db,`smtphost`,``)))
+			mail.From(lib.Get_setting(db,`smtpfrom`,``))
 
 			// Set recipient, subject and message-id to make sure it gets associated
 			mail.To(recipient)
 			mail.Subject(subject)
-			mail.ReplyTo(uuid + `@` + domain_of(get_setting(`smtpfrom`)))
+			mail.ReplyTo(uuid + `@` + domain_of(lib.Get_setting(db,`smtpfrom`,``)))
 			mail.AddHeader(`In-Reply-To`, messageid)
 			mail.AddHeader(`X-Followup-Version`, version)
 
@@ -108,7 +107,7 @@ func main() {
 					}
 				} else {
 					// Recurring reminders get updated
-					success := update_recurring(id, spec)
+					success := update_recurring(id, spec, lib.Get_setting(db,`timezone`,`CET`))
 					if debug {
 						fmt.Printf("INFO: update_recurring returned: %t\n", success)
 					}
@@ -163,7 +162,7 @@ func mark_as_done(id int64) bool {
 	return err == nil
 }
 
-func update_recurring(id int64, spec string) bool {
+func update_recurring(id int64, spec string, timezone string) bool {
 	next, _, _ := lib.Parse_spec(spec, timezone)
 	if next <= 0 {
 		return false
@@ -174,23 +173,6 @@ func update_recurring(id int64, spec string) bool {
 
 	_, err := stmt1.Exec(next, id)
 	return err == nil
-}
-
-func get_setting(name string) string {
-	var result string
-
-	stmt1, err1 := db.Prepare("SELECT value FROM settings where name = ? LIMIT 1")
-	defer stmt1.Close()
-	if err1 != nil {
-		return ``
-	}
-
-	err2 := stmt1.QueryRow(name).Scan(&result)
-	if err2 != nil {
-		return ``
-	} else {
-		return result
-	}
 }
 
 func domain_of (address string) string {

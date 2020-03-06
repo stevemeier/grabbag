@@ -12,9 +12,6 @@ import "github.com/DavidGamba/go-getoptions"
 import "github.com/gofrs/uuid"
 import lib "./lib"
 
-// Local timezone
-const timezone = "CET"
-
 // Global db handle
 var db *sql.DB
 
@@ -81,7 +78,7 @@ func main() {
 		}
 
 		// Change address into seconds in the future
-		duration, recurring, err := lib.Parse_spec(lib.User_of(addr), timezone)
+		duration, recurring, err := lib.Parse_spec(lib.User_of(addr), lib.Get_setting(db,`timezone`,`CET`))
 		if debug {
 			fmt.Println(addr, duration)
 		}

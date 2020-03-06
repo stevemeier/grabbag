@@ -15,12 +15,10 @@ import lib "./lib"
 
 const version string = "20200305"
 
-// Global db handle
-var db *sql.DB
-var debug bool
-
 func main() {
+	var db *sql.DB
 	var err error
+	var debug bool
 	var dbpath string
 
 	// Parse options
@@ -64,7 +62,7 @@ func main() {
 		if debug {
 			fmt.Println("INFO: Scanning for reminders")
 		}
-		id, recipient, subject, messageid, uuid, recurring, spec = find_next_reminder()
+		id, recipient, subject, messageid, uuid, recurring, spec = find_next_reminder(db)
 		if debug {
 			spew.Dump(id, recipient, subject, messageid, uuid, spec)
 		}
@@ -100,13 +98,13 @@ func main() {
 			if err == nil {
 				if recurring == 0 {
 					// One-time reminders get marked done
-					success := mark_as_done(id)
+					success := mark_as_done(db, id)
 					if debug {
 						fmt.Printf("INFO: mark_as_done returned: %t\n", success)
 					}
 				} else {
 					// Recurring reminders get updated
-					success := update_recurring(id, spec, lib.Get_setting(db,`timezone`,`CET`))
+					success := update_recurring(db, id, spec, lib.Get_setting(db,`timezone`,`CET`))
 					if debug {
 						fmt.Printf("INFO: update_recurring returned: %t\n", success)
 					}
@@ -121,7 +119,7 @@ func main() {
 	}
 }
 
-func find_next_reminder() (int64, string, string, string, string, int, string) {
+func find_next_reminder(db *sql.DB) (int64, string, string, string, string, int, string) {
 	epoch := time.Now().Unix()
 
 	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid, recurring, spec FROM reminders " +
@@ -154,7 +152,7 @@ func find_next_reminder() (int64, string, string, string, string, int, string) {
 	return id, sender, subject, messageid, uuid, recurring, spec
 }
 
-func mark_as_done(id int64) bool {
+func mark_as_done(db *sql.DB, id int64) bool {
 	stmt1, _ := db.Prepare("UPDATE reminders SET status = ? WHERE id = ?")
 	defer stmt1.Close()
 
@@ -162,7 +160,7 @@ func mark_as_done(id int64) bool {
 	return err == nil
 }
 
-func update_recurring(id int64, spec string, timezone string) bool {
+func update_recurring(db *sql.DB, id int64, spec string, timezone string) bool {
 	next, _, _ := lib.Parse_spec(spec, timezone)
 	if next <= 0 {
 		return false

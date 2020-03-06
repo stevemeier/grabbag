@@ -84,7 +84,7 @@ func main() {
 		}
 
 		// Change address into seconds in the future
-		duration, recurring, err := iso_to_seconds(addr)
+		duration, recurring, err := iso_to_seconds(lib.User_of(addr))
 		if debug {
 			fmt.Println(addr, duration)
 		}
@@ -135,17 +135,15 @@ func create_reminder (from string, subject string, messageid string, when int64,
 }
 
 func iso_to_seconds (address string) (int64, int, error) {
-        addrparts := strings.Split(address, "@")
-
 	// Recurring support
 	var recurring int = 0
 	plusre := regexp.MustCompile(`\+$`)
-	if plusre.MatchString(addrparts[0]) {
+	if plusre.MatchString(address) {
 		recurring = 1
 	}
 
 	re1 := regexp.MustCompile(`^(\d+)([h|d|w|m|y])$`)
-	re1data := re1.FindStringSubmatch(addrparts[0])
+	re1data := re1.FindStringSubmatch(address)
 	if len(re1data) == 3 {
 		if re1data[2] == "h" {
 			count, _ := strconv.Atoi(re1data[1])
@@ -174,7 +172,7 @@ func iso_to_seconds (address string) (int64, int, error) {
 	}
 
 	re2 := regexp.MustCompile(`^(\d{1,2})(\d{2})$`)
-	re2data := re2.FindStringSubmatch(addrparts[0])
+	re2data := re2.FindStringSubmatch(address)
 	if len(re2data) == 3 {
 		hour, _ := strconv.Atoi(re2data[1])
 		minute, _ := strconv.Atoi(re2data[2])
@@ -187,7 +185,7 @@ func iso_to_seconds (address string) (int64, int, error) {
 	}
 
 	re3 := regexp.MustCompile(`^(\d{1,2})(am|pm)$`)
-	re3data := re3.FindStringSubmatch(addrparts[0])
+	re3data := re3.FindStringSubmatch(address)
 	if len(re3data) == 3 {
 		hour, _ := strconv.Atoi(re3data[1])
 		if (re3data[2] == "pm") {
@@ -204,7 +202,7 @@ func iso_to_seconds (address string) (int64, int, error) {
 	}
 
 	re4 := regexp.MustCompile(`^(mo|tu|di|we|mi|th|do|fr|sa|su|so)`)
-	re4data := re4.FindStringSubmatch(addrparts[0])
+	re4data := re4.FindStringSubmatch(address)
 	if len(re4data) == 2 {
 		if ShortDayToNumber(re4data[1]) > int(time.Now().Weekday()) {
 			return int64((ShortDayToNumber(re4data[1]) - int(time.Now().Weekday())) * 86400), recurring, nil
@@ -218,9 +216,9 @@ func iso_to_seconds (address string) (int64, int, error) {
 	}
 
 	re5 := regexp.MustCompile(`^(jan|feb|mar|mrz|apr|may|mai|jun|jul|aug|sep|oct|okt|nov|dec|dez)[a-z]{0,}(\d+)`)
-	re5data := re5.FindStringSubmatch(addrparts[0])
+	re5data := re5.FindStringSubmatch(address)
 	re6 := regexp.MustCompile(`^(\d+)(jan|feb|mar|mrz|apr|may|mai|jun|jul|aug|sep|oct|okt|nov|dec|dez)`)
-	re6data := re6.FindStringSubmatch(addrparts[0])
+	re6data := re6.FindStringSubmatch(address)
 	var month string
 	var day int
 	if len(re5data) == 3 {
@@ -240,7 +238,7 @@ func iso_to_seconds (address string) (int64, int, error) {
 		return int64(goal.Sub(time.Now()).Seconds()), recurring, nil
 	}
 
-	return -1, recurring, errors.New("Could not parse this: "+addrparts[0])
+	return -1, recurring, errors.New("Could not parse this: "+address)
 }
 
 func getSecondOfDay(t time.Time) int {

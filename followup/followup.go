@@ -121,7 +121,7 @@ func create_reminder (from string, subject string, messageid string, when int64,
 	if err1 != nil {
 		log.Fatal(err1)
 	}
-	_, err2 := db.Exec(`INSERT INTO reminders (uuid, sender, subject, messageid, timestamp, recurring) VALUES ("` +
+	_, err2 := db.Exec(`INSERT INTO reminders (uuid, sender, subject, messageid, timestamp, recurring, spec) VALUES ("` +
                                                    uuid.String() + `","` +
 						   from + `","` +
 						   subject + `","` +

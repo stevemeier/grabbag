@@ -1,13 +1,13 @@
 package main
 
-import "errors"
+//import "errors"
 import "fmt"
 import "log"
 import "net/mail"
 import "os"
-import "regexp"
+//import "regexp"
 import "strconv"
-import "strings"
+//import "strings"
 import "time"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
@@ -84,7 +84,7 @@ func main() {
 		}
 
 		// Change address into seconds in the future
-		duration, recurring, err := iso_to_seconds(lib.User_of(addr))
+		duration, recurring, err := lib.Parse_spec(lib.User_of(addr), timezone)
 		if debug {
 			fmt.Println(addr, duration)
 		}
@@ -136,6 +136,7 @@ func create_reminder (from string, subject string, messageid string, when int64,
 	return err2 == nil
 }
 
+/*
 func iso_to_seconds (address string) (int64, int, error) {
 	// Recurring support
 	var recurring int = 0
@@ -278,3 +279,4 @@ func ShortMonthToNumber(month string) time.Month {
 	}
 	return mapping[strings.ToLower(month)]
 }
+*/

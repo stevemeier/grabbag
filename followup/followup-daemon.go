@@ -15,6 +15,7 @@ import "github.com/davecgh/go-spew/spew"
 import lib "./lib"
 
 const version string = "20200305"
+const timezone = "CET" // move to SQLite settings
 
 // Global db handle
 var db *sql.DB
@@ -99,9 +100,18 @@ func main() {
 			// Send mail and mark it as send
 			err := mail.Send()
 			if err == nil {
-				success := mark_as_done(id)
-				if debug {
-					fmt.Printf("INFO: mark_as_done returned: %t\n", success)
+				if recurring == 0 {
+					// One-time reminders get marked done
+					success := mark_as_done(id)
+					if debug {
+						fmt.Printf("INFO: mark_as_done returned: %t\n", success)
+					}
+				} else {
+					// Recurring reminders get updated
+					success := update_recurring(id, spec)
+					if debug {
+						fmt.Printf("INFO: update_recurring returned: %t\n", success)
+					}
 				}
 			} else {
 				log.Fatal(err)
@@ -150,6 +160,19 @@ func mark_as_done(id int64) bool {
 	defer stmt1.Close()
 
 	_, err := stmt1.Exec(`SENT@` + strconv.FormatInt(time.Now().Unix(), 10), id)
+	return err == nil
+}
+
+func update_recurring(id int64, spec string) bool {
+	next, _, _ := lib.Parse_spec(spec, timezone)
+	if next <= 0 {
+		return false
+	}
+
+	stmt1, _ := db.Prepare("UPDATE reminders SET timestamp = timestamp + ? WHERE id = ?")
+	defer stmt1.Close()
+
+	_, err := stmt1.Exec(next, id)
 	return err == nil
 }
 

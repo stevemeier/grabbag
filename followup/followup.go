@@ -94,7 +94,8 @@ func main() {
 			                                    message.Header.Get("Subject"),
 							    message.Header.Get("Message-ID"),
 							    time.Now().Unix() + duration,
-						            recurring)
+						            recurring,
+							    lib.User_of(addr) )
 			if reminder_created {
 				os.Exit(0)
 			} else {
@@ -115,7 +116,7 @@ func AddressesFromField (header mail.Header, field string) ([]string) {
 	return result
 }
 
-func create_reminder (from string, subject string, messageid string, when int64, recurring int) bool {
+func create_reminder (from string, subject string, messageid string, when int64, recurring int, spec string) bool {
 	uuid, err1 := uuid.NewV4()
 	if err1 != nil {
 		log.Fatal(err1)
@@ -126,7 +127,8 @@ func create_reminder (from string, subject string, messageid string, when int64,
 						   subject + `","` +
 						   messageid + `","` +
 						   strconv.FormatInt(when, 10) + `","` +
-						   strconv.FormatInt(int64(recurring), 10) + 
+						   strconv.FormatInt(int64(recurring), 10) + `","` +
+						   spec +
 						   `")`)
 	if err2 != nil {
 		log.Fatal(err2)

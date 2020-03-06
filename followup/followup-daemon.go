@@ -61,12 +61,13 @@ func main() {
 		var messageid string
 		var uuid string
 		var recurring int
+		var spec string
 		if debug {
 			fmt.Println("INFO: Scanning for reminders")
 		}
-		id, recipient, subject, messageid, uuid, recurring = find_next_reminder()
+		id, recipient, subject, messageid, uuid, recurring, spec = find_next_reminder()
 		if debug {
-			spew.Dump(id, recipient, subject, messageid, uuid)
+			spew.Dump(id, recipient, subject, messageid, uuid, spec)
 		}
 		if len(recipient) > 0 {
 			if debug {
@@ -112,10 +113,10 @@ func main() {
 	}
 }
 
-func find_next_reminder() (int64, string, string, string, string, int) {
+func find_next_reminder() (int64, string, string, string, string, int, string) {
 	epoch := time.Now().Unix()
 
-	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid, recurring FROM reminders WHERE timestamp <= ? AND status IS null LIMIT 1")
+	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid, recurring, spec FROM reminders WHERE timestamp <= ? AND status IS null LIMIT 1")
 	defer stmt1.Close()
 	if err1 != nil {
 		log.Fatal(err1)
@@ -127,11 +128,12 @@ func find_next_reminder() (int64, string, string, string, string, int) {
 	var messageid string
 	var uuid string
 	var recurring int
+	var spec string
 
-	err2 := stmt1.QueryRow(epoch).Scan(&id, &sender, &subject, &messageid, &uuid, &recurring)
+	err2 := stmt1.QueryRow(epoch).Scan(&id, &sender, &subject, &messageid, &uuid, &recurring, &spec)
 	if err2 == sql.ErrNoRows {
 		// No data in the database
-		return -1, ``, ``, ``, ``, -1
+		return -1, ``, ``, ``, ``, -1, ``
 	}
 	if err2 != nil {
 		// Unknown error
@@ -140,7 +142,7 @@ func find_next_reminder() (int64, string, string, string, string, int) {
 	defer stmt1.Close()
 
 	// Return found data
-	return id, sender, subject, messageid, uuid, recurring
+	return id, sender, subject, messageid, uuid, recurring, spec
 }
 
 func mark_as_done(id int64) bool {

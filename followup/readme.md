@@ -6,7 +6,7 @@ followup allows you to quickly schedule email reminders by forwarding important 
 
 ### How does it work?
 
-The solution consists of two pieces of software:
+The solution consists of these parts:
 
 - **followup**
 
@@ -19,6 +19,10 @@ The solution consists of two pieces of software:
 - **check_followup_daemon.sh**
 
   This Nagios-style plugin monitors pending reminders to alert you if there is a problem sending them.
+  
+- **followup-daemon.service**
+
+  This is a service definition for systemd
 
 ### Supported reminder formats
 
@@ -36,6 +40,11 @@ Here are some example:
 - nov13 -- November 13th (month first)
 - 13nov -- November 13th (day first)
 
+NEW: You can also set up recurring reminders by adding a plus(+) like thos:
+
+- 2230+ -- Every day at 22:30
+- monday+ -- Every Monday
+- apr16+ -- Every April 16th
 
 
  

@@ -59,7 +59,7 @@ func Is_uuid(input string) bool {
 }
 
 func Disable_reminder(db *sql.DB, addr string) bool {
-	stmt1, err1 := db.Prepare("UPDATE reminders SET recurring = 0 WHERE uuid = ?")
+	stmt1, err1 := db.Prepare("UPDATE reminders SET recurring = 0, status = 'DISABLED@'||strftime('%s','now') WHERE uuid = ?")
 	if err1 != nil {
 		log.Fatal(err1)
 	}

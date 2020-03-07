@@ -6,7 +6,6 @@ import "time"
 import "github.com/domodwyer/mailyak"
 import "net/smtp"
 import "os"
-import "strconv"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 import "github.com/DavidGamba/go-getoptions"
@@ -153,10 +152,10 @@ func find_next_reminder(db *sql.DB) (int64, string, string, string, string, int,
 }
 
 func mark_as_done(db *sql.DB, id int64) bool {
-	stmt1, _ := db.Prepare("UPDATE reminders SET status = ? WHERE id = ?")
+	stmt1, _ := db.Prepare("UPDATE reminders SET status = 'DONE@'||strftime('%s','now') WHERE id = ?")
 	defer stmt1.Close()
 
-	_, err := stmt1.Exec(`DONE@` + strconv.FormatInt(time.Now().Unix(), 10), id)
+	_, err := stmt1.Exec(id)
 	return err == nil
 }
 
@@ -166,9 +165,9 @@ func update_recurring(db *sql.DB, id int64, spec string, timezone string) bool {
 		return false
 	}
 
-	stmt1, _ := db.Prepare("UPDATE reminders SET timestamp = timestamp + ?, status = ? WHERE id = ?")
+	stmt1, _ := db.Prepare("UPDATE reminders SET timestamp = timestamp + ?, status = 'SENT@'||strftime('%s','now') WHERE id = ?")
 	defer stmt1.Close()
 
-	_, err := stmt1.Exec(next, `SENT@` + strconv.FormatInt(time.Now().Unix(), 10), id)
+	_, err := stmt1.Exec(next, id)
 	return err == nil
 }

@@ -17,6 +17,14 @@ func main() {
 	var err error
 	var debug bool
 
+	// Set up a function to catch panic and exit with default code
+        defer func() {
+                if err := recover(); err != nil {
+                        log.Println(err)
+                        os.Exit(111)
+                }
+        }()
+
 	// Parse options
 	opt := getoptions.New()
 	opt.BoolVar(&debug, "debug", false)
@@ -57,6 +65,11 @@ func main() {
 	dest = append(dest, AddressesFromField(message.Header, "To")...)
 	dest = append(dest, AddressesFromField(message.Header, "Cc")...)
 	dest = append(dest, AddressesFromField(message.Header, "Bcc")...)
+
+	// Process $RECIPIENT from environment, if set
+	if lib.Env_defined("RECIPIENT") {
+		dest = append(dest, os.Getenv("RECIPIENT"))
+	}
 
 	// Go through all addresses
 	for _, addr := range dest {

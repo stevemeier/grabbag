@@ -67,8 +67,8 @@ func main() {
 	dest = append(dest, AddressesFromField(message.Header, "Bcc")...)
 
 	// Process $RECIPIENT from environment, if set
-	if lib.Env_defined("RECIPIENT") {
-		dest = append(dest, os.Getenv("RECIPIENT"))
+	if lib.Env_defined("ORIGINAL_RECIPIENT") {
+		dest = append(dest, os.Getenv("ORIGINAL_RECIPIENT"))
 	}
 
 	// Go through all addresses

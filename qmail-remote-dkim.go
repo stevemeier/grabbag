@@ -11,16 +11,23 @@ import "strings"
 import "syscall"
 import dkim "github.com/toorop/go-dkim"
 
+// Exit codes
+// 1 - Failed to read message from stdin
+// 2 - Failed to read key for domain
+// 3 - Failed to sign email
+
 func main() {
+	// Read message from stdin
 	email, err := read_from_stdin()
 	if err != nil {
 		os.Exit(1)
 	}
 
+	// Extract sender domain
 	domain := domain_of(os.Args[2])
 
-	if len(domain) > 0 &&
-	   file_exists("/var/qmail/control/dkim/"+domain+".pem") {
+	// Sign email, if key is available
+	if file_exists("/var/qmail/control/dkim/"+domain+".pem") {
 		key, keyerr := ioutil.ReadFile("/var/qmail/control/dkim/"+domain+".pem")
 		if keyerr != nil {
 			os.Exit(2)
@@ -37,8 +44,10 @@ func main() {
 		}
 	}
 
+	// Call original qmail-remote with signed message
 	output, exitcode, _ := sysexec("/var/qmail/bin/qmail-remote.orig", os.Args[1:], email)
 	fmt.Println(string(output))
+
 	// qmail-remote always exits zero according to man-page
 	// but this doesn't cost us anything
 	os.Exit(exitcode)
@@ -112,6 +121,6 @@ func domain_of (address string) string {
         if len(addrparts) == 2 {
                 return addrparts[1]
         } else {
-                return ""
+                return "default"
         }
 }

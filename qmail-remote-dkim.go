@@ -37,6 +37,9 @@ func main() {
 		options.PrivateKey = key
 		options.Domain = domain
 		options.Selector = "dkim"
+		options.Headers = []string{"from", "date", "subject"}
+		options.AddSignatureTimestamp = true
+		options.Canonicalization = "relaxed/relaxed"
 
 		err := dkim.Sign(&email, options)
 		if err != nil {

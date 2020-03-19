@@ -5,6 +5,7 @@ import "bytes"
 import "errors"
 import "fmt"
 import "io/ioutil"
+import "log/syslog"
 import "os"
 import "os/exec"
 import "strings"
@@ -15,8 +16,17 @@ import dkim "github.com/toorop/go-dkim"
 // 1 - Failed to read message from stdin
 // 2 - Failed to read key for domain
 // 3 - Failed to sign email
+// 4 - Failed to set up syslog
 
 func main() {
+	// Setup syslog
+	// mail = 2, info = 6
+	// priority = 8 * 2 + 6 = 22
+	syslog, err := syslog.New(22, "qmail-remote-dkim")
+	if err != nil {
+		os.Exit(4)
+	}
+
 	// Read message from stdin
 	email, err := read_from_stdin()
 	if err != nil {
@@ -41,10 +51,13 @@ func main() {
 		options.AddSignatureTimestamp = true
 		options.Canonicalization = "relaxed/relaxed"
 
+		syslog.Write([]byte("Signing message from "+os.Args[2]))
 		err := dkim.Sign(&email, options)
 		if err != nil {
 			os.Exit(3)
 		}
+	} else {
+		syslog.Write([]byte("Passing through message from "+os.Args[2]))
 	}
 
 	// Call original qmail-remote with signed message

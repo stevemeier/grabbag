@@ -11,37 +11,39 @@ import "github.com/prometheus/procfs"
 
 func main() {
 	fs, _ := procfs.NewFS("/proc")
-	allprocs, _ := fs.AllProcs()
-	for _, proc := range allprocs {
-		exe, _ := proc.Executable()
-		if exe == "/usr/bin/sslserver" {
-			stat, _ := proc.Stat()
-			if stat.PPID == 1 {
-				continue
-			}
-			starttime, _ := stat.StartTime()
-			runtime := time.Now().Unix() - int64(starttime)
-			fmt.Printf("[%d@%d] Runtime is %d seconds\n", stat.PID, time.Now().Unix(), runtime)
-			fmt.Printf("[%d@%d] Usertime is %d\n", stat.PID, time.Now().Unix(), stat.UTime)
-			fmt.Printf("[%d@%d] Kerneltime is %d\n", stat.PID, time.Now().Unix(), stat.STime)
-			if runtime > 300 && stat.STime > 15000 {
-				var output []byte
-				fmt.Printf("Lsof for PID %d\n", stat.PID)
-				lsofpid := fmt.Sprintf("%d", stat.PID)
-				output, _, _ = sysexec("/sbin/lsof", []string{"-p", lsofpid}, nil)
-				fmt.Print(string(output))
+	for {
+		allprocs, _ := fs.AllProcs()
+		for _, proc := range allprocs {
+			exe, _ := proc.Executable()
+			if exe == "/usr/bin/sslserver" {
+				stat, _ := proc.Stat()
+				if stat.PPID == 1 {
+					continue
+				}
+				starttime, _ := stat.StartTime()
+				runtime := time.Now().Unix() - int64(starttime)
+				fmt.Printf("[%d@%d] Runtime is %d seconds\n", stat.PID, time.Now().Unix(), runtime)
+				fmt.Printf("[%d@%d] Usertime is %d\n", stat.PID, time.Now().Unix(), stat.UTime)
+				fmt.Printf("[%d@%d] Kerneltime is %d\n", stat.PID, time.Now().Unix(), stat.STime)
+				if runtime > 300 && stat.STime > 15000 {
+					var output []byte
+					fmt.Printf("Lsof for PID %d\n", stat.PID)
+					lsofpid := fmt.Sprintf("%d", stat.PID)
+					output, _, _ = sysexec("/sbin/lsof", []string{"-p", lsofpid}, nil)
+					fmt.Print(string(output))
 
-				fmt.Printf("Lsof for Parent %d\n", int(stat.PID) - 1)
-				lsofppid := fmt.Sprintf("%d", (stat.PID - 1))
-				output, _, _ = sysexec("/sbin/lsof", []string{"-p", lsofppid}, nil)
-				fmt.Print(string(output))
+					fmt.Printf("Lsof for Parent %d\n", int(stat.PID) - 1)
+					lsofppid := fmt.Sprintf("%d", (stat.PID - 1))
+					output, _, _ = sysexec("/sbin/lsof", []string{"-p", lsofppid}, nil)
+					fmt.Print(string(output))
 
-				// Give some time before killing
-				time.Sleep(3 * time.Second)
-				fmt.Printf("Killing PID %d after %d runtime\n", stat.PID, runtime)
-				syscall.Kill(stat.PID, 15)
+					fmt.Printf("[%d@%d] Killing process after %d runtime\n", stat.PID, time.Now().Unix(), runtime)
+					syscall.Kill(stat.PID, 15)
+				}
 			}
 		}
+
+	time.Sleep(5 * time.Second)
 	}
 }
 

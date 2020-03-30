@@ -10,6 +10,9 @@ import "time"
 import "github.com/prometheus/procfs"
 
 func main() {
+	mainstart := time.Now().Unix()
+	laststats := time.Now().Unix()
+	var kills int = 0
 	fs, _ := procfs.NewFS("/proc")
 	for {
 		allprocs, _ := fs.AllProcs()
@@ -39,11 +42,19 @@ func main() {
 
 					fmt.Printf("[%d@%d] Killing process after %d runtime\n", stat.PID, time.Now().Unix(), runtime)
 					syscall.Kill(stat.PID, 15)
+					kills++
+
+					fmt.Printf("[STATS] Killed %d processes during %d seconds\n", kills, (time.Now().Unix() - mainstart))
 				}
 			}
 		}
 
 	time.Sleep(5 * time.Second)
+	if ((time.Now().Unix() - 300) > laststats) {
+		fmt.Printf("[STATS] Killed %d processes during %d seconds\n", kills, (time.Now().Unix() - mainstart))
+		laststats = time.Now().Unix()
+	}
+
 	}
 }
 

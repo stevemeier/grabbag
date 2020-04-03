@@ -1,6 +1,5 @@
 package main
 
-import "bufio"
 import "bytes"
 import "errors"
 import "fmt"
@@ -22,21 +21,26 @@ func main() {
 	// Setup syslog
 	// mail = 2, info = 6
 	// priority = 8 * 2 + 6 = 22
+	if env_defined("QBOX_DEBUG") { fmt.Println("START: Setting up syslog") }
 	syslog, err := syslog.New(22, "qmail-remote-dkim")
 	if err != nil {
 		os.Exit(4)
 	}
+	if env_defined("QBOX_DEBUG") { fmt.Println("END: Setting up syslog") }
 
 	// Read message from stdin
+	if env_defined("QBOX_DEBUG") { fmt.Println("START: Reading from stdin") }
 	email, err := read_from_stdin()
 	if err != nil {
 		os.Exit(1)
 	}
+	if env_defined("QBOX_DEBUG") { fmt.Println("END: Reading from stdin") }
 
 	// Extract sender domain
 	domain := domain_of(os.Args[2])
 
 	// Sign email, if key is available
+	if env_defined("QBOX_DEBUG") { fmt.Println("START: Signing part") }
 	if file_exists("/var/qmail/control/dkim/"+domain+".pem") {
 		key, keyerr := ioutil.ReadFile("/var/qmail/control/dkim/"+domain+".pem")
 		if keyerr != nil {
@@ -59,9 +63,12 @@ func main() {
 	} else {
 		syslog.Write([]byte("Passing through message from "+os.Args[2]))
 	}
+	if env_defined("QBOX_DEBUG") { fmt.Println("END: Signing part") }
 
 	// Call original qmail-remote with signed message
+	if env_defined("QBOX_DEBUG") { fmt.Println("START: Forking qmail-remote.orig") }
 	output, exitcode, _ := sysexec("/var/qmail/bin/qmail-remote.orig", os.Args[1:], email)
+	if env_defined("QBOX_DEBUG") { fmt.Println("END: Forking qmail-remote.orig") }
 	fmt.Println(string(output))
 
 	// qmail-remote always exits zero according to man-page
@@ -94,17 +101,9 @@ func sysexec (command string, args []string, input []byte) ([]byte, int, error) 
 }
 
 func read_from_stdin () ([]byte, error) {
-        scanner := bufio.NewScanner(os.Stdin)
-        if scanner.Err() != nil {
-		return []byte(``), scanner.Err()
-        }
-
-        var message string
-        for scanner.Scan() {
-                message = message + scanner.Text() + "\n"
-        }
-
-        return []byte(message), nil
+        var message []byte
+	message, err := ioutil.ReadAll(os.Stdin)
+	return message, err
 }
 
 func is_executable (file string) bool {
@@ -139,4 +138,9 @@ func domain_of (address string) string {
         } else {
                 return "default"
         }
+}
+
+func env_defined(key string) bool {
+        _, exists := os.LookupEnv(key)
+        return exists
 }

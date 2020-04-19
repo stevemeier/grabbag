@@ -6,7 +6,6 @@ import "encoding/xml"
 import "fmt"
 import "io/ioutil"
 import "github.com/DavidGamba/go-getoptions"
-//import "github.com/davecgh/go-spew/spew"
 import "github.com/hashicorp/logutils"
 import "github.com/kolo/xmlrpc"
 import "log"
@@ -26,7 +25,7 @@ import "crypto/tls"
 const errataurl = "https://cefs.steve-meier.de/errata.latest.json.bz2"
 const rhsaovalurl = "https://www.redhat.com/security/data/oval/com.redhat.rhsa-all.xml.bz2"
 
-const Version int = 20190426
+const Version int = 20200419
 const timelayout = "2006-01-02 15:04:05"
 var SupportedAPI = []float64{10.9,  // Spacewalk 0.6
                              10.10, // Spacewalk 0.7
@@ -56,6 +55,8 @@ var SupportedAPI = []float64{10.9,  // Spacewalk 0.6
 			     21.0,
 			     22,    // Spacewalk 2.9
 			     22.0,
+			     23,    // Spacewalk 2.10
+			     23.0,
 		    }
 
 type Meta struct {
@@ -580,6 +581,7 @@ func get_inventory (client *xmlrpc.Client, sessionkey string, channels []string)
 		params[1] = channel
 
 		var packages []interface{}
+		log.Printf("[INFO] Scanning channel %s\n", channel)
 		err := client.Call("channel.software.list_all_packages", params, &packages)
 		if err != nil {
 			return inv

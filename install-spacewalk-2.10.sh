@@ -129,11 +129,11 @@ mkdir -p /var/distro-trees/CentOS-6-x86_64
 mkdir -p /var/distro-trees/CentOS-7-x86_64
 cd /var/iso-images
 curl ${CURLOPTS} -O http://mirror.rackspace.com/CentOS/6/isos/x86_64/CentOS-6.10-x86_64-netinstall.iso
-curl ${CURLOPTS} -O http://mirror.rackspace.com/CentOS/7/isos/x86_64/CentOS-7-x86_64-NetInstall-1908.iso
+curl ${CURLOPTS} -O http://mirror.rackspace.com/CentOS/7/isos/x86_64/CentOS-7-x86_64-NetInstall-2003.iso
 
 cat >> /etc/fstab <<EOF
 /var/iso-images/CentOS-6.10-x86_64-netinstall.iso           /var/distro-trees/CentOS-6-x86_64       iso9660 loop,ro 0 0
-/var/iso-images/CentOS-7-x86_64-NetInstall-1908.iso        /var/distro-trees/CentOS-7-x86_64       iso9660 loop,ro 0 0
+/var/iso-images/CentOS-7-x86_64-NetInstall-2003.iso         /var/distro-trees/CentOS-7-x86_64       iso9660 loop,ro 0 0
 EOF
 
 echo

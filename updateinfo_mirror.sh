@@ -39,7 +39,7 @@ do
 	# Extract the other filenames from repomd.xm and fetch them
 	for REPOFILE in $(grep href ${1}/${DIR}/repodata/repomd.xml | cut -d \" -f 2)
 	do
-		wget ${WGETOPTS} --user ${USERNAME} --password ${PASSWORD} -P ${1}/${DIR} ${BASEURL}${DIR}/${REPOFILE}
+		wget ${WGETOPTS} --user ${USERNAME} --password ${PASSWORD} -P ${1}/${DIR}/repodata ${BASEURL}${DIR}/${REPOFILE}
 		if [ $? -eq 6 ]; then
 			echo "ERROR: Your username/password are incorrect"
 			exit 2

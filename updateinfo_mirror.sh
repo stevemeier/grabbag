@@ -10,7 +10,7 @@ DIRS=( "6/updates/i386" "6/updates/x86_64" "7/updates/x86_64" "8/updates/aarch64
 WGETOPTS="-N -T 30 -q"
 
 # Rewrite %40 to @, if necessary
-USERNAME=$(echo ${USERNAME} | sed 's/%40/@/')
+USERNAME=${USERNAME/'%40'/@}
 
 # Check that username and password are set
 if [[ -z "${USERNAME}" || -z "${PASSWORD}" ]]; then

@@ -42,6 +42,19 @@ edu.ba
 edu.bb
 
 ac.be
+ahs-dg.be
+coleurope.eu
+ichec.be
+itg.be
+kuleuven.be
+uantwerpen.be
+uclouvain.be
+ugent.be
+uhasselt.be
+uliege.be
+unamur.be
+usaintlouis.be
+vlerick.com
 
 edu.bh
 
@@ -656,6 +669,10 @@ edu.lr
 ac.ls
 edu.ls
 
+eufom.lu
+isec.lu
+uni.lu
+
 edu.lv
 
 edu.ly
@@ -697,6 +714,30 @@ school.na
 edu.ng
 
 edu.ni
+
+designacademy.nl
+eur.nl
+hagueacademy.nl
+han.nl
+hanze.nl
+hva.nl
+kabk.nl
+maastrichtuniversity.nl
+nhlstenden.com
+nyenrode.nl
+ou.nl
+rietveldacademie.nl
+ru.nl
+rug.nl
+tua.nl
+tudelft.nl
+tue.nl
+utwente.nl
+uu.nl
+uva.nl
+vu.nl
+wur.nl
+zuyd.nl
 
 edu.nr
 

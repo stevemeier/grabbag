@@ -585,6 +585,22 @@ edu.es
 
 edu.et
 
+aalto.fi
+abo.fi
+hanken.fi
+helsinki.fi
+jyu.fi
+lut.fi
+uef.fi
+oulu.fi
+seamk.fi
+tuni.fi
+ulapland.fi
+uniarts.fi
+uta.fi
+utu.fi
+uwasa.fi
+
 ac.fj
 
 edu.ge

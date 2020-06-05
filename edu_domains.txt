@@ -951,6 +951,7 @@ ac.ug
 
 ac.uk
 
+fcps.org
 k12.ak.us
 k12.al.us
 k12.ar.us
@@ -1072,3 +1073,12 @@ edu.vn
 edu.vu
 
 edu.ws
+
+ac.za
+edu.za
+school.za
+
+ac.zm
+edu.zm
+
+ac.zw

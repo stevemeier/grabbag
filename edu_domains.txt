@@ -679,6 +679,77 @@ uwasa.fi
 
 ac.fj
 
+cue-lillenorddefrance.fr
+dauphine.fr
+ict-toulouse.fr
+sorbonne.fr
+sorbonne-universite.fr
+uco.fr
+uha.fr
+ujf-grenoble.fr
+u-bordeaux.fr
+u-bordeaux1.fr
+u-bordeaux2.fr
+u-bordeaux4.fr
+u-bordeaux-montaigne.fr
+u-bourgogne.fr
+u-cergy.fr
+u-clermont1.fr
+u-grenoble3.fr
+u-paris10.fr
+u-paris2.fr
+u-pec.fr
+u-picardie.fr
+u-psud.fr
+unicaen.fr
+unice.fr
+unistra.fr
+univ-ag.fr
+univ-amu.fr
+univ-angers.fr
+univ-artois.fr
+univ-avignon.fr
+univ-bpclermont.fr
+univ-cezanne.fr
+univ-evry.fr
+univ-fcomte.fr
+univ-grenoble-alpes.fr
+univ-guyane.fr
+univ-lehavre.fr
+univ-lorraine.fr
+univ-lyon1.fr
+univ-lyon2.fr
+univ-lyon3.fr
+univ-mlv.fr
+univ-montp1.fr
+univ-montp2.fr
+univ-montp3.fr
+univ-nantes.fr
+univ-orleans.fr
+univ-paris-diderot.fr
+univ-paris1.fr
+univ-paris13.fr
+univ-paris3.fr
+univ-paris5.fr
+univ-paris8.fr
+univ-perp.fr
+univ-poitiers.fr
+univ-provence.fr
+univ-reims.fr
+univ-reunion.fr
+univ-rouen.fr
+univ-smb.fr
+univ-st-etienne.fr
+univ-tlse1.fr
+univ-tlse2.fr
+univ-tlse3.fr
+univ-tours.fr
+universite-lyon.fr
+univmed.fr
+upmf-grenoble.fr
+upmc.fr
+uvsq.fr
+
 edu.ge
 
 edu.gh
@@ -873,6 +944,8 @@ edu.mz
 
 school.na
 
+unc.nc
+
 edu.ng
 
 edu.ni
@@ -945,6 +1018,7 @@ edu.pa
 edu.pe
 
 edu.pf
+upf.pf
 
 edu.ph
 

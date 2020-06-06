@@ -1,9 +1,16 @@
 edu
 
 edu.ac
+
+uda.ad
+
 ac.ae
 edu.af
+
 edu.al
+artacademy.al
+upt.al
+
 ed.ao
 edu.ar
 
@@ -38,6 +45,12 @@ edu.au
 edu.az
 
 edu.ba
+sve-mo.ba
+unbi.ba
+unibl.org
+unsa.ba
+untz.ba
+unze.ba
 
 edu.bb
 

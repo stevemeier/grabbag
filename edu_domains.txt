@@ -734,6 +734,14 @@ k12.ec
 edu.ec
 
 edu.ee
+akadeemia.ee
+artun.ee
+audentes.eu
+ut.ee
+emara.ee
+emu.ee
+tlu.ee
+ttu.ee
 
 edu.eg
 
@@ -843,6 +851,29 @@ edu.gn
 edu.gp
 
 edu.gr
+aegean.gr
+asfa.gr
+aua.gr
+aueb.gr
+auth.gr
+duth.gr
+eap.gr
+hua.gr
+ihu.gr
+ionio.gr
+ntua.gr
+panteion.gr
+teiion.gr
+tuc.gr
+unipi.gr
+uoa.gr
+uoc.gr
+uoi.gr
+uom.gr
+uop.gr
+uowm.gr
+upatras.gr
+uth.gr
 
 edu.gt
 
@@ -928,6 +959,15 @@ zskf.hu
 
 ac.id
 
+dcu.ie
+dit.ie
+nui.ie
+nuigalway.ie
+tcd.ie
+ucc.ie
+ucd.ie
+ul.ie
+
 ac.il
 k12.il
 
@@ -940,6 +980,13 @@ edu.iq
 ac.ir
 
 edu.is
+bifrost.is
+hi.is
+holar.is
+lbhi.is
+lhi.is
+ru.is
+unak.is
 
 edu.it
 

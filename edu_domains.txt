@@ -714,6 +714,8 @@ martec.dk
 phabsalon.dk
 ruk.dk
 rmc.dk
+royalacademy.dk
+sceu.dk
 sdu.dk
 simac.dk
 ucl.dk

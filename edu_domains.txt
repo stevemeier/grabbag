@@ -69,6 +69,41 @@ unamur.be
 usaintlouis.be
 vlerick.com
 
+artacademyplovdiv.com
+aubg.bg
+au-plovdiv.bg
+bfu.bg
+btu.bg
+epubg.eu
+meduniversity-plovdiv.bg
+mgu.bg
+mu-pleven.bg
+mu-sofia.bg
+mu-varna.bg
+natfiz.bg
+naval-acad.bg
+nbu.bg
+nha.bg
+nma.bg
+nsa.bg
+shu.bg
+sofia-seminaria.org
+swu.bg
+tugab.bg
+tu-sofia.bg
+tu-varna.bg
+uacg.bg
+ue-varna.bg
+unibit.bg
+uni-plovdiv.bg
+uni-ruse.bg
+uni-sofia.bg
+uni-svishtov.bg
+uni-sz.bg
+uni-vt.bg
+unwe.bg
+vfu.bg
+
 edu.bh
 
 edu.bi
@@ -1020,6 +1055,11 @@ edu.la
 edu.lb
 
 edu.lc
+
+iap.li
+liechtenstein-institut.li
+ufl.li
+uni.li
 
 edu.lk
 ac.lk

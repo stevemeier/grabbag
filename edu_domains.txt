@@ -1446,6 +1446,45 @@ edu.pr
 edu.ps
 
 edu.pt
+grupolusofona.pt
+iesfafe.pt
+ipb.pt
+ipbeja.pt
+ipc.pt
+ipca.pt
+ipcb.pt
+ipg.pt
+ipl.pt
+ipleiria.pt
+ipp.pt
+ipportalegre.pt
+ips.pt
+ipsantarem.pt
+ipt.pt
+ipv.pt
+ipvc.pt
+ismai.pt
+ua.pt
+uab.pt
+uac.pt
+ualg.pt
+uatla.pt
+ubi.pt
+uc.pt
+ucp.pt
+uevora.pt
+ufp.pt
+uinternacional.pt
+ulisboa.pt
+ulp.pt
+ulusiada.pt
+uma.pt
+uminho.pt
+universidade-autonoma.pt
+unl.pt
+up.pt
+uportu.pt
+utad.pt
 
 edu.py
 

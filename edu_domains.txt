@@ -1280,6 +1280,19 @@ edu.ly
 
 ac.ma
 
+ase.md
+imi-nova.md
+kdu.md
+spsu.ru
+tdu-tar.md
+uasm.md
+upsc.md
+usb.md
+usch.md
+usm.md
+usmf.md
+utm.md
+
 edu.me
 ac.me
 

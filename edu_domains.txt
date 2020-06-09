@@ -1406,6 +1406,37 @@ edu.ph
 edu.pk
 
 edu.pl
+pg.gda.pl
+ujk.kielce.pl
+tu.kielce.pl
+tu.koszalin.pl
+pat.krakow.pl
+uek.krakow.pl
+up.krakow.pl
+p.lodz.pl
+umed.lodz.pl
+uni.lodz.pl
+kul.lublin.pl
+po.opole.pl
+uni.opole.pl
+pcz.pl
+pollub.pl
+polsl.pl
+put.poznan.pl
+ue.poznan.pl
+univ.rzeszow.pl
+univ.szczecin.pl
+umcs.pl
+umk.pl
+umlub.pl
+sggw.waw.pl
+sgh.waw.pl
+pwr.wroc.pl
+ue.wroc.pl
+umed.wroc.pl
+uni.wroc.pl
+up.wroc.pl
+uz.zgora.pl
 
 edu.pn
 

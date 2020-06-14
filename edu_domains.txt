@@ -120,6 +120,36 @@ edu.bs
 
 edu.bt
 
+amia.by
+bdam.by
+belstu.by
+bntu.by
+brsu.by
+bseu.by
+bsmu.by
+bspu.by
+bstu.by
+bsuir.by
+bsut.by
+buk.by
+bgam.edu.by
+grsu.by
+gsmu.by
+gstu.by
+gsu.by
+i-bteu.by
+iseu.by
+varb.mil.by
+miu.by
+mslu.by
+msu.by
+ngmk.by
+psu.by
+psunbrb.by
+sportedu.by
+vstu.by
+vsu.by
+
 edu.bz
 
 acadiau.ca

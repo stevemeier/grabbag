@@ -12,7 +12,9 @@ artacademy.al
 upt.al
 
 ed.ao
+
 edu.ar
+uba.ar
 
 ac.at
 aau.at

@@ -294,6 +294,37 @@ zhdk.ch
 edu.ci
 ed.ci
 
+uach.cl
+uahurtado.cl
+uandes.cl
+uantof.cl
+uaysen.cl
+ubiobio.cl
+uc.cl
+uchile.cl
+ucm.cl
+ucn.cl
+ucsc.cl
+uct.cl
+ucv.cl
+uda.cl
+udec.cl
+udp.cl
+ufro.cl
+ulagos.cl
+umag.cl
+umce.cl
+unap.cl
+uoh.cl
+upla.cl
+usach.cl
+userena.cl
+usm.cl
+uta.cl
+utalca.cl
+utel.cl
+uv.cl
+
 edu.cn
 
 edu.co

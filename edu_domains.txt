@@ -115,6 +115,9 @@ edu.bm
 edu.bn
 
 edu.bo
+umsa.bo
+upea.bo
+usfx.bo
 
 edu.br
 
@@ -2223,4 +2226,3 @@ ac.zm
 edu.zm
 
 ac.zw
-

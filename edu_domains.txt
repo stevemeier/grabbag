@@ -1784,6 +1784,8 @@ edu.om
 edu.pa
 
 edu.pe
+escueladeoficialespnp.org
+isil.pe
 
 edu.pf
 upf.pf

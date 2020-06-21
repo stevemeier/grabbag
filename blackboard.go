@@ -124,6 +124,8 @@ func DeleteHandler (w http.ResponseWriter, r *http.Request) {
 }
 
 func GetFileContentType(out *os.File) (string, error) {
+	// Store current file offset
+	offset, _ := out.Seek(0, io.SeekCurrent)
 
 	// Only the first 512 bytes are used to sniff the content type.
 	buffer := make([]byte, 512)
@@ -132,7 +134,9 @@ func GetFileContentType(out *os.File) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, _ = out.Seek(0, 0)
+
+	// Restore previous offset
+	_, _ = out.Seek(offset, 0)
 
 	// Use the net/http package's handy DectectContentType function. Always returns a valid
 	// content-type by returning "application/octet-stream" if no others seemed to match.

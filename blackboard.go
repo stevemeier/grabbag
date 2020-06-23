@@ -4,6 +4,7 @@ package main
 // NO SECURITY CHECKS AT ALL !!! USE AT YOUR OWN RISK
 
 import "github.com/gorilla/mux"
+import "github.com/DavidGamba/go-getoptions"
 import "net/http"
 import "log"
 import "time"
@@ -13,6 +14,33 @@ import "regexp"
 import "strconv"
 
 func main() {
+	var directory string
+	var listen string
+	opt := getoptions.New()
+	opt.StringVar(&directory, "directory", ``, opt.Required())
+	opt.StringVar(&listen, "listen", `:8000`)
+	remaining, err := opt.Parse(os.Args[1:])
+
+	// Handle empty or unknown options
+        if len(os.Args[1:]) == 0 {
+                log.Print(opt.Help())
+                os.Exit(1)
+        }
+        if err != nil {
+                log.Fatalf("Could not parse options: %s\n", err)
+                os.Exit(1)
+        }
+        if len(remaining) > 0 {
+                log.Fatalf("Unsupported parameter: %s\n", remaining)
+                os.Exit(1)
+        }
+
+	direrr := os.Chdir(directory)
+	if direrr != nil {
+		log.Fatal("ERROR: "+direrr.Error())
+		os.Exit(1)
+	}
+
 	r := mux.NewRouter()
 	r.HandleFunc("/{key}", GetHandler).Methods("GET")
 	r.HandleFunc("/{key}", PostHandler).Methods("POST")
@@ -20,7 +48,7 @@ func main() {
 
 	srv := &http.Server{
         Handler:      r,
-        Addr:         ":8000",
+        Addr:         listen,
         // Good practice: enforce timeouts for servers you create!
         WriteTimeout: 5 * time.Second,
         ReadTimeout:  5 * time.Second,

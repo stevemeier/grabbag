@@ -144,7 +144,7 @@ func ReverseIPAddress (input string) (string) {
 
 func find_next_ip (db *sql.DB, ipqueue chan string) () {
 	for {
-		if len(ipqueue) == 0 {
+		if len(ipqueue) < (cap(ipqueue) / 2) {
 			stmt1, err1 := db.Prepare("SELECT o1 || '.' || o2 || '.' || o3 || '.' || o4 FROM t1 WHERE lastupd IS NULL LIMIT ?")
 			defer stmt1.Close()
 			if err1 != nil {
@@ -152,7 +152,7 @@ func find_next_ip (db *sql.DB, ipqueue chan string) () {
 			}
 
 			var nextip string
-			rows, selecterr := stmt1.Query(cap(ipqueue))
+			rows, selecterr := stmt1.Query(int(cap(ipqueue) / 2))
 			if selecterr != nil {
 				log.Println(selecterr)
 			}

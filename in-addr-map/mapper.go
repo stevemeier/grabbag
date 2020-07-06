@@ -56,7 +56,7 @@ func main() {
 	defer db.Close()
 
 	// IP Queue as channel
-	ipqueue := make(chan string, 100)
+	ipqueue := make(chan string, 512)
 
 	// PTR Queue as channel (results)
 	ptrqueue := make(chan Result, 100)

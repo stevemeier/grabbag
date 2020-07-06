@@ -28,9 +28,11 @@ func main() {
 	var dbfile string
 	var resolver string
 	var workers int
+	var timeout int
 	opt.StringVar(&dbfile, "db", "in-addr.sql", opt.Required())
 	opt.StringVar(&resolver, "resolver", "193.189.250.100")
 	opt.IntVar(&workers, "workers", 10)
+	opt.IntVar(&timeout, "timeout", 6)
         remaining, err := opt.Parse(os.Args[1:])
 	 if len(os.Args[1:]) == 0 {
                 log.Print(opt.Help())
@@ -56,16 +58,17 @@ func main() {
 	defer db.Close()
 
 	// IP Queue as channel
-	ipqueue := make(chan string, 512)
+	ipqueue := make(chan string, workers * 100)
 
 	// PTR Queue as channel (results)
-	ptrqueue := make(chan Result, 512)
+	ptrqueue := make(chan Result, workers * 100)
 
 	c := new(dns.Client)
-	c.Timeout = 5 * time.Second
+	c.Timeout = time.Duration(timeout) * time.Second
+	c.ReadTimeout = time.Duration(timeout) * time.Second
+	c.WriteTimeout = time.Duration(timeout) * time.Second
 
 	go find_next_ip(db, ipqueue)
-//	go store_results(db, ptrqueue)
 	go store_results_tx(db, ptrqueue)
 
 	workqueue := make(chan bool, workers)
@@ -109,14 +112,14 @@ func ptrdata (msg *dns.Msg) (string) {
 	return strings.Join(data, `/`)
 }
 
-func ptrlookup (ipaddr string, c *dns.Client, conn *dns.Conn) (*dns.Msg, error) {
+func ptrlookup (ipaddr string, client *dns.Client, conn *dns.Conn) (*dns.Msg, error) {
 	m1 := new(dns.Msg)
 	m1.Id = dns.Id()
 	m1.RecursionDesired = true
 	m1.Question = make([]dns.Question, 1)
 	m1.Question[0] = dns.Question{ReverseIPAddress(ipaddr) + ".in-addr.arpa.", dns.TypePTR, dns.ClassINET}
 
-	in, _, err := c.ExchangeWithConn(m1, conn)
+	in, _, err := client.ExchangeWithConn(m1, conn)
 
 	return in, err
 }
@@ -207,7 +210,6 @@ func store_results_tx (db *sql.DB, ptrqueue chan Result) {
 					log.Println(err)
 				}
 			}
-		//		log.Printf("PTRqueue status: %d/%d\n", len(ptrqueue), cap(ptrqueue))
 			// Commit transaction
 			tx.Commit()
 		}

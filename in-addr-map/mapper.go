@@ -59,13 +59,14 @@ func main() {
 	ipqueue := make(chan string, 512)
 
 	// PTR Queue as channel (results)
-	ptrqueue := make(chan Result, 100)
+	ptrqueue := make(chan Result, 512)
 
 	c := new(dns.Client)
 	c.Timeout = 5 * time.Second
 
 	go find_next_ip(db, ipqueue)
-	go store_results(db, ptrqueue)
+//	go store_results(db, ptrqueue)
+	go store_results_tx(db, ptrqueue)
 
 	workqueue := make(chan bool, workers)
 
@@ -163,6 +164,7 @@ func find_next_ip (db *sql.DB, ipqueue chan string) () {
 			}
 			log.Printf("IPqueue status: %d/%d\n", len(ipqueue), cap(ipqueue))
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -180,6 +182,36 @@ func store_results (db *sql.DB, ptrqueue chan Result) {
 			log.Println(err)
 		}
 //		log.Printf("PTRqueue status: %d/%d\n", len(ptrqueue), cap(ptrqueue))
+	}
+}
+
+func store_results_tx (db *sql.DB, ptrqueue chan Result) {
+	for {
+		queuesize := len(ptrqueue)
+		// If queue is 50% full, write to DB
+		if queuesize > (cap(ptrqueue) / 2) {
+			log.Printf("PTRqueue status: %d/%d\n", queuesize, cap(ptrqueue))
+
+			// Open a transaction
+			tx, _ := db.Begin()
+
+			for i := 1; i < queuesize; i++ {
+				result := <-ptrqueue
+				oct := strings.Split(result.Ip, ".")
+				stmt1, _ := tx.Prepare("UPDATE t1 SET rcode = ?, ptr = ?, lastupd = ? WHERE o1 = ? AND o2 = ? AND o3 = ? AND o4 = ?")
+				defer stmt1.Close()
+
+				now := time.Now()
+				_, err := stmt1.Exec(result.Opcode, result.Ptrdata, now.Unix(), oct[0], oct[1], oct[2], oct[3])
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		//		log.Printf("PTRqueue status: %d/%d\n", len(ptrqueue), cap(ptrqueue))
+			// Commit transaction
+			tx.Commit()
+		}
+		time.Sleep(1 * time.Second)
 	}
 }
 

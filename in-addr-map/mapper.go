@@ -22,6 +22,11 @@ type Result struct {
 	Ptrdata	string
 }
 
+type ResourcePool struct {
+	Client	*dns.Client
+	Conn	*dns.Conn
+}
+
 func main() {
 	// Parse options
         opt := getoptions.New()
@@ -63,13 +68,24 @@ func main() {
 	// PTR Queue as channel (results)
 	ptrqueue := make(chan Result, workers * 100)
 
-	c := new(dns.Client)
-	c.Timeout = time.Duration(timeout) * time.Second
-	c.ReadTimeout = time.Duration(timeout) * time.Second
-	c.WriteTimeout = time.Duration(timeout) * time.Second
+	// Prepare resource pool
+	respool := make(chan ResourcePool, workers)
+
+	for i := 1; i < cap(respool); i++ {
+		c := new(dns.Client)
+		c.Timeout = time.Duration(timeout) * time.Second
+		c.ReadTimeout = time.Duration(timeout) * time.Second
+		c.WriteTimeout = time.Duration(timeout) * time.Second
+		conn, _ := c.Dial(resolver+":53")
+		respool <- ResourcePool{c, conn}
+	}
+
+	// Statistics channel
+	statchan := make(chan int, 100)
 
 	go find_next_ip(db, ipqueue)
-	go store_results_tx(db, ptrqueue)
+	go store_results_tx(db, ptrqueue, statchan)
+	go stat_printer(statchan)
 
 	workqueue := make(chan bool, workers)
 
@@ -77,7 +93,8 @@ func main() {
 	for {
 		// Add to the queue
 		workqueue <- true
-		go worker(workqueue, ipqueue, ptrqueue, c, resolver)
+//		go worker(workqueue, ipqueue, ptrqueue, c, resolver)
+		go worker(workqueue, ipqueue, ptrqueue, respool)
 	}
 
 } // end of main
@@ -188,7 +205,7 @@ func store_results (db *sql.DB, ptrqueue chan Result) {
 	}
 }
 
-func store_results_tx (db *sql.DB, ptrqueue chan Result) {
+func store_results_tx (db *sql.DB, ptrqueue chan Result, statchan chan int) {
 	for {
 		queuesize := len(ptrqueue)
 		// If queue is 50% full, write to DB
@@ -212,28 +229,54 @@ func store_results_tx (db *sql.DB, ptrqueue chan Result) {
 			}
 			// Commit transaction
 			tx.Commit()
+
+			// Write to stats channel
+			statchan <- queuesize
 		}
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, c *dns.Client, resolver string) {
+//func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, c *dns.Client, resolver string) {
+func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, respool chan ResourcePool) {
 	nextip := <-ipqueue
 
-	conn, connerr := c.Dial(resolver+":53")
-	if connerr != nil {
-		log.Println(connerr)
-	}
-	defer conn.Close()
+	myresource :=  <-respool
+	c := myresource.Client
+	conn := myresource.Conn
+
+//	conn, connerr := c.Dial(resolver+":53")
+//	if connerr != nil {
+//		log.Println(connerr)
+//	}
+//	defer conn.Close()
 
 	in, lookuperr := ptrlookup(nextip, c, conn)
 	if lookuperr == nil {
 		ptrqueue <- Result{Ip: nextip, Opcode: opcode(in), Ptrdata: ptrdata(in)}
-		log.Printf("%s: %d, %s\n", nextip, opcode(in), ptrdata(in))
+//		log.Printf("%s: %d, %s\n", nextip, opcode(in), ptrdata(in))
 	} else {
 		log.Printf("%s: %s\n", nextip, lookuperr.Error())
 	}
 
 	// Free a spot in workqueue
 	_ = <-workqueue
+
+	// Return resources
+	respool <- myresource
+}
+
+func stat_printer (statchan chan int) {
+	var interval int = 10
+	for {
+		entries := len(statchan)
+		var total int
+
+		for i := 1; i < entries; i++ {
+			total += <-statchan
+		}
+
+		log.Printf("Database commits: %d per second\n", int(total / interval))
+		time.Sleep(time.Duration(interval) * time.Second)
+	}
 }

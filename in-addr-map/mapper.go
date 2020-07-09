@@ -27,13 +27,17 @@ type ResourcePool struct {
 	Conn	*dns.Conn
 }
 
+// These are global for easy re-use
+var resolver string
+var timeout int
+
 func main() {
 	// Parse options
         opt := getoptions.New()
 	var dbfile string
-	var resolver string
+//	var resolver string
 	var workers int
-	var timeout int
+//	var timeout int
 	opt.StringVar(&dbfile, "db", "in-addr.sql", opt.Required())
 	opt.StringVar(&resolver, "resolver", "193.189.250.100")
 	opt.IntVar(&workers, "workers", 10)
@@ -71,12 +75,14 @@ func main() {
 	// Prepare resource pool
 	respool := make(chan ResourcePool, workers)
 
-	for i := 1; i < cap(respool); i++ {
-		c := new(dns.Client)
-		c.Timeout = time.Duration(timeout) * time.Second
-		c.ReadTimeout = time.Duration(timeout) * time.Second
-		c.WriteTimeout = time.Duration(timeout) * time.Second
-		conn, _ := c.Dial(resolver+":53")
+	for i := 1; i <= cap(respool); i++ {
+//		c := new(dns.Client)
+//		c.Timeout = time.Duration(timeout) * time.Second
+//		c.ReadTimeout = time.Duration(timeout) * time.Second
+//		c.WriteTimeout = time.Duration(timeout) * time.Second
+		c := init_dns_client(timeout)
+//		conn, _ := c.Dial(resolver+":53")
+		conn := init_dns_conn(c, resolver)
 		respool <- ResourcePool{c, conn}
 	}
 
@@ -257,13 +263,24 @@ func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, res
 //		log.Printf("%s: %d, %s\n", nextip, opcode(in), ptrdata(in))
 	} else {
 		log.Printf("%s: %s\n", nextip, lookuperr.Error())
+		// Reinitialize connection
+//		conn, _ = c.Dial(resolver+":53")
+//		c = init_dns_client(timeout)
+//		conn = init_dns_conn(c, resolver)
+		// ^^ `dns mismatch id` still occurs -- FIXME
+		// maybe have a function create new clients and conns all the time instead of recycling??
 	}
 
 	// Free a spot in workqueue
 	_ = <-workqueue
 
 	// Return resources
-	respool <- myresource
+	if lookuperr == nil {
+		respool <- myresource
+	} else {
+		// If we encountered an error, we do not recycle the connection
+		respool <- ResourcePool{init_dns_client(timeout), init_dns_conn(c, resolver)}
+	}
 }
 
 func stat_printer (statchan chan int) {
@@ -279,4 +296,17 @@ func stat_printer (statchan chan int) {
 		log.Printf("Database commits: %d per second\n", int(total / interval))
 		time.Sleep(time.Duration(interval) * time.Second)
 	}
+}
+
+func init_dns_client (timeout int) (*dns.Client) {
+	c := new(dns.Client)
+	c.Timeout = time.Duration(timeout) * time.Second
+	c.ReadTimeout = time.Duration(timeout) * time.Second
+	c.WriteTimeout = time.Duration(timeout) * time.Second
+	return c
+}
+
+func init_dns_conn (c *dns.Client, resolver string) (*dns.Conn) {
+	conn, _ := c.Dial(resolver+":53")
+	return conn
 }

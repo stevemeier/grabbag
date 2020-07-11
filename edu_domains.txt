@@ -1600,6 +1600,9 @@ edu.la
 edu.lb
 
 edu.lc
+aimu.us
+comhssl.net
+spartanmed.org
 
 iap.li
 liechtenstein-institut.li
@@ -2588,4 +2591,3 @@ ac.zm
 edu.zm
 
 ac.zw
-

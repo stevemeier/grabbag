@@ -2587,6 +2587,7 @@ ac.vn
 edu.vn
 
 edu.vu
+talua.org
 
 edu.ws
 

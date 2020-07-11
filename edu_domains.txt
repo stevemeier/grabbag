@@ -1240,6 +1240,7 @@ unistra.fr
 univ-ag.fr
 univ-amu.fr
 univ-angers.fr
+univ-antilles.fr
 univ-artois.fr
 univ-avignon.fr
 univ-bpclermont.fr

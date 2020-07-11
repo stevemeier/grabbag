@@ -584,6 +584,7 @@ edu.cn
 
 edu.co
 
+ac.cr
 ed.cr
 
 edu.cu

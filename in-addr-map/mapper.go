@@ -37,9 +37,7 @@ func main() {
 	// Parse options
         opt := getoptions.New()
 	var dbfile string
-//	var resolver string
 	var workers int
-//	var timeout int
 	opt.StringVar(&dbfile, "db", "in-addr.sql", opt.Required())
 	opt.StringVar(&resolver, "resolver", "193.189.250.100")
 	opt.IntVar(&resport, "port", 53)
@@ -79,12 +77,7 @@ func main() {
 	respool := make(chan ResourcePool, workers)
 
 	for i := 1; i <= cap(respool); i++ {
-//		c := new(dns.Client)
-//		c.Timeout = time.Duration(timeout) * time.Second
-//		c.ReadTimeout = time.Duration(timeout) * time.Second
-//		c.WriteTimeout = time.Duration(timeout) * time.Second
 		c := init_dns_client(timeout)
-//		conn, _ := c.Dial(resolver+":53")
 		conn := init_dns_conn(c, resolver, resport)
 		respool <- ResourcePool{c, conn}
 	}
@@ -102,7 +95,6 @@ func main() {
 	for {
 		// Add to the queue
 		workqueue <- true
-//		go worker(workqueue, ipqueue, ptrqueue, c, resolver)
 		go worker(workqueue, ipqueue, ptrqueue, respool)
 	}
 
@@ -246,7 +238,6 @@ func store_results_tx (db *sql.DB, ptrqueue chan Result, statchan chan int) {
 	}
 }
 
-//func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, c *dns.Client, resolver string) {
 func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, respool chan ResourcePool) {
 	nextip := <-ipqueue
 
@@ -254,28 +245,13 @@ func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, res
 	c := myresource.Client
 	conn := myresource.Conn
 
-//	conn, connerr := c.Dial(resolver+":53")
-//	if connerr != nil {
-//		log.Println(connerr)
-//	}
-//	defer conn.Close()
-
 	in, lookuperr := ptrlookup(nextip, c, conn)
 	if lookuperr == nil {
 		ptrqueue <- Result{Ip: nextip, Opcode: opcode(in), Ptrdata: ptrdata(in)}
 //		log.Printf("%s: %d, %s\n", nextip, opcode(in), ptrdata(in))
 	} else {
 		log.Printf("%s: %s\n", nextip, lookuperr.Error())
-		// Reinitialize connection
-//		conn, _ = c.Dial(resolver+":53")
-//		c = init_dns_client(timeout)
-//		conn = init_dns_conn(c, resolver)
-		// ^^ `dns mismatch id` still occurs -- FIXME
-		// maybe have a function create new clients and conns all the time instead of recycling??
 	}
-
-	// Free a spot in workqueue
-	_ = <-workqueue
 
 	// Return resources
 	if lookuperr == nil {
@@ -284,10 +260,13 @@ func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, res
 		// If we encountered an error, we do not recycle the connection
 		respool <- ResourcePool{init_dns_client(timeout), init_dns_conn(c, resolver, resport)}
 	}
+
+	// Free a spot in workqueue
+	_ = <-workqueue
 }
 
 func stat_printer (statchan chan int) {
-	var interval int = 10
+	var interval int = 60
 	for {
 		entries := len(statchan)
 		var total int

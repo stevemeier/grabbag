@@ -1208,6 +1208,8 @@ uwasa.fi
 
 ac.fj
 
+setur.fo
+
 cue-lillenorddefrance.fr
 dauphine.fr
 ict-toulouse.fr

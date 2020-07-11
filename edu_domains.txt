@@ -2382,7 +2382,7 @@ edu.so
 
 edu.ss
 
-edu.st
+ustp.st
 
 edu.sv
 

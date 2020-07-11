@@ -1208,6 +1208,8 @@ uwasa.fi
 
 ac.fj
 
+comfsm.fm
+
 setur.fo
 
 cue-lillenorddefrance.fr
@@ -2584,4 +2586,3 @@ ac.zm
 edu.zm
 
 ac.zw
-

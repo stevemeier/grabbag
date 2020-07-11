@@ -605,6 +605,7 @@ edu.cv
 unipiaget.cv
 
 edu.cw
+uoc.cw
 
 ac.cy
 

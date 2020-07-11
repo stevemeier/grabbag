@@ -2374,6 +2374,8 @@ vsvu.sk
 
 edu.sl
 
+unirsm.sm
+
 edu.sn
 
 edu.so

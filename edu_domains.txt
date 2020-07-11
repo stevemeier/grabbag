@@ -1615,7 +1615,7 @@ ac.lk
 edu.lr
 
 ac.ls
-edu.ls
+nul.ls
 
 ism.lt
 kmu.lt

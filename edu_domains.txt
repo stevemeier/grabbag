@@ -1713,6 +1713,11 @@ edu.me
 ac.me
 
 edu.mg
+ucm.mg
+iep-madagascar.mg
+institut-ispa.com
+univ-antananarivo.mg
+univ-toliara.mg
 
 edu.mk
 

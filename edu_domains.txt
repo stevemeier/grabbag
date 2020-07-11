@@ -1290,6 +1290,7 @@ edu.gh
 edu.gi
 
 edu.gl
+uni.gl
 
 edu.gn
 
@@ -2586,4 +2587,3 @@ ac.zm
 edu.zm
 
 ac.zw
-

@@ -601,6 +601,9 @@ ed.cr
 
 edu.cu
 
+edu.cv
+unipiaget.cv
+
 edu.cw
 
 ac.cy

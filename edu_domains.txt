@@ -1549,6 +1549,7 @@ edu.jo
 
 ac.jp
 ed.jp
+waseda.jp
 
 ac.ke
 

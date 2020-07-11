@@ -6,6 +6,7 @@ import "log"
 import "net"
 import "os"
 import "regexp"
+import "strconv"
 import "strings"
 import "time"
 import "database/sql"
@@ -29,6 +30,7 @@ type ResourcePool struct {
 
 // These are global for easy re-use
 var resolver string
+var resport int
 var timeout int
 
 func main() {
@@ -40,6 +42,7 @@ func main() {
 //	var timeout int
 	opt.StringVar(&dbfile, "db", "in-addr.sql", opt.Required())
 	opt.StringVar(&resolver, "resolver", "193.189.250.100")
+	opt.IntVar(&resport, "port", 53)
 	opt.IntVar(&workers, "workers", 10)
 	opt.IntVar(&timeout, "timeout", 6)
         remaining, err := opt.Parse(os.Args[1:])
@@ -82,7 +85,7 @@ func main() {
 //		c.WriteTimeout = time.Duration(timeout) * time.Second
 		c := init_dns_client(timeout)
 //		conn, _ := c.Dial(resolver+":53")
-		conn := init_dns_conn(c, resolver)
+		conn := init_dns_conn(c, resolver, resport)
 		respool <- ResourcePool{c, conn}
 	}
 
@@ -279,7 +282,7 @@ func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, res
 		respool <- myresource
 	} else {
 		// If we encountered an error, we do not recycle the connection
-		respool <- ResourcePool{init_dns_client(timeout), init_dns_conn(c, resolver)}
+		respool <- ResourcePool{init_dns_client(timeout), init_dns_conn(c, resolver, resport)}
 	}
 }
 
@@ -306,7 +309,7 @@ func init_dns_client (timeout int) (*dns.Client) {
 	return c
 }
 
-func init_dns_conn (c *dns.Client, resolver string) (*dns.Conn) {
-	conn, _ := c.Dial(resolver+":53")
+func init_dns_conn (c *dns.Client, resolver string, resport int) (*dns.Conn) {
+	conn, _ := c.Dial(resolver+":"+strconv.FormatInt(int64(resport), 10))
 	return conn
 }

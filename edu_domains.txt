@@ -7,6 +7,9 @@ uda.ad
 ac.ae
 edu.af
 
+# .ai
+sjsm.org
+
 edu.al
 artacademy.al
 upt.al
@@ -44,6 +47,10 @@ uni-seeburg.at
 
 edu.au
 
+ua.aw
+
+ha.ax
+
 edu.az
 
 edu.ba
@@ -55,6 +62,11 @@ untz.ba
 unze.ba
 
 edu.bb
+codrington.org
+biumed.com
+vubmed.org
+wubmed.org
+
 
 ac.be
 ahs-dg.be

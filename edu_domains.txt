@@ -176,6 +176,8 @@ rcsi-mub.com
 edu.bi
 hopeafricauniversity.org
 
+uac.bj
+
 edu.bm
 
 edu.bn

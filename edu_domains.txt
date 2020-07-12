@@ -18,6 +18,9 @@ spjain.org
 unecon.ae
 
 edu.af
+anim-music.org
+qalam.institute
+khurasan.org
 
 # .ai
 sjsm.org

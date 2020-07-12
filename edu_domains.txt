@@ -1381,6 +1381,7 @@ comfsm.fm
 
 setur.fo
 
+cnam-liban.fr
 cue-lillenorddefrance.fr
 dauphine.fr
 ict-toulouse.fr
@@ -1863,6 +1864,8 @@ edu.kz
 edu.la
 
 edu.lb
+makassed.org
+ouzai.org
 
 edu.lc
 aimu.us

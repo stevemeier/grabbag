@@ -5,6 +5,18 @@ edu.ac
 uda.ad
 
 ac.ae
+aue.ae
+cuca.ae
+eibfs.com
+esbfedu.com
+iau.ae
+manipaldubai.com
+mbrsg.ae
+murdochuniversitydubai.com
+mywestford.com
+spjain.org
+unecon.ae
+
 edu.af
 
 # .ai
@@ -1461,6 +1473,7 @@ tcd.ie
 ucc.ie
 ucd.ie
 ul.ie
+rcsi.com
 
 ac.il
 k12.il

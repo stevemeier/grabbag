@@ -1458,6 +1458,9 @@ uvsq.fr
 universiteomarbongo.org
 
 edu.ge
+gipa.ge
+gtu.ge
+tsu.ge
 
 ac.gg
 

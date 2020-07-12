@@ -2723,6 +2723,9 @@ edu.vc
 
 edu.ve
 e12.ve
+ucv.ve
+ula.ve
+usb.ve
 
 k12.vi
 

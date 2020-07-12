@@ -1234,6 +1234,8 @@ ttu.ee
 
 edu.eg
 
+edu.er
+
 edu.es
 deusto.es
 ehu.es
@@ -1302,6 +1304,10 @@ uvic.cat
 uvigo.gal
 
 edu.et
+aksumuniversity.org
+dbuc-ethiopia.org
+jethrolmi.com
+riftvalleyuniversity.org
 
 aalto.fi
 abo.fi

@@ -702,6 +702,14 @@ ac.cr
 ed.cr
 
 edu.cu
+cug.co.cu
+suss.co.cu
+isa.cult.cu
+eictv.org
+uci.cu
+uh.cu
+umcc.cu
+unica.cu
 
 edu.cv
 unipiaget.cv

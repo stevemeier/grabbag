@@ -181,6 +181,7 @@ uac.bj
 college.bm
 
 edu.bn
+kemudainstitute.com
 
 edu.bo
 umsa.bo

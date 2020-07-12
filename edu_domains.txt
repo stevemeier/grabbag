@@ -2743,6 +2743,13 @@ school.za
 
 ac.zm
 edu.zm
+unza.zm
+cavendishza.org
+edenuniversity.net
+gideonrobertuniversity.com
+northriseuniversity.com
+oakuniversity.net
+rockviewuniversity.com
+vfu-elearning.net
 
 ac.zw
-

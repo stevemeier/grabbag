@@ -1404,6 +1404,9 @@ upmf-grenoble.fr
 upmc.fr
 uvsq.fr
 
+# .ga
+universiteomarbongo.org
+
 edu.ge
 
 edu.gh

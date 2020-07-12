@@ -168,6 +168,10 @@ unwe.bg
 vfu.bg
 
 edu.bh
+bibf.com
+bub.bh
+polytechnic.bh
+rcsi-mub.com
 
 edu.bi
 

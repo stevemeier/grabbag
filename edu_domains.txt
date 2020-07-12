@@ -1474,6 +1474,9 @@ edu.gl
 uni.gl
 
 edu.gn
+univ-kag.org
+uganc.org
+ujnk.org
 
 edu.gp
 

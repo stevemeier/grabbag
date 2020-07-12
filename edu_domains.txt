@@ -33,6 +33,31 @@ edu.al
 artacademy.al
 upt.al
 
+academedu.org
+anau.am
+asipc.am
+aspu.am
+asue.am
+aua.am
+brusov.am
+cmsa.am
+conservatory.am
+eiu.am
+gevorgianseminary.am
+gorsu.am
+gsu.am
+nuaca.am
+polytech.am
+rau.am
+sci.am
+shsu.am
+ufar.am
+vsu.am
+yafa.am
+ysitc.am
+ysmu.am
+ysu.am
+
 ed.ao
 
 edu.ar

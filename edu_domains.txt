@@ -2737,6 +2737,18 @@ talua.org
 
 edu.ws
 
+# .ye
+edu.ye
+qau.ye
+aden-univ.net
+alsaeeduni.com
+andalusuniv.net
+futureuniversity-ye.net
+liuyemen.com
+national-univ.net
+sabauni.net
+yemenuniversity.com
+
 ac.za
 edu.za
 school.za

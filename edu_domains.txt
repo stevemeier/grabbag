@@ -2850,12 +2850,15 @@ cc.wy.us
 edu.uy
 
 edu.vc
+allsaintsu.org
 
 edu.ve
 e12.ve
 ucv.ve
 ula.ve
 usb.ve
+
+edu.vg
 
 k12.vi
 

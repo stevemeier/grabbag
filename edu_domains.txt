@@ -2526,6 +2526,10 @@ edu.sy
 
 ac.sz
 
+# .tc
+charisma.edu.eu
+ucp.tc
+
 ac.th
 
 edu.tm

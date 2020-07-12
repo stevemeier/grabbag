@@ -1700,6 +1700,22 @@ kbms.org
 koyauniversity.org
 
 ac.ir
+iate.ir
+iaupg.ir
+ibs.ir
+ictfaculty.ir
+iju.ir
+ikvu.ir
+imamaliuniv.aja.ir
+instroct.ir
+iricss.org
+iuim.ir
+jamiuni.ir
+mamasaniu.ir
+mou.ir
+www.ncst.ir
+uoe.ir
+usm.ir
 
 edu.is
 bifrost.is

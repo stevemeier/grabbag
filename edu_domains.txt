@@ -1978,8 +1978,9 @@ usm.md
 usmf.md
 utm.md
 
-edu.me
 ac.me
+edu.me
+unimediteran.net
 
 edu.mg
 ucm.mg

@@ -112,7 +112,6 @@ biumed.com
 vubmed.org
 wubmed.org
 
-
 ac.be
 ahs-dg.be
 coleurope.eu
@@ -127,6 +126,11 @@ uliege.be
 unamur.be
 usaintlouis.be
 vlerick.com
+
+# .bf
+univ-faso.org
+univ-koudougou.bf
+univ-ouaga.bf
 
 artacademyplovdiv.com
 aubg.bg

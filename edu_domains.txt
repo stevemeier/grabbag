@@ -1422,6 +1422,9 @@ edu.gn
 
 edu.gp
 
+# .gq
+unge.education
+
 edu.gr
 aegean.gr
 asfa.gr

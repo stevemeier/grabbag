@@ -1452,6 +1452,11 @@ edu.gt
 edu.gu
 
 edu.gy
+busineschool.com
+cpce.gy
+gtech.university
+laumed.org
+tauedu.org
 
 edu.hk
 

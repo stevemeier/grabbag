@@ -1877,8 +1877,29 @@ liechtenstein-institut.li
 ufl.li
 uni.li
 
-edu.lk
 ac.lk
+edu.lk
+americancollege.lk
+apiit.lk
+aquinas.lk
+bms.lk
+dmedu.lk
+ieslce.lk
+iihe.lk
+iti.lk
+iuhscampus.lk
+kiu.lk
+nie.lk
+niibs.lk
+northshore.lk
+pgihs.lk
+ric.lk
+slia.lk
+slida.lk
+sliit.lk
+slintecacademy.lk
+sliitacademy.lk
+slpi.lk
 
 edu.lr
 

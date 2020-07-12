@@ -1838,6 +1838,11 @@ https://www.kefri.org/
 
 edu.kg
 
+edu.kh
+open.org.kh
+cam-ed.com
+norton-u.com
+
 edu.ki
 
 edu.km

@@ -564,6 +564,16 @@ viu.ca
 wlu.ca
 yorku.ca
 
+ac.cd
+iccnrdc.org
+issntgoma.net
+ucbc.org
+ueemi.org
+ulk-rdc.org
+uniband-ac.org
+unishabunia.org
+universitekongo.org
+
 bfh.ch
 bienenberg.ch
 epfl.ch

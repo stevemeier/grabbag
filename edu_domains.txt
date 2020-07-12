@@ -2497,6 +2497,8 @@ ustp.st
 
 edu.sv
 
+usm.sx
+
 edu.sy
 
 ac.sz

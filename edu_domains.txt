@@ -680,6 +680,20 @@ utalca.cl
 utel.cl
 uv.cl
 
+edu.cm
+udm.aed-cm.org
+catuc.org
+hipdet-edu.com
+iubamenda.org
+kesmondsuniversity.org
+swisslinkedu.com
+ubuea.cm
+uniba.cm
+univ-douala.cm
+univ-dschang.org
+univ-ndere.cm
+universite-yde2.org
+
 edu.cn
 
 edu.co

@@ -1854,6 +1854,7 @@ edu.kp
 ac.kr
 
 edu.kw
+msm-kuwait.com
 
 edu.ky
 

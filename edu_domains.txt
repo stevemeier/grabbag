@@ -1674,6 +1674,30 @@ ac.im
 edu.in
 
 edu.iq
+auis.edu.krd
+auk.edu.krd
+cue.edu.krd
+dpu.edu.krd
+duhokcihan.edu.krd
+garmian.edu.krd
+hmu.edu.krd
+kissr.edu.krd
+knowledge.edu.krd
+lfu.edu.krd
+nawroz.edu.krd
+su.edu.krd
+sulicihan.edu.krd
+ue.edu.krd
+ukh.edu.krd
+uor.edu.krd
+uoz.edu.krd
+uod.ac
+alamarahcollege.net
+iraqiuniversity.net
+auc-edu.org
+charmouniversity.org
+kbms.org
+koyauniversity.org
 
 ac.ir
 

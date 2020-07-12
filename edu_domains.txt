@@ -1364,6 +1364,7 @@ univ-lorraine.fr
 univ-lyon1.fr
 univ-lyon2.fr
 univ-lyon3.fr
+univ-mayotte.fr
 univ-mlv.fr
 univ-montp1.fr
 univ-montp2.fr

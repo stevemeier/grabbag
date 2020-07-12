@@ -574,6 +574,10 @@ uniband-ac.org
 unishabunia.org
 universitekongo.org
 
+# .cf
+euclid.int
+univ-bangui.org
+
 bfh.ch
 bienenberg.ch
 epfl.ch

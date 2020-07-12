@@ -96,6 +96,7 @@ ua.aw
 ha.ax
 
 edu.az
+gsu.az
 
 edu.ba
 sve-mo.ba

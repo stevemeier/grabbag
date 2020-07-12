@@ -132,6 +132,10 @@ univ-faso.org
 univ-koudougou.bf
 univ-ouaga.bf
 
+# .bi
+edu.bi
+hopeafricauniversity.org
+
 artacademyplovdiv.com
 aubg.bg
 au-plovdiv.bg

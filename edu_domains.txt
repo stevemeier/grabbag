@@ -22,6 +22,10 @@ anim-music.org
 qalam.institute
 khurasan.org
 
+# .ag
+auamed.org
+uhsa.ag
+
 # .ai
 sjsm.org
 

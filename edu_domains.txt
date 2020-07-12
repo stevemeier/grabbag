@@ -1525,6 +1525,9 @@ hku.hk
 ust.hk
 
 edu.hn
+ceutec.hn
+uth.hn
+ucenm.net
 
 algebra.university
 aspira.hr

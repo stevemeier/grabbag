@@ -694,6 +694,7 @@ univ-dschang.org
 univ-ndere.cm
 universite-yde2.org
 
+ac.cn
 edu.cn
 
 edu.co
@@ -1217,6 +1218,55 @@ edu.do
 flacso.org.do
 
 edu.dz
+lagh-univ.dz
+ufc.dz
+ummto.dz
+univ-adrar.dz
+univ-alger.dz
+univ-alger2.dz
+univ-alger3.dz
+univ-annaba.dz
+univ-batna.dz
+univ-batna2.dz
+univ-bba.dz
+univ-bechar.dz
+univ-bejaia.dz
+univ-biskra.dz
+univ-blida.dz
+univ-blida2.dz
+univ-bouira.dz
+univ-boumerdes.dz
+univ-chlef.dz
+univ-constantine2.dz
+univ-constantine3.dz
+univ-djelfa.dz
+univ-eloued.dz
+univ-eltarf.dz
+univ-emir.dz
+univ-ghardaia.dz
+univ-guelma.dz
+univ-jijel.dz
+univ-khenchela.dz
+univ-km.dz
+univ-mascara.dz
+univ-medea.dz
+univ-mosta.dz
+univ-msila.dz
+univ-oeb.dz
+univ-oran1.dz
+univ-oran2.dz
+univ-ouargla.dz
+univ-saida.dz
+univ-sba.dz
+univ-setif.dz
+univ-setif2.dz
+univ-skikda.dz
+univ-soukahras.dz
+univ-tebessa.dz
+univ-tiaret.dz
+univ-tlemcen.dz
+univ-usto.dz
+usthb.dz
 
 k12.ec
 edu.ec

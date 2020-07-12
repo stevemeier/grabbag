@@ -2514,7 +2514,9 @@ edu.sn
 
 edu.so
 
+ac.ss
 edu.ss
+jubauni.net
 
 ustp.st
 

@@ -2048,6 +2048,11 @@ edu.mn
 
 edu.mo
 
+enajm.mr
+liu.mr
+una.mr
+ustm.mr
+
 edu.ms
 
 edu.mt

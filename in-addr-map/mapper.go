@@ -263,7 +263,8 @@ func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, res
 		respool <- myresource
 	} else {
 		// If we encountered an error, we do not recycle the connection
-		respool <- ResourcePool{init_dns_client(timeout), init_dns_conn(c, resolver, resport), 0}
+		newclient := init_dns_client(timeout)
+		respool <- ResourcePool{newclient, init_dns_conn(newclient, resolver, resport), 0}
 	}
 
 	// Free a spot in workqueue

@@ -79,7 +79,10 @@ func main() {
 
 	for i := 1; i <= cap(respool); i++ {
 		c := init_dns_client(timeout)
-		conn := init_dns_conn(c, resolver, resport)
+		conn, connerr := init_dns_conn(c, resolver, resport)
+		if connerr != nil {
+			log.Fatal("Failed to create connection: ", connerr.Error())
+		}
 //		respool <- ResourcePool{c, conn}
 		respool <- ResourcePool{c, conn, 0}
 	}
@@ -264,7 +267,13 @@ func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, res
 	} else {
 		// If we encountered an error, we do not recycle the connection
 		newclient := init_dns_client(timeout)
-		respool <- ResourcePool{newclient, init_dns_conn(newclient, resolver, resport), 0}
+		newconn, connerr := init_dns_conn(newclient, resolver, resport)
+//		respool <- ResourcePool{newclient, init_dns_conn(newclient, resolver, resport), 0}
+		if connerr == nil {
+			respool <- ResourcePool{newclient, newconn, 0}
+		} else {
+			log.Fatal("Failed to re-init connection: ", connerr.Error())
+		}
 	}
 
 	// Free a spot in workqueue
@@ -294,7 +303,7 @@ func init_dns_client (timeout int) (*dns.Client) {
 	return c
 }
 
-func init_dns_conn (c *dns.Client, resolver string, resport int) (*dns.Conn) {
-	conn, _ := c.Dial(resolver+":"+strconv.FormatInt(int64(resport), 10))
-	return conn
+func init_dns_conn (c *dns.Client, resolver string, resport int) (*dns.Conn, error) {
+	conn, connerr := c.Dial(resolver+":"+strconv.FormatInt(int64(resport), 10))
+	return conn, connerr
 }

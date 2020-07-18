@@ -26,6 +26,7 @@ type Result struct {
 type ResourcePool struct {
 	Client	*dns.Client
 	Conn	*dns.Conn
+	Uses	int64
 }
 
 // These are global for easy re-use
@@ -79,11 +80,12 @@ func main() {
 	for i := 1; i <= cap(respool); i++ {
 		c := init_dns_client(timeout)
 		conn := init_dns_conn(c, resolver, resport)
-		respool <- ResourcePool{c, conn}
+//		respool <- ResourcePool{c, conn}
+		respool <- ResourcePool{c, conn, 0}
 	}
 
 	// Statistics channel
-	statchan := make(chan int, 100)
+	statchan := make(chan int, 1000)
 
 	go find_next_ip(db, ipqueue)
 	go store_results_tx(db, ptrqueue, statchan)
@@ -166,7 +168,9 @@ func ReverseIPAddress (input string) (string) {
 func find_next_ip (db *sql.DB, ipqueue chan string) () {
 	for {
 		if len(ipqueue) < (cap(ipqueue) / 2) {
-			stmt1, err1 := db.Prepare("SELECT o1 || '.' || o2 || '.' || o3 || '.' || o4 FROM t1 WHERE lastupd IS NULL LIMIT ?")
+		//	stmt1, err1 := db.Prepare("SELECT o1 || '.' || o2 || '.' || o3 || '.' || o4 FROM t1 WHERE lastupd IS NULL LIMIT ?")
+			stmt1, err1 := db.Prepare("SELECT o1 || '.' || o2 || '.' || o3 || '.' || o4 FROM t1 ORDER BY lastupd ASC LIMIT ?")
+//			stmt1, err1 := db.Prepare("SELECT o1 || '.' || o2 || '.' || o3 || '.' || o4 FROM t1 WHERE lastupd = 0 LIMIT ?")
 			defer stmt1.Close()
 			if err1 != nil {
 				log.Fatal(err1)
@@ -244,6 +248,7 @@ func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, res
 	myresource :=  <-respool
 	c := myresource.Client
 	conn := myresource.Conn
+	myresource.Uses++
 
 	in, lookuperr := ptrlookup(nextip, c, conn)
 	if lookuperr == nil {
@@ -258,7 +263,7 @@ func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, res
 		respool <- myresource
 	} else {
 		// If we encountered an error, we do not recycle the connection
-		respool <- ResourcePool{init_dns_client(timeout), init_dns_conn(c, resolver, resport)}
+		respool <- ResourcePool{init_dns_client(timeout), init_dns_conn(c, resolver, resport), 0}
 	}
 
 	// Free a spot in workqueue

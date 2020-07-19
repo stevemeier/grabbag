@@ -146,6 +146,7 @@ func ptrlookup (ipaddr string, client *dns.Client, conn *dns.Conn) (*dns.Msg, er
 	m1.Question[0] = dns.Question{ReverseIPAddress(ipaddr) + ".in-addr.arpa.", dns.TypePTR, dns.ClassINET}
 
 	in, _, err := client.ExchangeWithConn(m1, conn)
+	if err != nil { conn.Close() }
 
 	return in, err
 }

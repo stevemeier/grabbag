@@ -3,6 +3,7 @@ package main
 import "github.com/miekg/dns"
 import "github.com/DavidGamba/go-getoptions"
 import "log"
+import "math/rand"
 import "net"
 import "os"
 import "regexp"
@@ -30,7 +31,7 @@ type ResourcePool struct {
 }
 
 // These are global for easy re-use
-var resolver string
+var resolvers []string
 var resport int
 var timeout int
 
@@ -40,7 +41,7 @@ func main() {
 	var dbfile string
 	var workers int
 	opt.StringVar(&dbfile, "db", "in-addr.sql", opt.Required())
-	opt.StringVar(&resolver, "resolver", "193.189.250.100")
+	opt.StringSliceVar(&resolvers, "resolvers", 1, 10)
 	opt.IntVar(&resport, "port", 53)
 	opt.IntVar(&workers, "workers", 10)
 	opt.IntVar(&timeout, "timeout", 6)
@@ -79,11 +80,10 @@ func main() {
 
 	for i := 1; i <= cap(respool); i++ {
 		c := init_dns_client(timeout)
-		conn, connerr := init_dns_conn(c, resolver, resport)
+		conn, connerr := init_dns_conn(c, random_resolver(), resport)
 		if connerr != nil {
 			log.Fatal("Failed to create connection: ", connerr.Error())
 		}
-//		respool <- ResourcePool{c, conn}
 		respool <- ResourcePool{c, conn, 0}
 	}
 
@@ -267,8 +267,7 @@ func worker (workqueue chan bool, ipqueue chan string, ptrqueue chan Result, res
 	} else {
 		// If we encountered an error, we do not recycle the connection
 		newclient := init_dns_client(timeout)
-		newconn, connerr := init_dns_conn(newclient, resolver, resport)
-//		respool <- ResourcePool{newclient, init_dns_conn(newclient, resolver, resport), 0}
+		newconn, connerr := init_dns_conn(newclient, random_resolver(), resport)
 		if connerr == nil {
 			respool <- ResourcePool{newclient, newconn, 0}
 		} else {
@@ -306,4 +305,11 @@ func init_dns_client (timeout int) (*dns.Client) {
 func init_dns_conn (c *dns.Client, resolver string, resport int) (*dns.Conn, error) {
 	conn, connerr := c.Dial(resolver+":"+strconv.FormatInt(int64(resport), 10))
 	return conn, connerr
+}
+
+func random_resolver () (string) {
+	rand.Seed(int64(time.Now().Nanosecond()))
+	pick := resolvers[rand.Intn(len(resolvers))]
+	log.Println("Picked", pick)
+	return pick
 }

@@ -36,6 +36,9 @@ var resport int
 var timeout int
 
 func main() {
+	// Initialize rand
+	rand.Seed(time.Now().Unix() + int64(time.Now().Nanosecond()))
+
 	// Parse options
         opt := getoptions.New()
 	var dbfile string
@@ -308,7 +311,6 @@ func init_dns_conn (c *dns.Client, resolver string, resport int) (*dns.Conn, err
 }
 
 func random_resolver () (string) {
-	rand.Seed(int64(time.Now().Nanosecond()))
 	pick := resolvers[rand.Intn(len(resolvers))]
 	log.Println("Picked", pick)
 	return pick

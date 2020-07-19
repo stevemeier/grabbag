@@ -208,8 +208,8 @@ func store_results (db *sql.DB, ptrqueue chan Result) {
 		stmt1, _ := db.Prepare("UPDATE t1 SET rcode = ?, ptr = ?, lastupd = ? WHERE o1 = ? AND o2 = ? AND o3 = ? AND o4 = ?")
 		defer stmt1.Close()
 
-		now := time.Now()
-		_, err := stmt1.Exec(result.Opcode, result.Ptrdata, now.Unix(), oct[0], oct[1], oct[2], oct[3])
+		now := time.Now().Unix()
+		_, err := stmt1.Exec(result.Opcode, result.Ptrdata, now, oct[0], oct[1], oct[2], oct[3])
 		if err != nil {
 			log.Println(err)
 		}

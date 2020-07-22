@@ -12,13 +12,16 @@ import "io"
 import "os"
 import "regexp"
 import "strconv"
+import "strings"
 
 func main() {
 	var directory string
 	var listen string
+	var methods []string
 	opt := getoptions.New()
 	opt.StringVar(&directory, "directory", ``, opt.Required())
 	opt.StringVar(&listen, "listen", `:8000`)
+	opt.StringSliceVar(&methods, "methods", 1, 4)
 	remaining, err := opt.Parse(os.Args[1:])
 
 	// Handle empty or unknown options
@@ -35,6 +38,15 @@ func main() {
                 os.Exit(1)
         }
 
+	// By default, enable all methods
+	if len(methods) == 0 {
+		methods = append(methods, "GET")
+		methods = append(methods, "POST")
+		methods = append(methods, "PUT")
+		methods = append(methods, "DELETE")
+	}
+
+	// Change to storage directory
 	direrr := os.Chdir(directory)
 	if direrr != nil {
 		log.Fatal("ERROR: "+direrr.Error())
@@ -42,9 +54,18 @@ func main() {
 	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/{key}", GetHandler).Methods("GET")
-	r.HandleFunc("/{key}", PostHandler).Methods("POST")
-	r.HandleFunc("/{key}", DeleteHandler).Methods("DELETE")
+	if contains(methods, "GET") {
+		r.HandleFunc("/{key}", GetHandler).Methods("GET")
+	}
+	if contains(methods, "POST") {
+		r.HandleFunc("/{key}", PostHandler).Methods("POST")
+	}
+	if contains(methods, "DELETE") {
+		r.HandleFunc("/{key}", DeleteHandler).Methods("DELETE")
+	}
+	if contains(methods, "PUT") {
+		r.HandleFunc("/{key}", PutHandler).Methods("PUT")
+	}
 
 	srv := &http.Server{
         Handler:      r,
@@ -176,4 +197,47 @@ func GetFileContentType(out *os.File) (string, error) {
 func StartsWithDot (path string) (bool) {
 	match, _ := regexp.MatchString("^\\.", path)
 	return match
+}
+
+func PutHandler (w http.ResponseWriter, r *http.Request) {
+	endpoint := mux.Vars(r)["key"]
+	if (StartsWithDot(endpoint)) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	// Check if file exists, error if not (create == POST)
+	_, err1 := os.Stat(endpoint)
+	if os.IsNotExist(err1) {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Open for writing
+	fh, err := os.OpenFile(endpoint, os.O_WRONLY, 0644)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		io.WriteString(w, err.Error())
+		return
+	}
+	defer fh.Close()
+
+	// Copy data to file
+	// Truncate in case previous content was longer than new content
+	bytes, err2 := io.Copy(fh, r.Body)
+	fh.Truncate(bytes)
+
+	// Log & Return
+	log.Println(`PUT`, endpoint, bytes, err2)
+	return
+}
+
+func contains (slice []string, item string) (bool) {
+	for _, s := range slice {
+		if strings.EqualFold(s, item) {
+			return true
+		}
+	}
+
+	return false
 }

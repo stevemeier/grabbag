@@ -44,6 +44,7 @@ func main() {
 		methods = append(methods, "POST")
 		methods = append(methods, "PUT")
 		methods = append(methods, "DELETE")
+		methods = append(methods, "HEAD")
 	}
 
 	// Change to storage directory
@@ -65,6 +66,9 @@ func main() {
 	}
 	if contains(methods, "PUT") {
 		r.HandleFunc("/{key}", PutHandler).Methods("PUT")
+	}
+	if contains(methods, "HEAD") {
+		r.HandleFunc("/{key}", HeadHandler).Methods("HEAD")
 	}
 
 	srv := &http.Server{
@@ -240,4 +244,23 @@ func contains (slice []string, item string) (bool) {
 	}
 
 	return false
+}
+
+func HeadHandler (w http.ResponseWriter, r *http.Request) {
+	endpoint := mux.Vars(r)["key"]
+	if (StartsWithDot(endpoint)) {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	// Try to open file
+	fh, err := os.Open(endpoint)
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	defer fh.Close()
+
+	log.Println(`HEAD`, endpoint)
+	return
 }

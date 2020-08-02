@@ -109,6 +109,9 @@ func GetHandler (w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(`Content-Length`, strconv.FormatInt(stat.Size(), 10) )
 	}
 
+	// Add Last-Modified header
+	w.Header().Set(`Last-Modified`, LastModified(endpoint))
+
 	// Log & Return
 	bytes, err4 := io.Copy(w, fh)
 	log.Println(`GET`, endpoint, bytes, err4)
@@ -261,6 +264,21 @@ func HeadHandler (w http.ResponseWriter, r *http.Request) {
 	}
 	defer fh.Close()
 
+	// Add Last-Modified header
+	w.Header().Set(`Last-Modified`, LastModified(endpoint))
+
 	log.Println(`HEAD`, endpoint)
 	return
+}
+
+func LastModified (filename string) (string) {
+	fh, err := os.Open(filename)
+	if err == nil {
+		defer fh.Close()
+	} else {
+		return ``
+	}
+	statinfo, _ := fh.Stat()
+
+	return statinfo.ModTime().Format(http.TimeFormat)
 }

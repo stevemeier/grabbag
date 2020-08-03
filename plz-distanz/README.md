@@ -1,6 +1,6 @@
 # PLZ Distanz
 
-Calculate the distannce (in kilometers) between to PLZs (German ZIP codes)
+Calculate the distannce (in kilometers) between two PLZ (German ZIP codes)
 
 ### Data sources
 

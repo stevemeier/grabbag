@@ -29,6 +29,10 @@ while(<$EKSTATUS>) {
 }
 close($EKSTATUS);
 
+if ($? > 0) {
+  $mp->plugin_exit(UNKNOWN, "etckeeper exited with status ".($? >> 8))
+}
+
 if ( ($modified > 0) || ($deleted > 0) ) {
   $mp->plugin_exit(CRITICAL, "$modified file(s) modified, $deleted file(s) deleted")
 }

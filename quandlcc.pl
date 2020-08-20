@@ -27,17 +27,18 @@ GetOptions( "in=s"      => \$in,
             "debug"     => \$debug,
             "test"      => \$test );
 
-# Ensure that currency codes are lower-case
-$in  = lc($in);
-$out = lc($out);
-
 # The remaining parameter should be the amount
 if (not(defined($ARGV[0]))) {
-  print "No value to convert\n";
+  print "ERROR: No value to convert\n";
+  &usage;
   exit 1;
 } else {
   $value = $ARGV[0];
 }
+
+# Ensure that currency codes are lower-case
+$in  = lc($in);
+$out = lc($out);
 
 # Setup LWP objects
 my $ua = LWP::UserAgent->new(timeout => 10, agent => 'curl/7.43.0');
@@ -211,3 +212,13 @@ sub debug {
 
   return;
 }
+
+sub usage {
+  print "Usage: $0 --in <CURRENCY> --out <CURRENCY> [ --decimal <n> ] [ --debug ] [ --test ] <VALUE>\n\n";
+  print "CURRENCY is a ISO-4217 code such as EUR, USD, AUD, etc.\n";
+  print "VALUE is the amount in the IN currency, which will be converted to OUT currency\n\n";
+  print "--decimcal <n>\t\tProvide <n> decimal points (0 = integer)\n";
+  print "--debug\t\t\tEnables debug output\n";
+  print "--test\t\t\tTest all available conversions\n\n";
+}
+

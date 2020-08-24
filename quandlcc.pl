@@ -19,7 +19,9 @@ my $apikey = '';
 my $baseurl = "https://www.quandl.com/api/v3/datasets/";
 
 # Parse command line options
-my ($value, $in, $out, $debug, $test);
+my $in = "";
+my $out = "";
+my ($value, $debug, $test);
 my $decimal = 2;
 GetOptions( "in=s"      => \$in,
 	    "out=s"     => \$out,
@@ -50,85 +52,93 @@ my $json = JSON->new->allow_nonref;
 my $jsondata;
 
 # Map of API
-my %apimap = ( 'gbp' => { 'aud' => 'BOE/XUDLADS',
-	                  'cad' => 'BOE/XUDLCDS',
-	                  'cny' => 'BOE/XUDLBK89',
-	                  'czk' => 'BOE/XUDLBK25',
-	                  'dkk' => 'BOE/XUDLDKS',
-	                  'hkd' => 'BOE/XUDLHDS',
-	                  'huf' => 'BOE/XUDLBK33',
-	                  'inr' => 'BOE/XUDLBK97',
-	                  'nis' => 'BOE/XUDLBK78',
-	                  'jpy' => 'BOE/XUDLJYS',
-	                  'myr' => 'BOE/XUDLBK83',
-	                  'nzd' => 'BOE/XUDLNDS',
-	                  'nok' => 'BOE/XUDLNKS',
-	                  'pln' => 'BOE/XUDLBK47',
-	                  'rub' => 'BOE/XUDLBK85',
-	                  'sar' => 'BOE/XUDLSRS',
-	                  'sgd' => 'BOE/XUDLSGS',
-	                  'zar' => 'BOE/XUDLZRS',
-	                  'krw' => 'BOE/XUDLBK93',
-	                  'sek' => 'BOE/XUDLSKS',
-	                  'chf' => 'BOE/XUDLSFS',
-	                  'twd' => 'BOE/XUDLTWS',
-	                  'thb' => 'BOE/XUDLBK87',
-	                  'try' => 'BOE/XUDLBK95' },
+my %apimap = ( 'gbp' => { 'aud' => [ 'BOE/XUDLADS', 1 ],
+	                  'cad' => [ 'BOE/XUDLCDS', 1 ],
+	                  'cny' => [ 'BOE/XUDLBK89', 1 ],
+	                  'czk' => [ 'BOE/XUDLBK25', 1 ],
+	                  'dkk' => [ 'BOE/XUDLDKS', 1 ],
+	                  'hkd' => [ 'BOE/XUDLHDS', 1 ],
+	                  'huf' => [ 'BOE/XUDLBK33', 1 ],
+	                  'inr' => [ 'BOE/XUDLBK97', 1 ],
+	                  'nis' => [ 'BOE/XUDLBK78', 1 ],
+	                  'jpy' => [ 'BOE/XUDLJYS', 1 ],
+	                  'myr' => [ 'BOE/XUDLBK83', 1 ],
+	                  'nzd' => [ 'BOE/XUDLNDS', 1 ],
+	                  'nok' => [ 'BOE/XUDLNKS', 1 ],
+	                  'pln' => [ 'BOE/XUDLBK47', 1 ],
+	                  'rub' => [ 'BOE/XUDLBK85', 1 ],
+	                  'sar' => [ 'BOE/XUDLSRS', 1 ],
+	                  'sgd' => [ 'BOE/XUDLSGS', 1 ],
+	                  'zar' => [ 'BOE/XUDLZRS', 1 ],
+	                  'krw' => [ 'BOE/XUDLBK93', 1 ],
+	                  'sek' => [ 'BOE/XUDLSKS', 1 ],
+	                  'chf' => [ 'BOE/XUDLSFS', 1 ],
+	                  'twd' => [ 'BOE/XUDLTWS', 1 ],
+	                  'thb' => [ 'BOE/XUDLBK87', 1 ],
+	                  'try' => [ 'BOE/XUDLBK95', 1 ] },
 
-	       'usd' => { 'brl' => 'FRED/DEXBZUS',
-		          'cad' => 'FRED/DEXCAUS',
-		          'cny' => 'FRED/DEXCHUS',
-		          'dkk' => 'FRED/DEXDNUS',
-		          'hkd' => 'FRED/DEXHKUS',
-		          'inr' => 'FRED/DEXINUS',
-		          'jpy' => 'FRED/DEXJPUS',
-	                  'myr' => 'FRED/DEXMAUS',
-	                  'mxn' => 'FRED/DEXMXUS',
-	                  'twd' => 'FRED/DEXTAUS',
-	                  'nok' => 'FRED/DEXNOUS',
-	                  'sgd' => 'FRED/DEXSIUS',
-	                  'zar' => 'FRED/DEXSFUS',
-	                  'krw' => 'FRED/DEXKOUS',
-	                  'lkr' => 'FRED/DEXSLUS',
-	                  'sek' => 'FRED/DEXSDUS',
-	                  'chf' => 'FRED/DEXSZUS',
-	                  'thb' => 'FRED/DEXTHUS',
-	                  'vef' => 'FRED/DEXVZUS' },
-	       'aud' => { 'usd' => 'FRED/DEXUSAL' },
-	       'nzd' => { 'usd' => 'FRED/DEXUSNZ' },
+	       'usd' => { 'brl' => [ 'FRED/DEXBZUS', 1 ],
+		          'cad' => [ 'FRED/DEXCAUS', 1 ],
+		          'cny' => [ 'FRED/DEXCHUS', 1 ],
+		          'dkk' => [ 'FRED/DEXDNUS', 1 ],
+		          'hkd' => [ 'FRED/DEXHKUS', 1 ],
+		          'inr' => [ 'FRED/DEXINUS', 1 ],
+		          'jpy' => [ 'FRED/DEXJPUS', 1 ],
+	                  'myr' => [ 'FRED/DEXMAUS', 1 ],
+	                  'mxn' => [ 'FRED/DEXMXUS', 1 ],
+	                  'twd' => [ 'FRED/DEXTAUS', 1 ],
+	                  'nok' => [ 'FRED/DEXNOUS', 1 ],
+	                  'sgd' => [ 'FRED/DEXSIUS', 1 ],
+	                  'zar' => [ 'FRED/DEXSFUS', 1 ],
+	                  'krw' => [ 'FRED/DEXKOUS', 1 ],
+	                  'lkr' => [ 'FRED/DEXSLUS', 1 ],
+	                  'sek' => [ 'FRED/DEXSDUS', 1 ],
+	                  'chf' => [ 'FRED/DEXSZUS', 1 ],
+	                  'thb' => [ 'FRED/DEXTHUS', 1 ],
+	                  'vef' => [ 'FRED/DEXVZUS', 1 ] },
+	       'aud' => { 'usd' => [ 'FRED/DEXUSAL', 1 ] },
+	       'nzd' => { 'usd' => [ 'FRED/DEXUSNZ', 1 ] },
 
-	       'eur' => { 'aud' => 'ECB/EURAUD',
-                          'bgn' => 'ECB/EURBGN',
-          	          'brl' => 'ECB/EURBRL',
-	                  'cad' => 'ECB/EURCAD',
-	                  'chf' => 'ECB/EURCHF',
-	                  'cny' => 'ECB/EURCNY',
-	                  'czk' => 'ECB/EURCZK',
-	                  'dkk' => 'ECB/EURDKK',
-	                  'gbp' => 'ECB/EURGBP',
-	                  'hkd' => 'ECB/EURHKD',
-	                  'hrk' => 'ECB/EURHRK',
-	                  'huf' => 'ECB/EURHUF',
-	                  'idr' => 'ECB/EURIDR',
-	                  'ils' => 'ECB/EURILS',
-	                  'inr' => 'ECB/EURINR',
-	                  'isk' => 'ECB/EURISK',
-	                  'jpy' => 'ECB/EURJPY',
-	                  'krw' => 'ECB/EURKRW',
-	                  'mxn' => 'ECB/EURMXN',
-	                  'myr' => 'ECB/EURMYR',
-	                  'nok' => 'ECB/EURNOK',
-	                  'nzd' => 'ECB/EURNZD',
-	                  'php' => 'ECB/EURPHP',
-	                  'pln' => 'ECB/EURPLN',
-	                  'ron' => 'ECB/EURRON',
-	                  'rub' => 'ECB/EURRUB',
-	                  'sek' => 'ECB/EURSEK',
-	                  'sgd' => 'ECB/EURSGD',
-	                  'thb' => 'ECB/EURTHB',
-	                  'try' => 'ECB/EURTRY',
-	                  'usd' => 'ECB/EURUSD',
-	                  'zar' => 'ECB/EURZAR' }
+	       'eur' => { 'aud' => [ 'ECB/EURAUD', 1 ],
+                          'bgn' => [ 'ECB/EURBGN', 1 ],
+                          'brl' => [ 'ECB/EURBRL', 1 ],
+	                  'cad' => [ 'ECB/EURCAD', 1 ],
+	                  'chf' => [ 'ECB/EURCHF', 1 ],
+	                  'cny' => [ 'ECB/EURCNY', 1 ],
+	                  'czk' => [ 'ECB/EURCZK', 1 ],
+	                  'dkk' => [ 'ECB/EURDKK', 1 ],
+	                  'gbp' => [ 'ECB/EURGBP', 1 ],
+	                  'hkd' => [ 'ECB/EURHKD', 1 ],
+	                  'hrk' => [ 'ECB/EURHRK', 1 ],
+	                  'huf' => [ 'ECB/EURHUF', 1 ],
+	                  'idr' => [ 'ECB/EURIDR', 1 ],
+	                  'ils' => [ 'ECB/EURILS', 1 ],
+	                  'inr' => [ 'ECB/EURINR', 1 ],
+	                  'isk' => [ 'ECB/EURISK', 1 ],
+	                  'jpy' => [ 'ECB/EURJPY', 1 ],
+	                  'krw' => [ 'ECB/EURKRW', 1 ],
+	                  'mxn' => [ 'ECB/EURMXN', 1 ],
+	                  'myr' => [ 'ECB/EURMYR', 1 ],
+	                  'nok' => [ 'ECB/EURNOK', 1 ],
+	                  'nzd' => [ 'ECB/EURNZD', 1 ],
+	                  'php' => [ 'ECB/EURPHP', 1 ],
+	                  'pln' => [ 'ECB/EURPLN', 1 ],
+	                  'ron' => [ 'ECB/EURRON', 1 ],
+	                  'rub' => [ 'ECB/EURRUB', 1 ],
+	                  'sek' => [ 'ECB/EURSEK', 1 ],
+	                  'sgd' => [ 'ECB/EURSGD', 1 ],
+	                  'thb' => [ 'ECB/EURTHB', 1 ],
+	                  'try' => [ 'ECB/EURTRY', 1 ],
+	                  'usd' => [ 'ECB/EURUSD', 1 ],
+	                  'zar' => [ 'ECB/EURZAR', 1 ] },
+
+	       'xag' => { 'eur' => [ 'LBMA/SILVER', 3 ],
+	                  'gbp' => [ 'LBMA/SILVER', 2 ],
+	                  'usd' => [ 'LBMA/SILVER', 1 ] },
+
+	       'xau' => { 'eur' => [ 'LBMA/GOLD', 6 ],
+	                  'gbp' => [ 'LBMA/GOLD', 4 ],
+	                  'usd' => [ 'LBMA/GOLD', 2 ] }
 	     );
 
 # Run through all conversions (for testing)
@@ -153,7 +163,7 @@ sub convert {
 
   if (defined($apimap{$lin}{$lout})) {
     # We can do a straight conversion
-    $multiplier = &get_latest($apimap{$lin}{$lout});
+    $multiplier = &get_latest(@{$apimap{$lin}{$lout}});
     $lvalue = $lvalue * $multiplier;
     return $lvalue;
 
@@ -164,7 +174,7 @@ sub convert {
 
         # For the inverted conversion we do a division
         &debug("Doing inverted conversion\n");
-        $multiplier = &get_latest($apimap{$base}{$lin});
+        $multiplier = &get_latest(@{$apimap{$base}{$lin}});
         $lvalue = $lvalue / $multiplier;
         return $lvalue;
       }
@@ -175,16 +185,19 @@ sub convert {
 }
 
 sub get_latest {
-  my $endpoint = shift;
+  my @endpoint = @_;
   my $latest;
 
+  &debug("Endpoint 0 -> $endpoint[0]\n");
+  &debug("Endpoint 1 -> $endpoint[1]\n");
+
   if ($apikey) { 
-    &debug("Using API key\n");
-    $endpoint .= '?api_key='.$apikey
+    &debug("Using API key $apikey\n");
+    $endpoint[0] .= '?api_key='.$apikey
   }
 
-  &debug("Calling $baseurl$endpoint\n");
-  $uadata = $ua->get($baseurl.$endpoint);
+  &debug("Calling $baseurl$endpoint[0]\n");
+  $uadata = $ua->get($baseurl.$endpoint[0]);
 
   # Check if the request succeeded
   if ($uadata->is_success) {
@@ -196,11 +209,12 @@ sub get_latest {
     foreach my $data (@{$jsondata->{'dataset'}->{'data'}}) {
       if (@{$data}[0] eq $latest) { 
 	&debug("Latest data is from $latest\n");
-	return @{$data}[1];
+	&debug("Returning @{$data}[$endpoint[1]]\n");
+	return @{$data}[$endpoint[1]];
       }
     }
   } else {
-    print STDERR "ERROR: Could not fetch $endpoint\n";
+    print STDERR "ERROR: Could not fetch $endpoint[0]\n";
     exit 1;
   }
 

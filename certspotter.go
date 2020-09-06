@@ -105,12 +105,12 @@ func main () {
 		if (certificate.NotBefore).After(notbefore) && (certificate.NotBefore).Before(bestcandidate.NotBefore) {
 			if pubkeysha256 == certificate.PubkeySha256 {
 				if debug {
-					fmt.Println("Found better candidate")
+					fmt.Printf("Found better candidate (signed %s)", certificate.NotBefore)
 				}
 				bestcandidate = certificate
 			} else {
 				if debug {
-					fmt.Println("Found better candidate but with different public key. Ignoring it.")
+					fmt.Println("Found better candidate (signed %s) but with different public key. Ignoring it.", certificate.NotBefore)
 				}
 			}
 		}

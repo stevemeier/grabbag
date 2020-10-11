@@ -5,7 +5,6 @@ use warnings;
 use Date::Parse;
 use Getopt::Long;
 use HTML::Table;
-use RPM::NEVRA;
 use XML::Simple;
 
 $ENV{'LC_ALL'} = "C";
@@ -18,7 +17,6 @@ my %errata;
 my $getopt = GetOptions('errata=s'     => \$erratafile,
                         'stylesheet=s' => \$stylesheet,
                         'limit=i'      => \$limit);
-my $rpm = RPM::NEVRA->new();
 
 # Load errata, if defined
 if (defined($erratafile)) {
@@ -136,7 +134,7 @@ foreach my $transaction (@transactions) {
       $table->addRow('Related errata');
       $table->setCellAttr(-1, 1, 'class="errata"');
       $table->setCellColSpan(-1, 1, 2);
-      foreach $_ (@{$tdetails{$transaction}{'errata'}}) {
+      foreach $_ (sort(@{$tdetails{$transaction}{'errata'}})) {
         my $exposure = undef;
         if (/CESA/) {
           # Calculate exposure time
@@ -241,7 +239,7 @@ sub find_errata {
 
   foreach $_ (@{$transaction{'update'}}) {
     # Parse the previous version to get the name
-    my %info = $rpm->parse_nevra(@{$_}[0]);
+    my %info = &parse_nevra(@{$_}[0]);
     my $rpm = scalar($info{'name'});
     # Remove `epoch`, as it's not part of the RPM filename
        $rpm .= "-".strip_epoch(@{$_}[1]).".rpm";
@@ -260,3 +258,32 @@ sub strip_epoch {
 
   return $input;
 }
+
+sub parse_nevra {
+  my ( $str ) = shift;
+
+  my $arch = ( split( /\./, $str ) )[-1];
+  $str =~ s/\.$arch$//;
+
+  my $rel = ( split( /-/, $str ) )[-1];
+  $str =~ s/-$rel$//;
+
+  my $ver_str = ( split( /-/, $str ) )[-1];
+  my ( $epoch, $ver ) = split( /:/, $ver_str );
+  my $trimmer;
+
+  if ( !defined($ver) ) {    # no epoch
+      $ver     = $epoch;
+      $epoch   = undef;
+      $trimmer = $ver;
+  }
+  else {
+      $trimmer = "$epoch:$ver";
+  }
+  $str =~ s/-\Q$trimmer\E//;
+
+  my %info;
+  @info{qw(name arch rel ver epoch)} = ( $str, $arch, $rel, $ver, $epoch );
+  return %info;
+}
+

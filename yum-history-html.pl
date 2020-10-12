@@ -125,7 +125,14 @@ foreach my $transaction (@transactions) {
   $table->setCellColSpan(-1, 1, 2);
   $table->addRow("Started at:", $tdetails{$transaction}{'start'});
   $table->addRow("Finished at:", $tdetails{$transaction}{'end'});
-  $table->addRow("Parameters:", $tdetails{$transaction}{'command'});
+  if (length($tdetails{$transaction}{'command'}) <= 40) {
+    $table->addRow("Parameters:", $tdetails{$transaction}{'command'});
+  } else {
+    $table->addRow("Parameters:");
+    $table->setCellColSpan(-1, 1, 2);
+    $table->addRow($tdetails{$transaction}{'command'});
+    $table->setCellColSpan(-1, 1, 2);
+  }
   $table->addRow("Result:", $tdetails{$transaction}{'rc'});
   $table->addRow("Username:", $tdetails{$transaction}{'username'});
 

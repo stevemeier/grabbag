@@ -1,26 +1,47 @@
 #!/usr/bin/perl
 
+# Required modules and the RPMs that contain them
+# Available on CentOS 7.x and 8.x
+my %modules = ('Date::Parse'  => 'perl-TimeDate',
+	       'Getopt::Long' => 'perl-Getopt-Long',
+	       'HTML::Table'  => 'perl-HTML-Table',
+	       'XML::Simple'  => 'perl-XML-Simple');
+
+eval_modules(%modules);
 use strict;
 use warnings;
-use Date::Parse;
 use Getopt::Long;
-use HTML::Table;
-use XML::Simple;
+import Date::Parse;
+import HTML::Table;
+import XML::Simple;
 
 $ENV{'LC_ALL'} = "C";
 my @transactions;
 my %tdetails;
-my ($erratafile, $stylesheet, $limit);
+my ($erratafile, $stylesheet, $limit, $help);
 my %pkg2errata;
 my %errata;
 
 my $getopt = GetOptions('errata=s'     => \$erratafile,
                         'stylesheet=s' => \$stylesheet,
-                        'limit=i'      => \$limit);
+                        'limit=i'      => \$limit,
+		        'help|h'       => \$help);
+
+# Output help, if requested
+if ($help) {
+  &usage;
+  exit;
+}
+
+# Determine CentOS version
+my $centos = &centos_version;
+if (not(defined($centos))) {
+  print "ERROR: This script is only supported on CentOS\n";
+  exit 1;
+}
 
 # Load errata, if defined
 if (defined($erratafile)) {
-  print STDERR "Loading $erratafile\n";
   my $xml = XMLin($erratafile, ForceArray => [ qw(/keywords/ os_arch os_release packages) ] );
   foreach my $advisory (sort(keys(%{$xml}))) {
     foreach my $package (@{$xml->{$advisory}->{'packages'}}) {
@@ -32,7 +53,10 @@ if (defined($erratafile)) {
 }
 
 # Find all yum transactions
-open(HISTORYALL, '-|', '/usr/bin/yum history list all');
+my $historyparams = "";
+if ($centos <= 7) { $historyparams = "list all" };
+if ($centos >= 8) { $historyparams = "list" };
+open(HISTORYALL, '-|', "/usr/bin/yum history $historyparams");
 while(<HISTORYALL>) {
   if (/\s+(\d+)\s+\|/) {
     push(@transactions, $1);
@@ -40,7 +64,6 @@ while(<HISTORYALL>) {
 }
 close(HISTORYALL);
 
-print STDERR "Found ".scalar(@transactions)." YUM transactions\n";
 if ($limit) {
   # Only process limited number of transactions
   @transactions = splice(@transactions, 0, $limit);
@@ -52,7 +75,6 @@ foreach my $transaction (@transactions) {
   my $updated;
   my $oldver;
 
-  #print STDERR "Details for transaction $transaction:\n";
   open(HISTINFO, '-|', "/usr/bin/yum history info $transaction");
   while(<HISTINFO>) {
     if (/^Begin time\s+: (.*?)$/) { $tdetails{$transaction}{'start'} = $1 }
@@ -73,8 +95,10 @@ foreach my $transaction (@transactions) {
       if (/^\s+Dep-Install\s+(.*?)$/) { push(@{$tdetails{$transaction}{'dep-install'}}, &strip_repo($1)) }
       if (/^\s+Erase\s+(.*?)$/) { push(@{$tdetails{$transaction}{'erase'}}, &strip_repo($1)) }
       if (/^\s+Reinstall\s+(.*?)$/) { push(@{$tdetails{$transaction}{'reinstall'}}, &strip_repo($1)) }
-      if (/^\s+Updated\s+(.*?)$/) { $oldver = $1 }
-      if (($oldver) && (/^\s+Update\s+(.*?)$/)) { 
+      if (/^\s+Updated\s+(.*?)$/) { $oldver = $1 }  # <- CentOS 7
+      if (/^\s+Upgraded\s+(.*?)$/) { $oldver = $1 } # <- CentOS 8
+      if ( (($oldver) && (/^\s+Update\s+(.*?)$/)) ||
+           (($oldver) && (/^\s+Upgrade\s+(.*?)$/)) ) {
         push(@{$tdetails{$transaction}{'update'}}, ([&strip_repo($oldver), &strip_repo($1)]));
         undef($oldver);
       }
@@ -100,6 +124,7 @@ foreach my $transaction (@transactions) {
   push(@{$tdetails{$transaction}{'errata'}}, &find_errata(\%{$tdetails{$transaction}}));
 }
 
+# HTML header and style
 print "<html><head>\n";
 if ($stylesheet) {
   print "<link rel=\"stylesheet\" href=\"$stylesheet\">\n";
@@ -117,7 +142,7 @@ if ($stylesheet) {
 }
 print "</head><body>\n";
 
-#my $table = new HTML::Table(-width => '80%');
+# Generate the output
 foreach my $transaction (@transactions) {
   my $table = new HTML::Table(-width => '80%', -class => 'styled-table');
   $table->addRow("Transaction #$transaction");
@@ -125,7 +150,8 @@ foreach my $transaction (@transactions) {
   $table->setCellColSpan(-1, 1, 2);
   $table->addRow("Started at:", $tdetails{$transaction}{'start'});
   $table->addRow("Finished at:", $tdetails{$transaction}{'end'});
-  if (length($tdetails{$transaction}{'command'}) <= 40) {
+  if (defined($tdetails{$transaction}{'command'}) &&
+      length($tdetails{$transaction}{'command'}) <= 40) {
     $table->addRow("Parameters:", $tdetails{$transaction}{'command'});
   } else {
     $table->addRow("Parameters:");
@@ -145,7 +171,6 @@ foreach my $transaction (@transactions) {
         my $exposure = undef;
         if (/CESA/) {
           # Calculate exposure time
-          # print STDERR "Calculating exposure for $_\n";
           $exposure = str2time($tdetails{$transaction}{'end'}) - $errata{$_}{'issue_date'};
           if ($exposure < 86400) {
             $exposure = "less than 1 day after release";
@@ -213,15 +238,9 @@ foreach my $transaction (@transactions) {
     }
   }
 
-  # Add spacing to next transaction
-# $table->addRow();
-# $table->setCellAttr(-1, 1, 'class="blank_row"');
-# $table->setCellColSpan(-1, 1, 2);
-
   $table->print;
 }
 
-#$table->print;
 print "</body></html>\n";
 exit;
 
@@ -252,7 +271,6 @@ sub find_errata {
        $rpm .= "-".strip_epoch(@{$_}[1]).".rpm";
     if (defined($pkg2errata{$rpm})) {
       push(@result, $pkg2errata{$rpm});
-    # print STDERR "$rpm matched $pkg2errata{$rpm}\n";
     }
   }
 
@@ -294,3 +312,37 @@ sub parse_nevra {
   return %info;
 }
 
+sub eval_modules {
+  my %modules = @_;
+
+  foreach $_ (keys(%modules)) {
+    eval qq{
+      require $_;
+      1;
+    } or do {
+      die "ERROR: Missing module $_ (install $modules{$_})\n";
+    }
+  }
+}
+
+sub centos_version {
+  my $version = undef;
+  open(RPM, '-|', 'rpm -q centos-release --qf "%{VERSION}" 2>/dev/null');
+  while(<RPM>) {
+    if (/^(\d)/) {
+      $version = $1;
+    }
+  }
+  close(RPM);
+
+  return $version;
+}
+
+sub usage {
+  print "Usage: $0 [ --errata <FILE> ] [ --stylesheet <URI> ] [ --limit <N> ]\n\n";
+  print "--errata <FILE>\t\tRead errata data from file (XML version required)\n";
+  print "\t\t\t(Available at https://cefs.steve-meier.de/errata.latest.xml)\n\n";
+  print "--stylesheet <URI>\tUse CSS stylesheet from URI instead of built-in\n\n";
+  print "--limit <N>\t\tOnly process most recent N yum transactions\n\n";
+  return;
+}

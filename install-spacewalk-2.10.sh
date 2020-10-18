@@ -185,6 +185,7 @@ echo "#########################"
 echo
 /usr/bin/spacewalk-common-channels -v -u ${SWUSER} -p ${SWPASS} -a i386,x86_64 'centos6*'
 /usr/bin/spacewalk-common-channels -v -u ${SWUSER} -p ${SWPASS} -a x86_64 'centos7*'
+/usr/bin/spacewalk-common-channels -v -u ${SWUSER} -p ${SWPASS} -a x86_64 'centos8*'
 
 if [ ${SYNC} -gt 0 ]; then
   echo

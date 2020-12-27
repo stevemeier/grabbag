@@ -5,8 +5,8 @@
 # Date:     2017-11-04
 #
 # Currency converter script based on Quandl.com API
-# 
-# If you want to make a bunch of request, get yourself an API key
+#
+# If you want to make a bunch of requests, get yourself an API key
 
 use strict;
 use warnings;
@@ -187,11 +187,12 @@ sub convert {
 sub get_latest {
   my @endpoint = @_;
   my $latest;
+  my $result;
 
   &debug("Endpoint 0 -> $endpoint[0]\n");
   &debug("Endpoint 1 -> $endpoint[1]\n");
 
-  if ($apikey) { 
+  if ($apikey) {
     &debug("Using API key $apikey\n");
     $endpoint[0] .= '?api_key='.$apikey
   }
@@ -207,10 +208,17 @@ sub get_latest {
     # Find the latest element in the dataset
     $latest = $jsondata->{'dataset'}->{'newest_available_date'};
     foreach my $data (@{$jsondata->{'dataset'}->{'data'}}) {
-      if (@{$data}[0] eq $latest) { 
+      if (@{$data}[0] eq $latest) {
 	&debug("Latest data is from $latest\n");
-	&debug("Returning @{$data}[$endpoint[1]]\n");
-	return @{$data}[$endpoint[1]];
+        $result = @{$data}[$endpoint[1]];
+
+        # On Christmas and New Year's Eve PM is `null`, so return `AM` instead
+        if ( ($endpoint[0] =~ /GOLD/) && (not(defined(@{$data}[$endpoint[1]]))) ) {
+          $result = @{$data}[$endpoint[1]-1];
+        }
+
+	&debug("Returning $result\n");
+	return $result;
       }
     }
   } else {
@@ -235,4 +243,3 @@ sub usage {
   print "--debug\t\t\tEnables debug output\n";
   print "--test\t\t\tTest all available conversions\n\n";
 }
-

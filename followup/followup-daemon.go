@@ -123,10 +123,10 @@ func find_next_reminder(db *sql.DB) (int64, string, string, string, string, int,
 
 	stmt1, err1 := db.Prepare("SELECT id, sender, subject, messageid, uuid, recurring, spec FROM reminders " +
 	                          "WHERE timestamp <= ? AND (status IS null OR recurring > 0) LIMIT 1")
-	defer stmt1.Close()
 	if err1 != nil {
 		log.Fatal(err1)
 	}
+	defer stmt1.Close()
 
 	var id int64
 	var sender string

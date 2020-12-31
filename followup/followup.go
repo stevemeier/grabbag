@@ -58,7 +58,7 @@ func main() {
 
 	// Parse the sender address
 	var from *mail.Address
-	from, err = mail.ParseAddress(message.Header.Get("From"))
+	from, _ = mail.ParseAddress(message.Header.Get("From"))
 
 	// Extract To, CC and Bcc fields for processing
 	var dest []string

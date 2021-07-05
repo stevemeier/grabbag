@@ -126,7 +126,7 @@ func main() {
 //		fmt.Printf("Checking %s\n", url)
 		if !linkOK(url) {
 			broken++
-//			fmt.Printf("%s is broken\n", url)
+			fmt.Printf("%s is broken\n", url)
 		}
 	}
 
@@ -147,8 +147,15 @@ func linkOK (url string) (bool) {
 	if resp.StatusCode  < 400 { return true }
 	if resp.StatusCode == 405 { return true }
 
+//	fmt.Println(resp)
+
 	// Cloudflare
 	if resp.Header.Get("server") == "cloudflare" && resp.StatusCode == 403 {
+		return true
+	}
+
+	// Akamai
+	if resp.Header.Get("server") == "AkamaiGHost" && resp.StatusCode == 503 {
 		return true
 	}
 

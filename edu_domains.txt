@@ -1824,6 +1824,7 @@ aambfs.org
 
 ac.jp
 ed.jp
+kek.jp
 waseda.jp
 
 ac.ke

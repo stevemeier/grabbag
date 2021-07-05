@@ -10,6 +10,8 @@ import "os/exec"
 import "strings"
 import "syscall"
 import dkim "github.com/toorop/go-dkim"
+import "io"
+import "github.com/emersion/go-smtp"
 
 // Exit codes
 // 1 - Failed to read message from stdin
@@ -65,11 +67,18 @@ func main() {
 	}
 	if env_defined("QBOX_DEBUG") { fmt.Println("END: Signing part") }
 
+	if env_defined("QBOX_DEBUG") { fmt.Printf("%s", email) }
+
 	// Call original qmail-remote with signed message
-	if env_defined("QBOX_DEBUG") { fmt.Println("START: Forking qmail-remote.orig") }
-	output, exitcode, _ := sysexec("/var/qmail/bin/qmail-remote.orig", os.Args[1:], email)
-	if env_defined("QBOX_DEBUG") { fmt.Println("END: Forking qmail-remote.orig") }
-	fmt.Println(string(output))
+//	if env_defined("QBOX_DEBUG") { fmt.Println("START: Forking qmail-remote.orig") }
+//	output, exitcode, _ := sysexec("/var/qmail/bin/qmail-remote.orig", os.Args[1:], email)
+//	if env_defined("QBOX_DEBUG") { fmt.Println("END: Forking qmail-remote.orig") }
+//	fmt.Println(string(output))
+
+        deliveryerr := smtp_delivery(os.Args[1], os.Args[2], os.Args[3:], email)
+	if deliveryerr == nil {
+	  fmt.Print("r"+os.Args[2]+" accepted the message\000")
+	}
 
 	// qmail-remote always exits zero according to man-page
 	// but this doesn't cost us anything
@@ -143,4 +152,9 @@ func domain_of (address string) string {
 func env_defined(key string) bool {
         _, exists := os.LookupEnv(key)
         return exists
+}
+
+func smtp_delivery (host string, sender string, to []string, email io.Reader) (error) {
+  err := smtp.SendMail(host+":25", nil, sender, to, email)
+  return err
 }

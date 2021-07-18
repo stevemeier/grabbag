@@ -853,6 +853,7 @@ genialdual.de
 ggs.de
 go-bs.de
 goethe.de
+gsi.de
 h-brs.de
 h-da.de
 haw-hamburg.de
@@ -867,6 +868,7 @@ hdbw-hochschule.de
 hdm-stuttgart.de
 hdpk.de
 hdwm.de
+helmholtz.de
 hertie-school.org
 hfbk-dresden.de
 hfbk-hamburg.de

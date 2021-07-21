@@ -34,7 +34,10 @@ func main() {
 	DNSresponses = make(chan *dns.Msg, 20)
 
 	// Initialize DNS data structure
-	dnsdata := make(map[string][]*DynRR)
+	dnsdata := make(map[string]map[uint16][]*DynRR)
+	// First level is `qname`, e.g. www.example.org.
+	// Second level is `qtype`, e.g. 1 for A or 28 for AAAA
+	// Last level is an array of records under this name and type
 
 	// Load config file
 	cfg, conferr := LoadConfig("./config.json")
@@ -53,8 +56,8 @@ func main() {
 		header := newrr.Header()
 
 		// Add name to the DNS data structure
-		mapkey := header.Name + "/" + dns.TypeToString[header.Rrtype]
-		dnsdata[mapkey] = append(dnsdata[mapkey], &DynRR{Data: newrr, Enabled: false, Uuid: uuid})
+		dnsdata[header.Name] = make(map[uint16][]*DynRR)
+		dnsdata[header.Name][header.Rrtype] = append(dnsdata[header.Name][header.Rrtype], &DynRR{Data: newrr, Enabled: false, Uuid: uuid})
 
 		// Schedule checks for this entry
 		sched.Schedule().Every(nameconf.UInt("interval")).Seconds().Do( func() { run_check(nameconf.UString("command"), uuid) })
@@ -69,9 +72,13 @@ func main() {
 	// Register the DNS handler
 	dns.HandleFunc(".", handleDnsRequest)
 
-	// Set up the server object and listen for requests
-	udpserver := &dns.Server{Addr: "0.0.0.0:5300", Net: "udp"}
-	tcpserver := &dns.Server{Addr: "0.0.0.0:5300", Net: "tcp"}
+	// Set up the server objects
+	listenon := cfg.UString("server.listen","127.0.0.1") + ":" + cfg.UString("server.port","53")
+	log.Printf("Listening on %s", listenon)
+	udpserver := &dns.Server{Addr: listenon, Net: "udp"}
+	tcpserver := &dns.Server{Addr: listenon, Net: "tcp"}
+
+	// Start listeners
 	go func(){ _ = udpserver.ListenAndServe() }()
 	go func(){ _ = tcpserver.ListenAndServe() }()
 
@@ -90,7 +97,7 @@ func run_check (command string, uuid string) {
 		// Put the return code of the check into the results channel
 		resultChan <- checkResult{Uuid: uuid, Success: rcode == 0}
 	} else {
-		log.Println("%s -> %s\n", comsplit[0], err.Error())
+		log.Printf("%s -> %s\n", comsplit[0], err.Error())
 	}
 	return
 }
@@ -111,22 +118,24 @@ func sysexec (command string, args []string, input []byte) ([]byte, int, error) 
         return output.Bytes(), exitcode, err
 }
 
-func processor (dnsdata map[string][]*DynRR) {
+func processor (dnsdata map[string]map[uint16][]*DynRR) {
 	go func() {
 	// Process check results
 	for check := range resultChan {
 		// Find the record this check result applies to
 		// Inefficient, but this is a proof of concept
-		for mapkey, _ := range dnsdata {
-			for _, record := range dnsdata[mapkey] {
-				if record.Uuid == check.Uuid && record.Enabled != check.Success {
-					// Change the boolean status, log it, and set a timestamp (for debugging)
-					log.Printf("Status change for %s to %s\n",
-					record.Data.String(),
-					UpBool(check.Success))
+		for qname, _ := range dnsdata {
+			for qtype, _ := range dnsdata[qname] {
+				for _, record := range dnsdata[qname][qtype] {
+					if record.Uuid == check.Uuid && record.Enabled != check.Success {
+						// Change the boolean status, log it, and set a timestamp (for debugging)
+						log.Printf("Status change for %s to %s\n",
+						record.Data.String(),
+						UpBool(check.Success))
 
-					record.Enabled = check.Success
-					record.LastChange = time.Now()
+						record.Enabled = check.Success
+						record.LastChange = time.Now()
+					}
 				}
 			}
 		}
@@ -147,12 +156,16 @@ func processor (dnsdata map[string][]*DynRR) {
 			continue
 		}
 
-		// Find matching records in dnsdata map (e.g. mapkey = `www.example.org./A`)
-		mapkey := query.Question[0].Name + "/" + dns.TypeToString[query.Question[0].Qtype]
-
 		// If this record is not in the map, we return NXDOMAIN
-		if len(dnsdata[mapkey]) == 0 {
+		if len(dnsdata[query.Question[0].Name]) == 0 {
 			answer.SetRcode(query, dns.StringToRcode["NXDOMAIN"])
+			DNSresponses <- answer
+			continue
+		}
+
+		// If no record for this type exists, we should return empty NOERROR
+		if len(dnsdata[query.Question[0].Name][query.Question[0].Qtype]) == 0 {
+			answer.SetRcode(query, dns.StringToRcode["NOERROR"])
 			DNSresponses <- answer
 			continue
 		}
@@ -160,7 +173,7 @@ func processor (dnsdata map[string][]*DynRR) {
 		// We need to check if at least one record is `Enabled`
 		// If there is none, return SERVFAIL, to prevent caching
 		enabled := 0
-		for _, record := range dnsdata[mapkey] {
+		for _, record := range dnsdata[query.Question[0].Name][query.Question[0].Qtype] {
 			if record.Enabled { enabled++ }
 		}
 
@@ -172,7 +185,7 @@ func processor (dnsdata map[string][]*DynRR) {
 
 		// At this point, data should be available, so we construct a proper answer
 		answer.SetReply(query)
-		for _, record := range dnsdata[mapkey] {
+		for _, record := range dnsdata[query.Question[0].Name][query.Question[0].Qtype] {
 			if record.Enabled {
 				answer.Answer = append(answer.Answer, record.Data)
 			}

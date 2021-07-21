@@ -2,6 +2,7 @@ package main
 
 import "bytes"
 import "log"
+import "os"
 import "os/exec"
 import "strconv"
 import "strings"
@@ -39,8 +40,14 @@ func main() {
 	// Second level is `qtype`, e.g. 1 for A or 28 for AAAA
 	// Last level is an array of records under this name and type
 
+	// Default config is `config.json` in pwd
+	configpath := "./config.json"
+	// If an argument is provided, it is treated as config file path
+	if len(os.Args) > 1 { configpath = os.Args[1] }
+
 	// Load config file
-	cfg, conferr := LoadConfig("./config.json")
+	log.Printf("Reading configuration from %s\n", configpath)
+	cfg, conferr := LoadConfig(configpath)
 	if conferr != nil {
 		log.Fatal(conferr)
 	}

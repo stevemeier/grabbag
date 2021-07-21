@@ -47,7 +47,7 @@ func main() {
 
 	// Load config file
 	log.Printf("Reading configuration from %s\n", configpath)
-	cfg, conferr := LoadConfig(configpath)
+	cfg, conferr := config.ParseJsonFile(configpath)
 	if conferr != nil {
 		log.Fatal(conferr)
 	}
@@ -225,11 +225,6 @@ func GenerateUUID () string {
 	// Generates a temporary UUID (only used at runtime, not stored or configurable)
 	result, _ := uuid.NewV4()
 	return result.String()
-}
-
-func LoadConfig (path string) (*config.Config, error) {
-  cfg, err := config.ParseJsonFile(path)
-  return cfg, err
 }
 
 func UpBool (in bool) string {

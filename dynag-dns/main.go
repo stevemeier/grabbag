@@ -91,14 +91,11 @@ func run_check (command string, uuid string) {
 	comsplit := strings.Split(command, ` `)
 
 	// Call the sysexec function to run the check (nil == no input to the called binary)
-	_, rcode, err := sysexec(comsplit[0], comsplit[1:], nil)
+	_, rcode, _ := sysexec(comsplit[0], comsplit[1:], nil)
 
-	if err == nil {
-		// Put the return code of the check into the results channel
-		resultChan <- checkResult{Uuid: uuid, Success: rcode == 0}
-	} else {
-		log.Printf("%s -> %s\n", comsplit[0], err.Error())
-	}
+	// Put the return code of the check into the results channel
+	resultChan <- checkResult{Uuid: uuid, Success: rcode == 0}
+
 	return
 }
 

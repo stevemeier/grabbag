@@ -154,6 +154,7 @@ func processor (dnsdata map[string]map[uint16][]*DynRR) {
 	for query := range DNSrequests {
 		// Setup an answer object
 		answer := new(dns.Msg)
+		answer.MsgHdr.Authoritative = true
 		answer.Compress = false
 
 		// Handle non INET class (respond with NOTIMP)

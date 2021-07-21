@@ -105,8 +105,6 @@ func run_check (command string, uuid string) {
 
 	// Put the return code of the check into the results channel
 	resultChan <- checkResult{Uuid: uuid, Success: rcode == 0}
-
-	return
 }
 
 func sysexec (command string, args []string, input []byte) ([]byte, int, error) {
@@ -131,8 +129,8 @@ func processor (dnsdata map[string]map[uint16][]*DynRR) {
 	for check := range resultChan {
 		// Find the record this check result applies to
 		// Inefficient, but this is a proof of concept
-		for qname, _ := range dnsdata {
-			for qtype, _ := range dnsdata[qname] {
+		for qname := range dnsdata {
+			for qtype := range dnsdata[qname] {
 				for _, record := range dnsdata[qname][qtype] {
 					if record.Uuid == check.Uuid && record.Enabled != check.Success {
 						// Change the boolean status, log it, and set a timestamp (for debugging)
@@ -217,8 +215,6 @@ func handleDnsRequest (w dns.ResponseWriter, r *dns.Msg) {
 	if werr != nil {
 		log.Println(werr)
 	}
-
-	return
 }
 
 func GenerateUUID () string {

@@ -5,8 +5,8 @@ geodns-shim: DNS server which localizes client queries
 
 geodns-shim is a minimal DNS server which receives queries, adds location
 information to them and forwards them to a custom backend. The reply from
-the backend is then rewritten and sent back to the client, making the process
-transparent to the client.
+the backend is then rewritten (to match the original query) and sent back
+to the client, making the process transparent to the client.
 
 Here is a simple use case: A website has multiple hosts around the globe but
 only one URL (e.g. www.example.org). Clients should be directed to the closest
@@ -25,7 +25,7 @@ All settings are defined via the command line parameters. Run `geodns-shim`
 without parameters to get an overview of required and optional parameters.
 
 Required are:
-- `backend` -- An IP address to forward queries too (authoritative DNS)
+- `backend` -- An IP address to forward queries to (authoritative DNS)
 - `geodb` -- The path to a copy of GeoIP database (e.g. `GeoLite2-City.mmdb`)
 - `rewrite` -- Rewrite rules for incoming queries
 
@@ -53,9 +53,9 @@ When the `nxfallback` option is activated, geodns-shim will check the response
 from the backend for NXDOMAIN response code. If a NXDOMAIN answer is received
 the query is retried with the orignal query name. If, for example, the query
 was rewritten from www.example.org to www-de.example.org but this name does
-not exist, the response for www.example.org (unmodified) is given to the client.
-You should probably activate this option, unless you know exactly what you are
-doing.
+not exist, the response for www.example.org (unmodified) is given to the client
+instead. You should probably activate this option, unless you know exactly what
+you are doing.
 
 ## Status
 

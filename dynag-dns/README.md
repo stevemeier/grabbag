@@ -1,4 +1,5 @@
 dynag: DNS server with health checks
+=====
 
 ## Overview
 
@@ -16,7 +17,7 @@ those records will be re-enabled.
 
 ## Configuration
 
-The configuration uses a simple JSON-format. See config.json for an example.
+The configuration uses a simple JSON-format. See `config.json` for an example.
 
 The `server` section defines options such as IP address and port to listen on.
 The `names` array defines a set of names for which the server will become

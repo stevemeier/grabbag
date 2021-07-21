@@ -66,7 +66,10 @@ func main() {
 		dnsdata[header.Name] = make(map[uint16][]*DynRR)
 		dnsdata[header.Name][header.Rrtype] = append(dnsdata[header.Name][header.Rrtype], &DynRR{Data: newrr, Enabled: false, Uuid: uuid})
 
-		// Schedule checks for this entry
+		// Run initial check immediately to determine status
+		go func(){ run_check(nameconf.UString("command"), uuid) }()
+
+		// Schedule recurring checks for this entry
 		sched.Schedule().Every(nameconf.UInt("interval")).Seconds().Do( func() { run_check(nameconf.UString("command"), uuid) })
 	}
 

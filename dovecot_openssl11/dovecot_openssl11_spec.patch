@@ -1,0 +1,80 @@
+--- dovecot.spec.orig	2021-11-21 15:32:50.854471112 +0000
++++ dovecot.spec	2021-11-21 16:25:44.057890136 +0000
+@@ -55,15 +55,10 @@
+ Source15: prestartscript
+
+ BuildRequires: redhat-rpm-config
+-BuildRequires: openssl-devel, pam-devel, zlib-devel, bzip2-devel, libcap-devel
++BuildRequires: openssl11-devel, pam-devel, zlib-devel, bzip2-devel, libcap-devel
++BuildRequires: gcc-c++
+ BuildRequires: libtool, autoconf, automake, pkgconfig
+ BuildRequires: sqlite-devel
+-BuildRequires: postgresql-devel
+-%if 0%{?rhel} >= 8
+-BuildRequires: mariadb-devel
+-%else
+-BuildRequires: mysql-devel
+-%endif
+ BuildRequires: openldap-devel
+ BuildRequires: krb5-devel
+ BuildRequires: quota-devel
+@@ -79,7 +74,7 @@
+ BuildRequires: gettext-devel
+
+ # Explicit Runtime Requirements for executalbe
+-Requires: openssl >= 0.9.7f-4
++Requires: openssl11 >= 0.9.7f-4
+
+ # Package includes an initscript service file, needs to require initscripts package
+ Requires(pre): shadow-utils
+@@ -126,24 +121,6 @@
+
+ The SQL drivers and authentication plug-ins are in their subpackages.
+
+-%package pgsql
+-Requires: %{name} = %{epoch}:%{version}-%{release}
+-Provides: dovecot-pgsql = %{epoch}:%{version}-%{release}
+-Obsoletes: dovecot-pgsql < %{epoch}:%{version}-%{release}
+-Summary: Postgres SQL back end for dovecot
+-Group: System Environment/Daemons
+-%description pgsql
+-This package provides the Postgres SQL back end for dovecot-auth etc.
+-
+-%package mysql
+-Requires: %{name} = %{epoch}:%{version}-%{release}
+-Provides: dovecot-mysql = %{epoch}:%{version}-%{release}
+-Obsoletes: dovecot-mysql < %{epoch}:%{version}-%{release}
+-Summary: MySQL back end for dovecot
+-Group: System Environment/Daemons
+-%description mysql
+-This package provides the MySQL back end for dovecot-auth etc.
+-
+ %package devel
+ Requires: %{name} = %{epoch}:%{version}-%{release}
+ Provides: dovecot-devel = %{epoch}:%{version}-%{release}
+@@ -200,8 +177,6 @@
+     --with-ldap=plugin           \
+     --with-sql=plugin            \
+     --with-lua=plugin            \
+-    --with-pgsql                 \
+-    --with-mysql                 \
+     --with-sqlite                \
+     --with-zlib                  \
+     --with-libcap                \
+@@ -517,16 +492,6 @@
+ %{_libdir}/dovecot/libdovecot*.so
+ %{_libdir}/dovecot/dovecot-config
+
+-%files mysql
+-%{_libdir}/dovecot/libdriver_mysql.so
+-%{_libdir}/dovecot/auth/libdriver_mysql.so
+-%{_libdir}/dovecot/dict/libdriver_mysql.so
+-
+-%files pgsql
+-%{_libdir}/dovecot/libdriver_pgsql.so
+-%{_libdir}/dovecot/auth/libdriver_pgsql.so
+-%{_libdir}/dovecot/dict/libdriver_pgsql.so
+-
+ %files lua
+ %defattr(-,root,root,-)
+ %{_libdir}/dovecot/auth/libauthdb_lua.so

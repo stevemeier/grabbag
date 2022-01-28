@@ -47,6 +47,11 @@ func main() {
 	repofiles["repomd.xml"] = true
 	repofiles["repomd.xml.asc"] = true
 
+	if len(os.Args) >= 2 {
+		err := os.Chdir(os.Args[1])
+		if err != nil { log.Fatalf("ERROR: %s\n", err.Error()) }
+	}
+
 	// Check if repomd.xml is there
 	if !file_exists("repomd.xml") {
 		log.Println("ERROR: repomd.xml not found")
@@ -81,7 +86,7 @@ func main() {
 		if repofiles[file.Name()] == false {
 			err := os.Remove(file.Name())
 			if err != nil {
-				log.Printf("Failed to remove %s: %s\n", file.Name(), err)
+				log.Printf("Failed to remove %s: %s\n", file.Name(), err.Error())
 				os.Exit(3)
 			}
 		}

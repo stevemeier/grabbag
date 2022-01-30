@@ -205,7 +205,10 @@ func processor (dnsdata map[string]map[uint16][]*DynRR) {
 
 func handleDnsRequest (w dns.ResponseWriter, r *dns.Msg) {
 	// Log
-	log.Printf("DNS request received: %s/%s from %s\n", r.Question[0].Name, dns.TypeToString[r.Question[0].Qtype], w.RemoteAddr())
+	log.Printf("DNS request received: %s/%s from %s (DO: %v)\n", r.Question[0].Name,
+								     dns.TypeToString[r.Question[0].Qtype],
+								     w.RemoteAddr(),
+								     DObit(r))
 
 	// Put the request into the DNSrequests channel
 	DNSrequests <- r
@@ -224,5 +227,12 @@ func GenerateUUID () string {
 }
 
 func UpBool (in bool) string {
-  return strings.ToUpper(strconv.FormatBool(in))
+	return strings.ToUpper(strconv.FormatBool(in))
+}
+
+func DObit (query *dns.Msg) (bool) {
+	// Check if the query has the DO (DNSSEC OK) flag set
+	// If yes, the answer should contain RRSIGs, if applicable
+	opt := query.IsEdns0()
+	return opt.Do()
 }

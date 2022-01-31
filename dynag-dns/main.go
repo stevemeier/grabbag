@@ -1,6 +1,8 @@
 package main
 
 import "bytes"
+import "crypto"
+import "errors"
 import "log"
 import "os"
 import "os/exec"
@@ -22,6 +24,19 @@ type DynRR struct {
 	Enabled		bool
 	Uuid		string
 	LastChange	time.Time
+	DNSSEC		DNSSECconf
+}
+
+type DNSSECconf	struct {
+	Enabled		bool
+	KSK	struct {
+		DnsKey		*dns.DNSKEY
+		Signer		crypto.Signer
+	}
+	ZSK	struct {
+		DnsKey		*dns.DNSKEY
+		Signer		crypto.Signer
+	}
 }
 
 var resultChan chan checkResult
@@ -62,15 +77,52 @@ func main() {
 		newrr, _ := dns.NewRR(nameconf.UString("name") + " " + nameconf.UString("rr"))
 		header := newrr.Header()
 
+		// Init DNSSEC, if configured
+		var dscfg DNSSECconf
+		if nameconf.UBool("dnssec.enabled") {
+			log.Printf("Configuring DNSSEC for %s\n", header.Name)
+
+			log.Printf("Loading ZSK for %s\n", header.Name)
+			zskrr, zsksigner, zskerr := LoadKeyPair(nameconf.UString("dnssec.zsk.private"), nameconf.UString("dnssec.zsk.key"))
+			if zskerr == nil {
+				dscfg.ZSK.DnsKey = zskrr
+				dscfg.ZSK.Signer = zsksigner
+			} else {
+				log.Printf("Failed to load ZSK for %s: %s\n", header.Name, zskerr)
+			}
+
+			log.Printf("Loading KSK for %s\n", header.Name)
+			kskrr, ksksigner, kskerr := LoadKeyPair(nameconf.UString("dnssec.ksk.private"), nameconf.UString("dnssec.ksk.key"))
+			if kskerr == nil {
+				dscfg.KSK.DnsKey = kskrr
+				dscfg.KSK.Signer = ksksigner
+			} else {
+				log.Printf("Failed to load KSK for %s: %s\n", header.Name, kskerr)
+			}
+
+			if zskerr == nil && kskerr == nil {
+				log.Printf("Activating DNSSEC for %s\n", header.Name)
+				dscfg.Enabled = true
+			}
+		}
+
 		// Add name to the DNS data structure
 		dnsdata[header.Name] = make(map[uint16][]*DynRR)
-		dnsdata[header.Name][header.Rrtype] = append(dnsdata[header.Name][header.Rrtype], &DynRR{Data: newrr, Enabled: false, Uuid: uuid})
+		dnsdata[header.Name][header.Rrtype] = append(dnsdata[header.Name][header.Rrtype],
+		&DynRR{Data: newrr, Enabled: false, Uuid: uuid, DNSSEC: dscfg} )
+
+		// Create Records for KSK and ZSK
+		if dscfg.Enabled {
+			dnsdata[header.Name][dns.TypeDNSKEY] = []*DynRR{ &DynRR{Data: dscfg.KSK.DnsKey, Enabled: true },
+									 &DynRR{Data: dscfg.ZSK.DnsKey, Enabled: true } }
+		}
 
 		// Run initial check immediately to determine status
 		go func(){ run_check(nameconf.UString("command"), uuid) }()
 
 		// Schedule recurring checks for this entry
-		sched.Schedule().Every(nameconf.UInt("interval")).Seconds().Do( func() { run_check(nameconf.UString("command"), uuid) })
+		sched.Schedule().Every(nameconf.UInt("interval")).Seconds().Do(
+			func() { run_check(nameconf.UString("command"), uuid) })
 	}
 
 	// Start the processing of check results and DNS queries
@@ -197,6 +249,11 @@ func processor (dnsdata map[string]map[uint16][]*DynRR) {
 			}
 		}
 
+		if (DObit(query)) {
+			// According to IB, over 1220 weird things may happen
+			answer.SetEdns0(1220, true)
+		}
+
 		// Send our compiled answer
 		DNSresponses <- answer
 	}
@@ -235,4 +292,33 @@ func DObit (query *dns.Msg) (bool) {
 	// If yes, the answer should contain RRSIGs, if applicable
 	opt := query.IsEdns0()
 	return opt.Do()
+}
+
+func LoadKeyPair (privfile string, pubfile string) (*dns.DNSKEY, crypto.Signer, error) {
+	if privfile == "" { return nil, nil, errors.New("No filename for private key") }
+	if pubfile == "" { return nil, nil, errors.New("No filename for public key") }
+
+	// Open public key file
+	pubfh, perr := os.Open(pubfile)
+	if perr != nil { return nil, nil, perr }
+
+	// Read from public key file and create DNSKEY in `dk`
+	dk, pkerr := dns.ReadRR(pubfh, pubfile)
+	if pkerr != nil { return nil, nil, pkerr }
+
+	// Open private key file
+	privfh, oerr := os.Open(privfile)
+	if oerr != nil { return nil, nil, oerr }
+
+	// Read from private key file
+	privkey, readerr := dk.(*dns.DNSKEY).ReadPrivateKey(privfh, privfile)
+	if readerr != nil { return nil, nil, readerr }
+
+	// Create signer
+	signer, ok := privkey.(crypto.Signer)
+	if !ok {
+		return nil, nil, errors.New("Failed to create signer")
+	}
+
+	return dk.(*dns.DNSKEY), signer, nil
 }

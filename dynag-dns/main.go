@@ -84,20 +84,28 @@ func main() {
 
 			log.Printf("Loading ZSK for %s\n", header.Name)
 			zskrr, zsksigner, zskerr := LoadKeyPair(nameconf.UString("dnssec.zsk.private"), nameconf.UString("dnssec.zsk.key"))
-			if zskerr == nil {
+			if zskerr == nil && zskrr.Flags == 256 {
 				dscfg.ZSK.DnsKey = zskrr
 				dscfg.ZSK.Signer = zsksigner
 			} else {
-				log.Printf("Failed to load ZSK for %s: %s\n", header.Name, zskerr)
+				if zskerr != nil { log.Printf("Failed to load ZSK for %s: %s\n", header.Name, zskerr) }
+				if zskrr.Flags != 256 {
+					log.Printf("Failed to load ZSK for %s: Flag is %d, should be 256\n", header.Name, zskrr.Flags)
+					zskerr = errors.New("Incorrect Flags for ZSK")
+				}
 			}
 
 			log.Printf("Loading KSK for %s\n", header.Name)
 			kskrr, ksksigner, kskerr := LoadKeyPair(nameconf.UString("dnssec.ksk.private"), nameconf.UString("dnssec.ksk.key"))
-			if kskerr == nil {
+			if kskerr == nil && kskrr.Flags == 257 {
 				dscfg.KSK.DnsKey = kskrr
 				dscfg.KSK.Signer = ksksigner
 			} else {
-				log.Printf("Failed to load KSK for %s: %s\n", header.Name, kskerr)
+				if kskerr != nil { log.Printf("Failed to load KSK for %s: %s\n", header.Name, kskerr) }
+				if kskrr.Flags != 257 {
+					log.Printf("Failed to load KSK for %s: Flag is %d, should be 257\n", header.Name, kskrr.Flags)
+					kskerr = errors.New("Incorrect Flags for KSK")
+				}
 			}
 
 			if zskerr == nil && kskerr == nil {

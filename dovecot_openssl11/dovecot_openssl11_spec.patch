@@ -1,6 +1,6 @@
---- dovecot.spec.orig	2021-11-21 15:32:50.854471112 +0000
-+++ dovecot.spec	2021-11-21 16:25:44.057890136 +0000
-@@ -55,15 +55,10 @@
+--- dovecot.spec.orig	2022-02-02 11:45:51.000000000 +0000
++++ dovecot.spec	2022-02-04 17:13:11.853648284 +0000
+@@ -55,16 +55,11 @@
  Source15: prestartscript
 
  BuildRequires: redhat-rpm-config
@@ -14,10 +14,11 @@
 -BuildRequires: mariadb-devel
 -%else
 -BuildRequires: mysql-devel
+ BuildRequires: quota-devel
 -%endif
  BuildRequires: openldap-devel
  BuildRequires: krb5-devel
- BuildRequires: quota-devel
+ BuildRequires: xz-devel
 @@ -79,7 +74,7 @@
  BuildRequires: gettext-devel
 

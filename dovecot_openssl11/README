@@ -12,10 +12,10 @@ yum install libtool autoconf automake pkgconfig gcc-c++ rpm-build
 
 # Get the latest source RPM from
 # https://repo.dovecot.org/ce-2.3-latest/centos/7/SRPMS/
-curl -O https://repo.dovecot.org/ce-2.3-latest/centos/7/SRPMS/dovecot-2.3.17-3.src.rpm
+curl -O https://repo.dovecot.org/ce-2.3-latest/centos/7/SRPMS/dovecot-2.3.18-4.src.rpm
 
 # Install the source RPM
-rpm -ivh dovecot-2.3.17-3.src.rpm
+rpm -ivh dovecot-2.3*.src.rpm
 
 # Apply the patch
 patch -d ~/rpmbuild/SPECS < dovecot_openssl11_spec.patch

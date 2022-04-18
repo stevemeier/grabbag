@@ -20,9 +20,11 @@ func main() {
 	var username string
 	var password string
 	var server string
-	opt.StringVar(&server, "server", "", opt.Alias("-s"), opt.Required())
-	opt.StringVar(&username, "username", "", opt.Alias("-u"), opt.Required())
-	opt.StringVar(&password, "password", "", opt.Alias("-p"), opt.Required())
+	var port string
+	opt.StringVar(&server, "server", "", opt.Alias("s"), opt.Required())
+	opt.StringVar(&port, "port", "25", opt.Alias("n"))
+	opt.StringVar(&username, "username", "", opt.Alias("u"), opt.Required())
+	opt.StringVar(&password, "password", "", opt.Alias("p"), opt.Required())
 	_, opterr :=opt.Parse(os.Args[1:])
 	if opterr != nil {
 		log.Fatal(opterr)
@@ -31,7 +33,7 @@ func main() {
 	var authmethods []string
 	serverok := regexp.MustCompile("^2")
 
-	conn, _ := net.Dial("tcp", server+":25")
+	conn, _ := net.Dial("tcp", server+":"+port)
 
 	authmethods = get_auth_methods(conn)
 	spew.Dump(authmethods)

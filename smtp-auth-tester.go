@@ -25,15 +25,23 @@ func main() {
 	opt.StringVar(&port, "port", "25", opt.Alias("n"))
 	opt.StringVar(&username, "username", "", opt.Alias("u"), opt.Required())
 	opt.StringVar(&password, "password", "", opt.Alias("p"), opt.Required())
-	_, opterr :=opt.Parse(os.Args[1:])
+	remaining, opterr := opt.Parse(os.Args[1:])
 	if opterr != nil {
 		log.Fatal(opterr)
+	}
+	if remaining != nil {
+		log.Printf("Unhandled parameters: %v\n", remaining)
 	}
 
 	var authmethods []string
 	serverok := regexp.MustCompile("^2")
 
-	conn, _ := net.Dial("tcp", server+":"+port)
+	log.Printf("Connecting to %s:%s\n", server, port)
+	conn, connerr := net.Dial("tcp", server+":"+port)
+
+	if connerr != nil {
+		log.Fatal(connerr)
+	}
 
 	authmethods = get_auth_methods(conn)
 	spew.Dump(authmethods)

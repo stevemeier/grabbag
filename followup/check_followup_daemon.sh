@@ -15,6 +15,7 @@ if [ ! -r ${DBPATH} ]; then
 fi
 
 EPOCH=$(date +%s)
+QUEUESIZE=`echo 'SELECT COUNT(*) FROM reminders WHERE status IS null;' | sqlite3 ${DBPATH}`
 NOTSEND=`echo 'SELECT MIN(timestamp) FROM reminders WHERE status IS null;' | sqlite3 ${DBPATH}`
 
 if [ "${NOTSEND}" == "" ]; then
@@ -22,7 +23,7 @@ if [ "${NOTSEND}" == "" ]; then
 	exit 0
 fi
 if [ "${EPOCH}" -le ${NOTSEND} ]; then
-	echo "OK - Reminder in queue"
+	echo "OK - ${QUEUESIZE} Reminder(s) in queue"
 	exit 0
 fi
 if [ "${EPOCH}" -gt ${NOTSEND} ]; then

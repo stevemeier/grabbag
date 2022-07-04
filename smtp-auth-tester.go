@@ -50,7 +50,10 @@ func main() {
 
 	for _, method := range authmethods {
 		// Connect and read banner
-		conn, _ := net.Dial("tcp", server+":25")
+		conn, connerr := net.Dial("tcp", server+":"+port)
+		if connerr != nil {
+			log.Fatalf("Could not connect: %s\n", connerr)
+		}
 		read_server_message(conn)
 
 		fmt.Printf("Next method: %s\n", method)

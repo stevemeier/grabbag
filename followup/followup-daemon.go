@@ -1,5 +1,6 @@
 package main
 
+import "crypto/tls"
 import "fmt"
 import "log"
 import "time"
@@ -70,8 +71,20 @@ func main() {
 				fmt.Println("INFO: Found a pending reminder")
 			}
 			// Construct new mail object
-			mail := mailyak.New(lib.Get_setting(db,`smtphost`,``)+":25",
-			                    smtp.PlainAuth("", lib.Get_setting(db,`smtpuser`,``), lib.Get_setting(db,`smtppass`,``), lib.Get_setting(db,`smtphost`,``)))
+			mail, newerr := mailyak.NewWithTLS(lib.Get_setting(db,`smtphost`,``)+":"+lib.Get_setting(db,`smtpport`,`25`),
+						smtp.PlainAuth("",
+					                   lib.Get_setting(db,`smtpuser`,``),
+							   lib.Get_setting(db,`smtppass`,``),
+							   lib.Get_setting(db,`smtphost`,``)),
+							   &tls.Config{ServerName: lib.Get_setting(db,`smtphost`,``),
+								       InsecureSkipVerify: len(lib.Get_setting(db,`smtpinsecure`,``)) > 0},
+							   )
+
+			if newerr != nil {
+				log.Fatal(newerr)
+			}
+
+			// Set the sender
 			mail.From(lib.Get_setting(db,`smtpfrom`,``))
 
 			// Set recipient, subject and message-id to make sure it gets associated

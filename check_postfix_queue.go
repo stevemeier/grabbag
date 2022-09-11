@@ -19,8 +19,9 @@ func main() {
 	var crit int
 	opt := getoptions.New()
 	opt.StringVar(&spooldir, "spool", spooldir, opt.Alias("s"))
-	opt.IntVar(&warn, "warn", 0, opt.Alias("w"))
-	opt.IntVar(&crit, "crit", 0, opt.Alias("c"))
+	opt.IntVar(&warn, "warn", 1, opt.Alias("w"))
+	opt.IntVar(&crit, "crit", 2, opt.Alias("c"))
+	opt.Parse(os.Args[1:])
 	if len(os.Args[1:]) == 0 {
         	fmt.Print(opt.Help())
         	os.Exit(1)
@@ -70,7 +71,18 @@ func directory_exists (dir string) (bool) {
 }
 
 func directory_filecount (dir string) (int) {
-	files, err := ioutil.ReadDir(dir)
-	if err != nil { return -1 }
-	return len(files)
+	var result int
+
+	dircontent, err := ioutil.ReadDir(dir)
+	if err != nil { return 0 }
+
+	for _, object := range dircontent {
+		if !object.IsDir() {
+			result++
+		} else {
+			result += directory_filecount(dir+"/"+object.Name())
+		}
+	}
+
+	return result
 }

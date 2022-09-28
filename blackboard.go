@@ -18,9 +18,11 @@ func main() {
 	var directory string
 	var listen string
 	var methods []string
+	var timeout int
 	opt := getoptions.New()
 	opt.StringVar(&directory, "directory", ``, opt.Required())
 	opt.StringVar(&listen, "listen", `:8000`)
+	opt.IntVar(&timeout, "timeout", 60)
 	opt.StringSliceVar(&methods, "methods", 1, 4)
 	remaining, err := opt.Parse(os.Args[1:])
 
@@ -75,8 +77,8 @@ func main() {
         Handler:      r,
         Addr:         listen,
         // Good practice: enforce timeouts for servers you create!
-        WriteTimeout: 5 * time.Second,
-        ReadTimeout:  5 * time.Second,
+        WriteTimeout: time.Duration(timeout) * time.Second,
+        ReadTimeout:  time.Duration(timeout) * time.Second,
     }
 
     log.Fatal(srv.ListenAndServe())

@@ -282,5 +282,5 @@ func LastModified (filename string) (string) {
 	}
 	statinfo, _ := fh.Stat()
 
-	return statinfo.ModTime().Format(http.TimeFormat)
+	return statinfo.ModTime().UTC().Format(http.TimeFormat)
 }

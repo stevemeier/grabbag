@@ -1,45 +1,40 @@
 package main
 
+import "bufio"
 import "bytes"
 import "image"
-import "github.com/signintech/gopdf"
 import _ "image/png"
+import "log"
+import "os"
+import "github.com/signintech/gopdf"
 import qrcode "github.com/skip2/go-qrcode"
 
 const qrsize int = 128 + 32
 
 func main() {
+	var texts []string
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		texts = append(texts, scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+
 	pdf := gopdf.GoPdf{}
 	pdf.Start(gopdf.Config{PageSize: *gopdf.PageSizeA4 })
 	pdf.AddPage()
 
-	// First row at 15 is ok
-//	pdf.ImageFrom(text2image("Test 1"),  58, 15, nil)
-//	pdf.ImageFrom(text2image("Test 2"), 256, 15, nil)
-//	pdf.ImageFrom(text2image("Test 3"), 454, 15, nil)
-	pdf.ImageFrom(text2image("Test 1"), coord(0,"x"), coord(0,"y"), nil)
-	pdf.ImageFrom(text2image("Test 2"), coord(1,"x"), coord(1,"y"), nil)
-	pdf.ImageFrom(text2image("Test 3"), coord(2,"x"), coord(2,"y"), nil)
+	for i := 0; i < len(texts); i++ {
+		pdf.ImageFrom(text2image(texts[i]), coord(i,"x"), coord(i,"y"), nil)
+	}
 
-	// Second row at 115 is ok
-	pdf.ImageFrom(text2image("Test 4"),  58, 115, nil)
-	pdf.ImageFrom(text2image("Test 5"), 256, 115, nil)
-	pdf.ImageFrom(text2image("Test 6"), 454, 115, nil)
-
-	// Third row at 220 is ok
-	pdf.ImageFrom(text2image("Test 7"),  58, 220, nil)
-	pdf.ImageFrom(text2image("Test 8"), 256, 220, nil)
-	pdf.ImageFrom(text2image("Test 9"), 454, 220, nil)
-
-	pdf.ImageFrom(text2image("Test 19"), coord(18,"x"), coord(18,"y"), nil)
-	pdf.ImageFrom(text2image("Test 20"), coord(19,"x"), coord(19,"y"), nil)
-	pdf.ImageFrom(text2image("Test 21"), coord(20,"x"), coord(20,"y"), nil)
-
-	pdf.ImageFrom(text2image("Test 22"), coord(21,"x"), coord(21,"y"), nil)
-	pdf.ImageFrom(text2image("Test 23"), coord(22,"x"), coord(22,"y"), nil)
-	pdf.ImageFrom(text2image("Test 24"), coord(23,"x"), coord(23,"y"), nil)
-
-	pdf.WritePdf("test2.pdf")
+	if len(os.Args) == 2 {
+		pdf.WritePdf(os.Args[1])
+	} else {
+		pdf.WritePdf("stickers.pdf")
+	}
 }
 
 func text2image (s string) (image.Image) {

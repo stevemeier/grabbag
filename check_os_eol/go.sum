@@ -1,0 +1,6 @@
+github.com/DavidGamba/go-getoptions v0.26.0 h1:3Hy0o6xTYs9icM5uPNqqck5PyZm5lZWRIDH/n5SV2uw=
+github.com/DavidGamba/go-getoptions v0.26.0/go.mod h1:qLaLSYeQ8sUVOfKuu5JT5qKKS3OCwyhkYSJnoG+ggmo=
+github.com/acobaugh/osrelease v0.1.0 h1:Yb59HQDGGNhCj4suHaFQQfBps5wyoKLSSX/J/+UifRE=
+github.com/acobaugh/osrelease v0.1.0/go.mod h1:4bFEs0MtgHNHBrmHCt67gNisnabCRAlzdVasCEGHTWY=
+github.com/olorin/nagiosplugin v1.2.0 h1:WmwKsepdCY11CNwVkbSwFHHRfeb/gSktOPfjmgjt9tQ=
+github.com/olorin/nagiosplugin v1.2.0/go.mod h1:/KnG+YnByojJ3D2OuoiOIzWwnN0yn3eNWLYnyVEDsHU=

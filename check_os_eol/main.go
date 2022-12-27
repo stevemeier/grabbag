@@ -50,6 +50,12 @@ func load_eoldata () {
 	EOLdata{ID: "rhel", VersionID: "8", Ultimo: time.Date(2029,  5, 31, 0,0,0,0,time.UTC)},
 	EOLdata{ID: "rhel", VersionID: "9", Ultimo: time.Date(2032,  5, 31, 0,0,0,0,time.UTC)},
 
+	EOLdata{ID: "synology_dsm", VersionID: "6.0", Ultimo: time.Date(2018,  6,  1, 0,0,0,0,time.UTC)},
+	EOLdata{ID: "synology_dsm", VersionID: "6.1", Ultimo: time.Date(2019,  6,  1, 0,0,0,0,time.UTC)},
+	EOLdata{ID: "synology_dsm", VersionID: "6.2", Ultimo: time.Date(2021,  6,  1, 0,0,0,0,time.UTC)},
+	EOLdata{ID: "synology_dsm", VersionID: "7.0", Ultimo: time.Date(2023,  6,  1, 0,0,0,0,time.UTC)},
+	EOLdata{ID: "synology_dsm", VersionID: "7.1", Ultimo: time.Date(2024,  6,  1, 0,0,0,0,time.UTC)},
+
 	EOLdata{ID: "ubuntu", VersionID: "14.04", Ultimo: time.Date(2024, 4,  1, 0,0,0,0,time.UTC)},
 	EOLdata{ID: "ubuntu", VersionID: "16.04", Ultimo: time.Date(2026, 4,  1, 0,0,0,0,time.UTC)},
 	EOLdata{ID: "ubuntu", VersionID: "18.04", Ultimo: time.Date(2028, 4,  1, 0,0,0,0,time.UTC)},

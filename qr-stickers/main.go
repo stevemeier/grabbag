@@ -27,6 +27,7 @@ func main() {
 	pdf.AddPage()
 
 	for i := 0; i < len(texts); i++ {
+		if len(texts[i]) == 0 { continue }
 		pdf.ImageFrom(text2image(texts[i]), coord(i,"x"), coord(i,"y"), nil)
 	}
 

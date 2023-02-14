@@ -6,7 +6,7 @@ PASSWORD=""
 # No changes after this point
 
 BASEURL="https://updateinfo.cefs.steve-meier.de/"
-DIRS=( "7/updates/x86_64" "8/updates/aarch64" "8/updates/ppc64le" "8/updates/x86_64" )
+DIRS=( "7/updates/x86_64" )
 WGETOPTS="-N -T 30 -q"
 
 # Rewrite %40 to @, if necessary

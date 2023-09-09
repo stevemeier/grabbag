@@ -28,8 +28,8 @@ func main() {
 	opt.StringSliceVar(&goodstates, "accept", 1, 100, opt.Alias("a"))
 	opt.BoolVar(&debug, "debug", false)
 	opt.BoolVar(&justwarn, "warn", false, opt.Alias("w"))
-        opt.Parse(os.Args[1:])
-        if len(os.Args[1:]) == 0 {
+        _, opterr := opt.Parse(os.Args[1:])
+        if len(os.Args[1:]) == 0 && opterr != nil {
                 fmt.Print(opt.Help())
                 os.Exit(1)
         }
@@ -77,7 +77,7 @@ func main() {
 
 	// Check if parsing the state worked
 	if state == "UNKNOWN" {
-		check.AddResult(nagiosplugin.UNKNOWN, fmt.Sprintf("Could not parse server state", state))
+		check.AddResult(nagiosplugin.UNKNOWN, "Could not parse server state")
 		check.Finish()
 	}
 

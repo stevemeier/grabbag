@@ -2,6 +2,7 @@ package main
 
 import "fmt"
 import "os"
+import "regexp"
 import "time"
 import "github.com/acobaugh/osrelease"
 import "github.com/DavidGamba/go-getoptions"
@@ -111,7 +112,19 @@ func main() {
 		check.Finish()
 	}
 
-	osfound, iseol, eoloffset := is_eol(osrel["ID"], osrel["VERSION_ID"])
+	// Alma and Rocky seem to have the same EOL policy as Red Hat, so we map them
+	if osrel["ID"] == "almalinux" || osrel["ID"] == "rocky" {
+		osrel["ID"] = "rhel"
+	}
+
+	var osfound bool
+	var iseol bool
+	var eoloffset time.Duration
+	osfound, iseol, eoloffset = is_eol(osrel["ID"], osrel["VERSION_ID"])
+	if !osfound {
+		// For distributions like Red Hat, we need the major version only (8, instead of 8.8)
+		osfound, iseol, eoloffset = is_eol(osrel["ID"], extract_major(osrel["VERSION_ID"]))
+	}
 
 	if iseol {
 		check.AddResult(nagiosplugin.CRITICAL, fmt.Sprintf("OS has reached EOL %d days ago", days(eoloffset)))
@@ -119,7 +132,7 @@ func main() {
 	}
 
 	if !osfound {
-		check.AddResult(nagiosplugin.UNKNOWN, fmt.Sprintf("No EOL information available for this OS"))
+		check.AddResult(nagiosplugin.UNKNOWN, fmt.Sprintf("No EOL information available for this OS: %s / %s", osrel["ID"], osrel["VERSION_ID"]))
 		check.Finish()
 	}
 
@@ -144,4 +157,13 @@ func is_eol (id string, version string) (bool, bool, time.Duration) {
 
 func days (t time.Duration) (int) {
 	return int(t.Hours() / 24)
+}
+
+func extract_major (id string) (string) {
+	re := regexp.MustCompile("^\\d+")
+	matches := re.FindStringSubmatch(id)
+	if len(matches) > 0 {
+		return matches[0]
+	}
+	return "x"
 }

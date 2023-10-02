@@ -40,6 +40,7 @@ func load_eoldata () {
 	EOLdata{ID: "fedora", VersionID: "35", Ultimo: time.Date(2022, 12, 13, 0,0,0,0,time.UTC)},
 	EOLdata{ID: "fedora", VersionID: "36", Ultimo: time.Date(2023,  5, 16, 0,0,0,0,time.UTC)},
 	EOLdata{ID: "fedora", VersionID: "37", Ultimo: time.Date(2023, 12, 15, 0,0,0,0,time.UTC)},
+	EOLdata{ID: "fedora", VersionID: "38", Ultimo: time.Date(2024,  5, 14, 0,0,0,0,time.UTC)},
 
 	EOLdata{ID: "raspbian", VersionID:  "9", Ultimo: time.Date(2022, 6, 30, 0,0,0,0,time.UTC)},
 	EOLdata{ID: "raspbian", VersionID: "10", Ultimo: time.Date(2024, 6,  1, 0,0,0,0,time.UTC)},

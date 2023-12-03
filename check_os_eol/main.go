@@ -32,6 +32,9 @@ func load_eoldata () {
 	EOLdata{ID: "debian", VersionID:  "9", Ultimo: time.Date(2022,  6, 30, 0,0,0,0,time.UTC)},
 	EOLdata{ID: "debian", VersionID: "10", Ultimo: time.Date(2024,  6,  1, 0,0,0,0,time.UTC)},
 	EOLdata{ID: "debian", VersionID: "11", Ultimo: time.Date(2026,  8, 15, 0,0,0,0,time.UTC)},
+	// Debian 12, aka Bookworm has no definite EOL date as of Dec 3rd, 2023
+	// As the lifetime is roughly three years for each release, setting it to mid-2026 for now
+	EOLdata{ID: "debian", VersionID: "12", Ultimo: time.Date(2026,  8, 15, 0,0,0,0,time.UTC)},
 
 	EOLdata{ID: "fedora", VersionID: "30", Ultimo: time.Date(2020,  6, 26, 0,0,0,0,time.UTC)},
 	EOLdata{ID: "fedora", VersionID: "31", Ultimo: time.Date(2020, 11, 30, 0,0,0,0,time.UTC)},

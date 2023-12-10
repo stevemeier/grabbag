@@ -1,0 +1,10 @@
+github.com/DavidGamba/go-getoptions v0.29.0 h1:cU8MjOyfAyPZke4hrgEuiGBJHS9PFYPAHve2fhDhdDk=
+github.com/DavidGamba/go-getoptions v0.29.0/go.mod h1:zE97E3PR9P3BI/HKyNYgdMlYxodcuiC6W68KIgeYT84=
+github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
+github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
+github.com/mackerelio/go-osstat v0.2.4 h1:qxGbdPkFo65PXOb/F/nhDKpF2nGmGaCFDLXoZjJTtUs=
+github.com/mackerelio/go-osstat v0.2.4/go.mod h1:Zy+qzGdZs3A9cuIqmgbJvwbmLQH9dJvtio5ZjJTbdlQ=
+github.com/olorin/nagiosplugin v1.2.0 h1:WmwKsepdCY11CNwVkbSwFHHRfeb/gSktOPfjmgjt9tQ=
+github.com/olorin/nagiosplugin v1.2.0/go.mod h1:/KnG+YnByojJ3D2OuoiOIzWwnN0yn3eNWLYnyVEDsHU=
+golang.org/x/sys v0.15.0 h1:h48lPFYpsTvQJZF4EKyI4aLHaev3CxivZmv7yZig9pc=
+golang.org/x/sys v0.15.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=

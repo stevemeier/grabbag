@@ -24,16 +24,8 @@ func main() {
 	opt.Parse(os.Args[1:])
 
 	if len(lists) == 0 {
-		lists = []string{"cbl.abuseat.org",
-		                 "virbl.dnsbl.bit.nl",
-	                         "blackholes.five-ten-sg.com",
-	                         "dnsbl.inps.de",
-	                         "ix.dnsbl.manitu.net",
-	                         "no-more-funn.moensted.dk",
-	                         "combined.njabl.org",
-	                         "dnsbl.njabl.org",
+		lists = []string{"ix.dnsbl.manitu.net",
 	                         "dnsbl.sorbs.net",
-	                         "bl.spamcannibal.org",
 	                         "bl.spamcop.net",
 	                         "sbl.spamhaus.org",
 	                         "xbl.spamhaus.org",
@@ -42,7 +34,7 @@ func main() {
 	                         "psbl.surriel.com",
 	                         "l2.apews.org",
 	                         "dnsrbl.swinog.ch",
-	                         "db.wpbl.info"}
+	                         }
 	}
 
 	if printlists {

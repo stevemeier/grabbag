@@ -1,5 +1,6 @@
 package main
 
+import "errors"
 import "fmt"
 import "os"
 import "strings"
@@ -104,9 +105,16 @@ func has_dns_entry (s string) (bool, error) {
 	response, _, err := dnsclient.Exchange(&message, dnsserver+":53")
 
 	if err != nil {
-		return true, err
+		// Check the type of error we encountered
+		if errors.Is(err, os.ErrDeadlineExceeded) {
+			// If we run into a timeout, the DNSBL may be dead, so we assume not listed
+			return false, nil
+		} else {
+			// For any other error, we assume listed
+			return true, err
+		}
 	} else {
-		return len(response.Answer) > 0, err
+		return len(response.Answer) > 0, nil
 	}
 }
 

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x 
+
 DBPATH="${1}"
 if [ "${DBPATH}" == "" ]; then
 	DBPATH="/home/mail/followup.db"
@@ -11,6 +13,9 @@ for DIR in "${DIRS[@]}"; do
 	if [ ! -z "${DIR}" ] && [ ! -r "${DIR}" ]; then
 		echo "UNKNOWN - Can not access ${DIR} en route to ${DBPATH}"
 		exit 3
+	fi
+        if [ -d "${DIR}" ]; then
+		cd ${DIR}
 	fi
 done
 

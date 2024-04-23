@@ -1,7 +1,5 @@
 #!/bin/bash
 
-set -x 
-
 DBPATH="${1}"
 if [ "${DBPATH}" == "" ]; then
 	DBPATH="/home/mail/followup.db"

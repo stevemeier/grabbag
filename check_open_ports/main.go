@@ -17,11 +17,15 @@ func main() {
 	var udpPorts string
 	var nmapBinary string = "/usr/bin/nmap"
 	var nmapAltBinary string
+	var ipv6 bool
+	var debug bool
 
 	flag.StringVar(&host, "host", "", "Host")
 	flag.StringVar(&tcpPorts, "tcp", "", "TCP ports which should be open")
 	flag.StringVar(&udpPorts, "udp", "", "UDP ports which should be open")
 	flag.StringVar(&nmapAltBinary, "bin", "", "Path of nmap binary to use")
+	flag.BoolVar(&debug, "debug", false, "Enable debug output")
+	flag.BoolVar(&ipv6, "6", false, "Enable IPv6 scanning")
 
 	flag.Parse()
 
@@ -48,10 +52,13 @@ func main() {
 		nmap.WithBinaryPath(nmapBinary),
 		nmap.WithSkipHostDiscovery(),
 	)
+
+	if ipv6 { scanner.AddOptions(nmap.WithIPv6Scanning()) }
 	result, warnings, err := scanner.Run()
 
 	if len(*warnings) > 0 {
 		fmt.Printf("WARNING - nmap returned %d warnings\n", len(*warnings))
+		if debug { fmt.Println(warnings) }
 		os.Exit(1) // Nagios WARNING status
 	}
 

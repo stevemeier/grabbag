@@ -5,12 +5,20 @@ if [ "${DBPATH}" == "" ]; then
 	DBPATH="/home/mail/followup.db"
 fi
 
+IFS='/' read -ra DIRS <<< "${DBPATH}"
+cd /
+for DIR in "${DIRS[@]}"; do
+	if [ ! -z "${DIR}" ] && [ ! -r "${DIR}" ]; then
+		echo "UNKNOWN - Can not access ${DIR} en route to ${DBPATH}"
+		exit 3
+	fi
+        if [ -d "${DIR}" ]; then
+		cd ${DIR}
+	fi
+done
+
 if [ ! -f ${DBPATH} ]; then
 	echo "UNKNOWN - $DBPATH not found"
-	exit 3
-fi
-if [ ! -r ${DBPATH} ]; then
-	echo "UNKNOWN - $DBPATH not readable"
 	exit 3
 fi
 

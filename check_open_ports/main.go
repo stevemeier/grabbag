@@ -34,6 +34,17 @@ func main() {
 		nmapBinary = nmapAltBinary
 	}
 
+	// Check host and port parameters
+	if host == "" {
+		fmt.Println("UNKNOWN - No host defined")
+		os.Exit(3)
+	}
+
+	if tcpPorts == "" && udpPorts == "" {
+		fmt.Println("UNKNOWN - No ports defined")
+		os.Exit(3)
+	}
+
 	// Check nmap binary
 	if _, err := os.Stat(nmapBinary); os.IsNotExist(err) {
 		fmt.Printf("UNKNOWN - nmap binary not found or not executable at %s\n", nmapBinary)

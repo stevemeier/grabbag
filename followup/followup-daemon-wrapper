@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "$#" -ne 1 ]; then
+  exit 1
+fi
+
+HOMEDIR=$(getent passwd $1 | cut -d: -f6)
+exec /usr/bin/followup-daemon --db ${HOMEDIR}/followup.db

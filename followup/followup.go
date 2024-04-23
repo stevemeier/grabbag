@@ -10,7 +10,6 @@ import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 import "github.com/DavidGamba/go-getoptions"
 import "github.com/gofrs/uuid"
-import lib "./lib"
 
 func main() {
 	var db *sql.DB
@@ -32,7 +31,7 @@ func main() {
 
 	// Open database and check that table exists
 	var dbpath string
-	if lib.Env_defined("HOME") {
+	if Env_defined("HOME") {
 		dbpath = os.Getenv("HOME") + "/followup.db"
 	} else {
 		dbpath = "./followup.db"
@@ -42,7 +41,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	lib.Check_schema(db)
+	Check_schema(db)
 
 	// Read eEmail from STDIN
 	var message *mail.Message
@@ -67,7 +66,7 @@ func main() {
 	dest = append(dest, AddressesFromField(message.Header, "Bcc")...)
 
 	// Process $RECIPIENT from environment, if set
-	if lib.Env_defined("ORIGINAL_RECIPIENT") {
+	if Env_defined("ORIGINAL_RECIPIENT") {
 		dest = append(dest, os.Getenv("ORIGINAL_RECIPIENT"))
 	}
 
@@ -77,11 +76,11 @@ func main() {
 			fmt.Printf("Processing %s\n", addr)
 		}
 		// Remove recurring reminders when replied to
-		if lib.Is_uuid(lib.User_of(addr)) {
+		if Is_uuid(User_of(addr)) {
 			if debug {
-				fmt.Printf("Disabling reminder for %s\n", lib.User_of(addr))
+				fmt.Printf("Disabling reminder for %s\n", User_of(addr))
 			}
-			if lib.Disable_reminder(db, lib.User_of(addr)) {
+			if Disable_reminder(db, User_of(addr)) {
 				os.Exit(0)
 			} else {
 				os.Exit(111)
@@ -89,7 +88,7 @@ func main() {
 		}
 
 		// Change address into seconds in the future
-		duration, recurring, err := lib.Parse_spec(lib.User_of(addr), lib.Get_setting(db,`timezone`,`CET`))
+		duration, recurring, err := Parse_spec(User_of(addr), Get_setting(db,`timezone`,`CET`))
 		if debug {
 			fmt.Println(addr, duration)
 		}
@@ -101,7 +100,7 @@ func main() {
 							    message.Header.Get("Message-ID"),
 							    time.Now().Unix() + duration,
 						            recurring,
-							    lib.User_of(addr) )
+							    User_of(addr) )
 			if reminder_created {
 				os.Exit(0)
 			} else {

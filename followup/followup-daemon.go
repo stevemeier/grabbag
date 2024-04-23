@@ -4,16 +4,15 @@ import "crypto/tls"
 import "fmt"
 import "log"
 import "time"
-import "github.com/domodwyer/mailyak"
+import "github.com/domodwyer/mailyak/v3"
 import "net/smtp"
 import "os"
 import "database/sql"
 import _ "github.com/mattn/go-sqlite3"
 import "github.com/DavidGamba/go-getoptions"
 import "github.com/davecgh/go-spew/spew"
-import lib "./lib"
 
-const version string = "20200305"
+const version string = "20240419"
 
 func main() {
 	var db *sql.DB
@@ -28,9 +27,9 @@ func main() {
 	_, _ = opt.Parse(os.Args[1:])
 
         // Open database and check that table exists
-	if lib.Env_defined("DBPATH") { dbpath = os.Getenv("DBPATH") }
+	if Env_defined("DBPATH") { dbpath = os.Getenv("DBPATH") }
         if (dbpath == ``) {
-	        if lib.Env_defined("HOME") {
+	        if Env_defined("HOME") {
 			dbpath = os.Getenv("HOME") + "/followup.db"
 	        } else {
 			dbpath = "./followup.db"
@@ -38,17 +37,18 @@ func main() {
         }
 
         if debug { fmt.Println("DB is in "+dbpath) }
+	log.Printf("Opening database %s", dbpath)
         db, err = sql.Open("sqlite3", dbpath)
         if err != nil {
                 log.Fatal(err)
         }
-	lib.Check_schema(db)
+	Check_schema(db)
 
 	// Check settings
-	if lib.Get_setting(db,`smtphost`,``) == `` { log.Fatal(`ERROR: smtphost (server) not set`) }
-	if lib.Get_setting(db,`smtpuser`,``) == `` { log.Fatal(`ERROR: smtpuser (username) not set`) }
-	if lib.Get_setting(db,`smtppass`,``) == `` { log.Fatal(`ERROR: smtppass (password) not set`) }
-	if lib.Get_setting(db,`smtpfrom`,``) == `` { log.Fatal(`ERROR: smtpfrom (sender) not set`) }
+	if Get_setting(db,`smtphost`,``) == `` { log.Fatal(`ERROR: smtphost (server) not set`) }
+	if Get_setting(db,`smtpuser`,``) == `` { log.Fatal(`ERROR: smtpuser (username) not set`) }
+	if Get_setting(db,`smtppass`,``) == `` { log.Fatal(`ERROR: smtppass (password) not set`) }
+	if Get_setting(db,`smtpfrom`,``) == `` { log.Fatal(`ERROR: smtpfrom (sender) not set`) }
 
 	for {
 		// Find next reminder, one by one
@@ -71,13 +71,13 @@ func main() {
 				fmt.Println("INFO: Found a pending reminder")
 			}
 			// Construct new mail object
-			mail, newerr := mailyak.NewWithTLS(lib.Get_setting(db,`smtphost`,``)+":"+lib.Get_setting(db,`smtpport`,`25`),
+			mail, newerr := mailyak.NewWithTLS(Get_setting(db,`smtphost`,``)+":"+Get_setting(db,`smtpport`,`25`),
 						smtp.PlainAuth("",
-					                   lib.Get_setting(db,`smtpuser`,``),
-							   lib.Get_setting(db,`smtppass`,``),
-							   lib.Get_setting(db,`smtphost`,``)),
-							   &tls.Config{ServerName: lib.Get_setting(db,`smtphost`,``),
-								       InsecureSkipVerify: len(lib.Get_setting(db,`smtpinsecure`,``)) > 0},
+					                   Get_setting(db,`smtpuser`,``),
+							   Get_setting(db,`smtppass`,``),
+							   Get_setting(db,`smtphost`,``)),
+							   &tls.Config{ServerName: Get_setting(db,`smtphost`,``),
+								       InsecureSkipVerify: len(Get_setting(db,`smtpinsecure`,``)) > 0},
 							   )
 
 			if newerr != nil {
@@ -85,12 +85,12 @@ func main() {
 			}
 
 			// Set the sender
-			mail.From(lib.Get_setting(db,`smtpfrom`,``))
+			mail.From(Get_setting(db,`smtpfrom`,``))
 
 			// Set recipient, subject and message-id to make sure it gets associated
 			mail.To(recipient)
 			mail.Subject(subject)
-			mail.ReplyTo(uuid + `@` + lib.Domain_of(lib.Get_setting(db,`smtpfrom`,``)))
+			mail.ReplyTo(uuid + `@` + Domain_of(Get_setting(db,`smtpfrom`,``)))
 			mail.AddHeader(`In-Reply-To`, messageid)
 			mail.AddHeader(`X-Followup-Version`, version)
 
@@ -116,7 +116,7 @@ func main() {
 					}
 				} else {
 					// Recurring reminders get updated
-					success := update_recurring(db, id, spec, lib.Get_setting(db,`timezone`,`CET`))
+					success := update_recurring(db, id, spec, Get_setting(db,`timezone`,`CET`))
 					if debug {
 						fmt.Printf("INFO: update_recurring returned: %t\n", success)
 					}
@@ -173,7 +173,7 @@ func mark_as_done(db *sql.DB, id int64) bool {
 }
 
 func update_recurring(db *sql.DB, id int64, spec string, timezone string) bool {
-	next, _, _ := lib.Parse_spec(spec, timezone)
+	next, _, _ := Parse_spec(spec, timezone)
 	if next <= 0 {
 		return false
 	}

@@ -15,7 +15,7 @@ func main() {
 	// Added reading URL from Argv
 
 	if len(os.Args) == 1 {
-		fmt.Fprintln(os.Stderr, "Missing server name")
+		fmt.Fprintf(os.Stderr, "Missing server name\n")
 		os.Exit(1)
 	}
 	serverAddr := os.Args[1]
@@ -34,7 +34,7 @@ func main() {
 	// Dial the server with timeout
 	conn, err := dialer.Dial("tcp", serverAddr)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error connecting to server: %s", err)
+		fmt.Fprintf(os.Stderr, "Error connecting to server: %s\n", err)
 		os.Exit(1)
 	}
 	defer conn.Close()
@@ -48,13 +48,13 @@ func main() {
 	tlsConn := tls.Client(conn, tlsConfig)
 	err = tlsConn.SetDeadline(time.Now().Add(10 * time.Second)) // Adjust the timeout as needed
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error setting deadline: %s", err)
+		fmt.Fprintf(os.Stderr, "Error setting deadline: %s\n", err)
 		os.Exit(2)
 	}
 
 	err = tlsConn.Handshake()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "TLS handshake error: %s", err)
+		fmt.Fprintf(os.Stderr, "TLS handshake error: %s\n", err)
 		os.Exit(2)
 	}
 	defer tlsConn.Close()

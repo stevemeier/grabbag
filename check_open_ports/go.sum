@@ -1,0 +1,4 @@
+github.com/Ullaakut/nmap/v3 v3.0.3 h1:bSFREzf0vWOi27vncgP/tiIRUx2OP+N0hGo8O/YHec8=
+github.com/Ullaakut/nmap/v3 v3.0.3/go.mod h1:dd5K68P7LHc5nKrFwQx6EdTt61O9UN5x3zn1R4SLcco=
+golang.org/x/sync v0.1.0 h1:wsuoTGHzEhffawBOhz5CYhcrV4IdKZbEyZjBMuTp12o=
+golang.org/x/sync v0.1.0/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=

@@ -25,6 +25,11 @@ func main() {
 	opt.StringVar(&username, "username", "", opt.Alias("u"), opt.Required())
 	opt.StringVar(&password, "password", "", opt.Alias("p"), opt.Required())
 	opt.BoolVar(&insecure, "insecure", false)
+	if len(os.Args) <= 1 {
+		log.Print(opt.Help())
+		os.Exit(1)
+	}
+
 	remaining, opterr := opt.Parse(os.Args[1:])
 	if opterr != nil {
 		log.Fatal(opterr)
